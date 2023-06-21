@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="10.1.1" />
+    <PackageReference Include="FluentValidation" Version="8.6.2" />
+	<PackageReference Include="Azure.Storage.Files.Shares" Version="12.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CtaCargo.CctImportacao.Domain\CtaCargo.CctImportacao.Domain.csproj" />
+    <ProjectReference Include="..\CtaCargo.CctImportacao.Infrastructure.CrossCutting\CtaCargo.CctImportacao.Infrastructure.CrossCutting.csproj" />
+    <ProjectReference Include="..\CtaCargo.CctImportacao.Infrastructure.Data\CtaCargo.CctImportacao.Infrastructure.Data.csproj" />
+  </ItemGroup>
+
+</Project>
