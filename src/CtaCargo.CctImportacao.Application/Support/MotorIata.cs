@@ -487,23 +487,39 @@ namespace CtaCargo.CctImportacao.Application.Support
             else
                 tipoDoc = $"CNPJ{ master.ConsignatarioCNPJ }";
 
+            var customsNote = new List<Waybill.CustomsNoteType>();
+
             if (master.CodigoRecintoAduaneiro != null)
             {
-                masterConsigment.IncludedCustomsNote = new Waybill.CustomsNoteType[2];
-                masterConsigment.IncludedCustomsNote[1] = new Waybill.CustomsNoteType();
-                masterConsigment.IncludedCustomsNote[1].CountryID = new Waybill.CountryIDType() { Value = Waybill.ISOTwoletterCountryCodeIdentifierContentType.BR };
-                masterConsigment.IncludedCustomsNote[1].SubjectCode = new Waybill.CodeType() { Value = "CCL" };
-                masterConsigment.IncludedCustomsNote[1].ContentCode = new Waybill.CodeType() { Value = "M" };
-                masterConsigment.IncludedCustomsNote[1].Content = new Waybill.TextType() { Value = $"CUSTOMSWAREHOUSE{ master.CodigoRecintoAduaneiro.ToString() }" };
+                customsNote.Add(new Waybill.CustomsNoteType
+                {
+                    CountryID = new Waybill.CountryIDType() { Value = Waybill.ISOTwoletterCountryCodeIdentifierContentType.BR },
+                    SubjectCode = new Waybill.CodeType() { Value = "CCL" },
+                    ContentCode = new Waybill.CodeType() { Value = "M" },
+                    Content = new Waybill.TextType() { Value = $"CUSTOMSWAREHOUSE{master.CodigoRecintoAduaneiro.ToString()}" }
+                });
             }
-            else
-                masterConsigment.IncludedCustomsNote = new Waybill.CustomsNoteType[1];
 
-            masterConsigment.IncludedCustomsNote[0] = new Waybill.CustomsNoteType();
-            masterConsigment.IncludedCustomsNote[0].CountryID = new Waybill.CountryIDType() { Value = Waybill.ISOTwoletterCountryCodeIdentifierContentType.BR };
-            masterConsigment.IncludedCustomsNote[0].SubjectCode = new Waybill.CodeType() { Value = "CNE" };
-            masterConsigment.IncludedCustomsNote[0].ContentCode = new Waybill.CodeType() { Value = "T" };
-            masterConsigment.IncludedCustomsNote[0].Content = new Waybill.TextType() { Value = tipoDoc };
+            if(master.IndicadorAwbNaoIata)
+            {
+                customsNote.Add(new Waybill.CustomsNoteType
+                {
+                    ContentCode = new Waybill.CodeType() { Value = "DI" },
+                    Content = new Waybill.TextType() { Value = "NON-IATA" },
+                    SubjectCode = new Waybill.CodeType() { Value = "WBI" },
+                    CountryID = new Waybill.CountryIDType() { Value = Waybill.ISOTwoletterCountryCodeIdentifierContentType.BR }
+                });
+            }
+
+            customsNote.Add(new Waybill.CustomsNoteType
+            {
+                CountryID = new Waybill.CountryIDType() { Value = Waybill.ISOTwoletterCountryCodeIdentifierContentType.BR },
+                SubjectCode = new Waybill.CodeType() { Value = "CNE" },
+                ContentCode = new Waybill.CodeType() { Value = "T" },
+                Content = new Waybill.TextType() { Value = tipoDoc }
+            });
+
+            masterConsigment.IncludedCustomsNote = customsNote.ToArray();
             #endregion
 
             Enum.TryParse(master.ValorFretePPUN, out Waybill.ISO3AlphaCurrencyCodeContentType valorPPUN);

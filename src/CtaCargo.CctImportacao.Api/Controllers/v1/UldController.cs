@@ -77,7 +77,8 @@ namespace CtaCargo.CctImportacao.Api.Controllers.v1
         [Route("AtualizarUldMaster")]
         public async Task<ApiResponse<List<UldMasterResponseDto>>> AtualizarUldMaster(List<UldMasterUpdateRequest> input)
         {
-            return await _uldMasterService.AtualizarUldMaster(input);
+            var userSession = HttpContext.GetUserSession();
+            return await _uldMasterService.AtualizarUldMaster(userSession, input);
         }
 
         [HttpPost]

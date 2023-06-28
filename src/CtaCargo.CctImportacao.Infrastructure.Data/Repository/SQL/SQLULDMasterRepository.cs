@@ -19,7 +19,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
         }
         public async Task<UldMaster> GetUldMasterById(int id)
         {
-            return await _context.ULDMasters.Where(x => x.Id == id && x.DataExclusao == null).FirstOrDefaultAsync();
+            return await _context.ULDMasters.Where(x => x.Id == id && x.DataExclusao == null)
+                .FirstOrDefaultAsync();
         }
         public async Task<List<UldMaster>> GetUldMasterByIdList(List<int> ids)
         {

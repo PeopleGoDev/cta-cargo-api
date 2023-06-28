@@ -10,7 +10,7 @@ namespace CtaCargo.CctImportacao.Application.Services.Contracts
 {
     public interface IUldMasterService
     {
-        Task<ApiResponse<List<UldMasterResponseDto>>> AtualizarUldMaster(List<UldMasterUpdateRequest> uldMasterRequest);
+        Task<ApiResponse<List<UldMasterResponseDto>>> AtualizarUldMaster(UserSession userSession, List<UldMasterUpdateRequest> input);
         Task<ApiResponse<List<UldMasterResponseDto>>> InserirUldMaster(UserSession userSession, List<UldMasterInsertRequest> uldMasterInsert);
         Task<ApiResponse<IEnumerable<UldMasterResponseDto>>> ListarUldMasterPorLinha(ListaUldMasterRequest input);
         Task<ApiResponse<List<UldMasterResponseDto>>> ListarUldMasterPorMasterId(int uldMasterId);

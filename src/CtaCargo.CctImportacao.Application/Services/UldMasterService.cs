@@ -315,7 +315,7 @@ namespace CtaCargo.CctImportacao.Application.Services
                         };
             }
         }
-        public async Task<ApiResponse<List<UldMasterResponseDto>>> AtualizarUldMaster(List<UldMasterUpdateRequest> input)
+        public async Task<ApiResponse<List<UldMasterResponseDto>>> AtualizarUldMaster(UserSession userSession, List<UldMasterUpdateRequest> input)
         {
             try
             {
@@ -338,8 +338,7 @@ namespace CtaCargo.CctImportacao.Application.Services
 
                     if (uld == null)
                     {
-                        return
-                        new ApiResponse<List<UldMasterResponseDto>>
+                        return new ApiResponse<List<UldMasterResponseDto>>
                         {
                             Dados = null,
                             Sucesso = false,
@@ -355,6 +354,10 @@ namespace CtaCargo.CctImportacao.Application.Services
 
                     _mapper.Map(item, uld);
 
+                    var master = await GetMasterId(userSession.CompanyId, item.MasterNumero, item.VooId);
+
+                    uld.MasterId = master.Id;
+                    uld.TotalParcial = item.QuantidadePecas < master.TotalPecas ? "P" : "T";
                     uld.ModifiedDateTimeUtc = DateTime.UtcNow;
 
                     UldMasterEntityValidator validator = new UldMasterEntityValidator();
