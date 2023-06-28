@@ -21,7 +21,7 @@
     },
     "resourceName": {
       "type": "string",
-      "defaultValue": "cta-webapi-prod",
+      "defaultValue": "api-cct-prd",
       "metadata": {
         "description": "Name of the main resource to be created by this template."
       }

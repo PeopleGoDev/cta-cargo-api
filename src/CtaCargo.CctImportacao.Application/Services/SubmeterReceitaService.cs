@@ -9,6 +9,7 @@ using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Infrastructure.Data;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using FluentValidation.Results;
+using Microsoft.Extensions.Azure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -324,7 +325,8 @@ namespace CtaCargo.CctImportacao.Application.Services
                 };
             }
         }
-        public async Task<ApiResponse<string>> SubmeterAssociacaoHousesMaster(UserSession userSession, SubmeterRFBMasterHouseRequest input)
+        public async Task<ApiResponse<string>> SubmeterAssociacaoHousesMaster(UserSession userSession, 
+            SubmeterRFBMasterHouseRequest input)
         {
             var masterNumbers = input.Masters.Select(x => x.MasterNumber).ToArray();
 
@@ -347,7 +349,7 @@ namespace CtaCargo.CctImportacao.Application.Services
 
                 TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado, "AGECARGA");
 
-                await SubmeterAssociacaoHouseMasterList(input.Masters, houses, certificado, token);
+                await SubmeterAssociacaoHouseMasterList(userSession, input.Masters, houses, certificado, token);
 
                 return new ApiResponse<string>()
                 {
@@ -882,7 +884,11 @@ namespace CtaCargo.CctImportacao.Application.Services
         #endregion
 
         #region Upload Associação House x Master
-        private async Task SubmeterAssociacaoHouseMasterList(List<SubmeterRFBMasterHouseItemRequest> Masters, List<House> houses, X509Certificate2 certificado, TokenResponse token)
+        private async Task SubmeterAssociacaoHouseMasterList(UserSession userSession,
+            List<SubmeterRFBMasterHouseItemRequest> Masters, 
+            List<House> houses, 
+            X509Certificate2 certificado, 
+            TokenResponse token)
         {
             houses.OrderBy(x => x.MasterNumeroXML);
             string curMaster = houses.FirstOrDefault().MasterNumeroXML;
@@ -900,28 +906,51 @@ namespace CtaCargo.CctImportacao.Application.Services
 
                 if(house.MasterNumeroXML != curMaster)
                 {
-                    await SubmeterHouseMasterAssociacao(freightFowarderCnpj, masterInfo, houseList, token, certificado);
+                    await SubmeterHouseMasterAssociacao(userSession, freightFowarderCnpj, masterInfo, houseList, token, certificado);
                     houseList = new List<House>();
                     houseList.Add(house);
                     curMaster = house.MasterNumeroXML;
                     masterInfo = Masters.FirstOrDefault(x => x.MasterNumber == curMaster);
                 }
             }
-            await SubmeterHouseMasterAssociacao(freightFowarderCnpj, masterInfo, houseList, token, certificado);
+            await SubmeterHouseMasterAssociacao(userSession, freightFowarderCnpj, masterInfo, houseList, token, certificado);
         }
-        private async Task SubmeterHouseMasterAssociacao(string FreightFowarderTaxId, SubmeterRFBMasterHouseItemRequest masterInfo, List<House> houses, TokenResponse token, X509Certificate2 certificado)
+        private async Task SubmeterHouseMasterAssociacao(UserSession userSession,
+            string FreightFowarderTaxId, 
+            SubmeterRFBMasterHouseItemRequest masterInfo, 
+            List<House> houses, 
+            TokenResponse token, 
+            X509Certificate2 certificado)
         {
             var associacao = await _masterHouseAssociacaoRepository
                 .SelectMasterHouseAssociacaoByMaster(masterInfo.MasterNumber);
 
             var operation = IataXmlPurposeCode.Creation;
 
-            if (associacao != null) {
-
+            if (associacao == null)
+            {
+                associacao = new MasterHouseAssociacao
+                {
+                    ConsigmentItemQuantity = houses.Count,
+                    CreatedDateTimeUtc = DateTime.UtcNow,
+                    FinalDestinationLocation = masterInfo.DestinationLocation,
+                    GrossWeight = masterInfo.TotalWeight,
+                    GrossWeightUnit = masterInfo.TotalWeightUnit,
+                    MasterNumber = masterInfo.MasterNumber,
+                    MessageHeaderDocumentId = masterInfo.MasterNumber,
+                    OriginLocation = masterInfo.OriginLocation,
+                    PackageQuantity = masterInfo.PackageQuantity,
+                    TotalPieceQuantity = masterInfo.TotalPiece,
+                    CriadoPeloId = userSession.UserId,
+                    EmpresaId = userSession.CompanyId
+                };
+            }
+            else
+            {
                 if (associacao.SituacaoAssociacaoRFBId == 1)
                 {
                     var res = _uploadReceitaFederal.CheckFileProtocol(associacao.ProtocoloAssociacaoRFB, token);
-                    await ProcessaRetornoChecagemArquivoHouseMaster(res, houses);
+                    await ProcessaRetornoChecagemArquivoHouseMaster(res, associacao, houses);
                     return;
                 }
 
@@ -932,21 +961,61 @@ namespace CtaCargo.CctImportacao.Application.Services
             }
 
             string xmlAssociacao = _motorIata
-                .GenMasterHouseManifest(masterInfo, houses, operation);
+                .GenMasterHouseManifest(masterInfo, houses, operation, associacao.CreatedDateTimeUtc);
 
-            var responseAssociacao = _uploadReceitaFederal.SubmitHouseMaster(FreightFowarderTaxId, xmlAssociacao, token, certificado);
+            var responseAssociacao = _uploadReceitaFederal
+                .SubmitHouseMaster(FreightFowarderTaxId, xmlAssociacao, token, certificado);
 
-            await ProcessarRetornoEnvioArquivoHouseMaster(responseAssociacao, houses);
+            await ProcessarRetornoEnvioArquivoHouseMaster(responseAssociacao, associacao, houses);
             
             return;
         }
         private bool CheckUploadAvailability(List<House> houses)
         {
-            if(houses.Count == 0) return false;
-            return true;
+            return houses
+                .Where(x => x.SituacaoAssociacaoRFBId != 2 || (x.SituacaoAssociacaoRFBId == 2 && x.ReenviarAssociacao))
+                .Count() > 0;
         }
-        private async Task ProcessarRetornoEnvioArquivoHouseMaster(ReceitaRetornoProtocol response, List<House> houses)
+        private async Task ProcessarRetornoEnvioArquivoHouseMaster(ReceitaRetornoProtocol response,
+            MasterHouseAssociacao associacao,
+            List<House> houses)
         {
+            switch (response.StatusCode)
+            {
+                case "Received":
+                    associacao.SituacaoAssociacaoRFBId = 1;
+                    associacao.CodigoErroAssociacaoRFB = null;
+                    associacao.DescricaoErroAssociacaoRFB = null;
+                    associacao.ProtocoloAssociacaoRFB = response.Reason;
+                    associacao.DataProtocoloAssociacaoRFB = response.IssueDateTime;
+                    associacao.ReenviarAssociacao = false;
+                    if (associacao.Id == 0)
+                        _masterHouseAssociacaoRepository.InsertMasterHouseAssociacao(associacao);
+                    else
+                        _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
+                    break;
+                case "Rejected":
+                    associacao.SituacaoAssociacaoRFBId = 3;
+                    associacao.DescricaoErroAssociacaoRFB = response.Reason;
+                    associacao.DataProtocoloAssociacaoRFB = response.IssueDateTime;
+                    if (associacao.Id == 0)
+                        _masterHouseAssociacaoRepository.InsertMasterHouseAssociacao(associacao);
+                    else
+                        _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
+                    break;
+                case "Processed":
+                    associacao.SituacaoAssociacaoRFBId = 2;
+                    associacao.CodigoErroAssociacaoRFB = null;
+                    associacao.DescricaoErroAssociacaoRFB = null;
+                    associacao.DataProtocoloAssociacaoRFB = response.IssueDateTime;
+                    associacao.ReenviarAssociacao = false;
+                    if (associacao.Id == 0)
+                        _masterHouseAssociacaoRepository.InsertMasterHouseAssociacao(associacao);
+                    else
+                        _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
+                    break;
+            }
+
             houses.ForEach(house =>
             {
                 switch (response.StatusCode)
@@ -978,8 +1047,36 @@ namespace CtaCargo.CctImportacao.Application.Services
             });
             await _vooRepository.SaveChanges();
         }
-        private async Task ProcessaRetornoChecagemArquivoHouseMaster(ProtocoloReceitaCheckFile response, List<House> houses)
+        private async Task ProcessaRetornoChecagemArquivoHouseMaster(ProtocoloReceitaCheckFile response,
+            MasterHouseAssociacao associacao,
+            List<House> houses)
         {
+            switch (response.status)
+            {
+                case "Rejected":
+                    associacao.SituacaoAssociacaoRFBId = 3;
+                    if (response.errorList.Length > 0)
+                    {
+                        associacao.CodigoErroAssociacaoRFB = response.errorList[0].code;
+                        associacao.DescricaoErroAssociacaoRFB = string.Join("\n", response.errorList.Select(x => x.description));
+                        associacao.DataChecagemAssociacaoRFB = response.dateTime;
+                    }
+                    if(associacao.Id == 0)
+                        _masterHouseAssociacaoRepository.InsertMasterHouseAssociacao(associacao);
+                    else
+                        _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
+                    break;
+                case "Processed":
+                    associacao.SituacaoAssociacaoRFBId = 2;
+                    associacao.DataChecagemAssociacaoRFB = response.dateTime;
+                    if (associacao.Id == 0)
+                        _masterHouseAssociacaoRepository.InsertMasterHouseAssociacao(associacao);
+                    else
+                        _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
+                    break;
+                default:
+                    break;
+            }
             houses.ForEach(house =>
             {
                 switch (response.status)
@@ -1003,7 +1100,7 @@ namespace CtaCargo.CctImportacao.Application.Services
                         break;
                 }
             });
-            await _houseRepository.SaveChanges();
+            await _masterHouseAssociacaoRepository.SaveChanges();
         }
         #endregion
 

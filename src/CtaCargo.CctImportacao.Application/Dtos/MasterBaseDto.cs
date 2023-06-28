@@ -16,6 +16,7 @@ namespace CtaCargo.CctImportacao.Application.Dtos
         public string ValorFreteFCUN { get; set; }
         public bool IndicadorMadeiraMacica { get; set; }
         public bool IndicadorNaoDesunitizacao { get; set; }
+        public bool IndicadorAwbNaoIata { get; set; }
         public string DescricaoMercadoria { get; set; }
         public string CodigoRecintoAduaneiro { get; set; }
         public string RUC { get; set; }

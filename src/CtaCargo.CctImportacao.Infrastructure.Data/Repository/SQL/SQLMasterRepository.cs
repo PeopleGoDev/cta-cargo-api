@@ -172,7 +172,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
         public async Task<Master> GetMasterIdByNumber(int companyId, int? vooId, string masterNumber)
         {
             var result = await _context.Masters
-                .Where(x => x.VooId == vooId && x.Numero == masterNumber && x.DataExclusao == null)
+                .Where(x => x.EmpresaId == companyId && x.VooId == vooId && x.Numero == masterNumber && x.DataExclusao == null)
                 .FirstOrDefaultAsync();
             return result;
         }

@@ -259,7 +259,6 @@ namespace CtaCargo.CctImportacao.Application.Services
 
                 foreach (var item in input)
                 {
-
                     var uld = _mapper.Map<UldMaster>(item);
                     UldMasterEntityValidator validator = new UldMasterEntityValidator();
                     var master = await GetMasterId(userSession.CompanyId, item.MasterNumero, item.VooId);
@@ -285,12 +284,12 @@ namespace CtaCargo.CctImportacao.Application.Services
                     await _masterRepository.SaveChanges();
                 }
 
-                var MasterResponseDto = _mapper.Map<List<UldMasterResponseDto>>(listaModel);
+                var masterResponseDto = _mapper.Map<List<UldMasterResponseDto>>(listaModel);
 
                 return
                     new ApiResponse<List<UldMasterResponseDto>>
                     {
-                        Dados = MasterResponseDto,
+                        Dados = masterResponseDto,
                         Sucesso = true,
                         Notificacoes = null
                     };
@@ -315,7 +314,6 @@ namespace CtaCargo.CctImportacao.Application.Services
                             }
                         };
             }
-
         }
         public async Task<ApiResponse<List<UldMasterResponseDto>>> AtualizarUldMaster(List<UldMasterUpdateRequest> input)
         {
@@ -365,7 +363,6 @@ namespace CtaCargo.CctImportacao.Application.Services
 
                     if (result.IsValid)
                     {
-
                         if (await _uldMasterRepository.UpdateUldMaster(uld) > 0)
                         {
                             var masterResponseDto = _mapper.Map<UldMasterResponseDto>(uld);
@@ -619,7 +616,7 @@ namespace CtaCargo.CctImportacao.Application.Services
         }
         private async Task<Master> GetMasterId(int companyId, string masterNumero, int vooId)
         {
-            var result = await _masterRepository.GetMasterByNumber(companyId, masterNumero);
+            var result = await _masterRepository.GetMasterIdByNumber(companyId, vooId, masterNumero);
             return result;
         }
         private async Task AtualizarValidacaoMaster(int companyId, List<UldMaster> uldMasters)

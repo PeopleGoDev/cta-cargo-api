@@ -1,5 +1,6 @@
 ﻿using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Domain.Entities;
+using System;
 using System.Collections.Generic;
 
 namespace CtaCargo.CctImportacao.Application.Support.Contracts
@@ -15,6 +16,6 @@ namespace CtaCargo.CctImportacao.Application.Support.Contracts
         string GenFullManifest(Voo vooCompleto);
         string GenHouseManifest(House house, IataXmlPurposeCode purposeCode);
         string GenMasterManifest(Master master, IataXmlPurposeCode purposeCode);
-        string GenMasterHouseManifest(SubmeterRFBMasterHouseItemRequest masterInfo, List<House> houses, IataXmlPurposeCode purposeCode);
+        string GenMasterHouseManifest(SubmeterRFBMasterHouseItemRequest masterInfo, List<House> houses, IataXmlPurposeCode purposeCode, DateTime issueDate);
     }
 }

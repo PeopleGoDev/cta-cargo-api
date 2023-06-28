@@ -43,7 +43,7 @@ namespace CtaCargo.CctImportacao.Application.Support
                 headerdoc.ID = new Flight.IDType() { Value = $"{ voo.Numero }_{ ((DateTime)voo.DataHoraSaidaEstimada).ToString("ddMMMyyy_ddMMyyyyhhmmss") }" };
                 headerdoc.Name = new Flight.TextType() { Value = "Transport Loading Report" };
                 headerdoc.TypeCode = new Flight.DocumentCodeType() { Value = Flight.DocumentNameCodeContentType.Item122 };
-                headerdoc.IssueDateTime = voo.DataEmissaoXML.Value;
+                headerdoc.IssueDateTime = voo.DataEmissaoXML.Value.AddHours(-3);
                 headerdoc.PurposeCode = new Flight.CodeType() { Value = "Creation" };
                 headerdoc.VersionID = new Flight.IDType() { Value = "2.00" };
                 headerdoc.SenderParty = new Flight.SenderPartyType[2];
@@ -974,7 +974,7 @@ namespace CtaCargo.CctImportacao.Application.Support
             return SerializeFromStream<HouseWaybill.HouseWaybillType>(manhouse, ns);
         }
 
-        public string GenMasterHouseManifest(SubmeterRFBMasterHouseItemRequest masterInfo, List<House> houses, IataXmlPurposeCode purposeCode)
+        public string GenMasterHouseManifest(SubmeterRFBMasterHouseItemRequest masterInfo, List<House> houses, IataXmlPurposeCode purposeCode, DateTime issueDate)
         {
             var portOrigin = new HouseManifest.OriginLocationType { ID = new HouseManifest.IDType { Value = masterInfo.OriginLocation } };
             var portDestiny = new HouseManifest.FinalDestinationLocationType { ID = new HouseManifest.IDType { Value = masterInfo.DestinationLocation } };
@@ -983,9 +983,9 @@ namespace CtaCargo.CctImportacao.Application.Support
 
             #region MessageHeaderDocument
             manhouse.MessageHeaderDocument = new HouseManifest.MessageHeaderDocumentType();
-            manhouse.MessageHeaderDocument.ID = new HouseManifest.IDType { Value = $"{ masterInfo.DocumentId }" };
+            manhouse.MessageHeaderDocument.ID = new HouseManifest.IDType { Value = $"{ masterInfo.MasterNumber }" };
             manhouse.MessageHeaderDocument.Name = new HouseManifest.TextType { Value = "Cargo Manifest" };
-            manhouse.MessageHeaderDocument.IssueDateTime = masterInfo.IssueDate;
+            manhouse.MessageHeaderDocument.IssueDateTime = issueDate;
             manhouse.MessageHeaderDocument.TypeCode = new HouseManifest.DocumentCodeType { Value = HouseManifest.DocumentNameCodeContentType.Item785 };
             manhouse.MessageHeaderDocument.PurposeCode = new HouseManifest.CodeType { Value = purposeCode.ToString() };
             manhouse.MessageHeaderDocument.VersionID = new HouseManifest.IDType { Value = "2.00" };

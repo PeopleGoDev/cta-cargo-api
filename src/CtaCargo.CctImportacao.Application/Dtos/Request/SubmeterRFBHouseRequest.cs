@@ -28,8 +28,6 @@ public class SubmeterRFBMasterHouseItemRequest
     public string TotalWeightUnit { get; set; }
     public int PackageQuantity { get; set; }
     public int TotalPiece { get; set; }
-    public DateTime IssueDate { get; set; }
-    public string DocumentId { get; set; }
 }
 
 public class MasterHouseAssociationUploadResponse
