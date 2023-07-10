@@ -5,6 +5,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
 {
     public interface IErroMasterRepository
     {
-        void DeleteErroMaster(ICollection<ErroMaster> erroLista);
+        void DeleteErroMaster(List<ErroMaster> erroLista);
     }
 }

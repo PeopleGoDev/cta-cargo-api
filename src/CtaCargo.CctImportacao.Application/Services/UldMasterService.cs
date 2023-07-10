@@ -252,7 +252,7 @@ namespace CtaCargo.CctImportacao.Application.Services
                 if (voo.SituacaoRFBId == RFStatusEnvioType.Received)
                     throw new Exception("Voo processando na Receita Federal não pode ser alterado!");
 
-                if (voo.SituacaoRFBId == RFStatusEnvioType.Processed)
+                if (voo.SituacaoRFBId == RFStatusEnvioType.Processed && !voo.Reenviar)
                     throw new Exception("Voo processado pela Receita Federal não pode ser alterado!");
 
                 List<UldMaster> listaModel = new List<UldMaster>();
@@ -261,9 +261,9 @@ namespace CtaCargo.CctImportacao.Application.Services
                 {
                     var uld = _mapper.Map<UldMaster>(item);
                     UldMasterEntityValidator validator = new UldMasterEntityValidator();
-                    var master = await GetMasterId(userSession.CompanyId, item.MasterNumero, item.VooId);
+                    var master = await GetMasterId(userSession.CompanyId, item.MasterNumero);
                     uld.MasterId = master.Id;
-                    uld.TotalParcial = item.QuantidadePecas < master.TotalPecas ? "P" : "T";
+                    uld.TotalParcial = master.TotalParcial;
                     var result = validator.Validate(uld);
 
                     if (!result.IsValid)
@@ -278,7 +278,7 @@ namespace CtaCargo.CctImportacao.Application.Services
 
                 foreach (var item in listaModel)
                 {
-                    var master = await _masterRepository.GetMasterIdByNumber(userSession.CompanyId, item.VooId, item.MasterNumero);
+                    var master = await _masterRepository.GetMasterByNumber(userSession.CompanyId, item.MasterNumero);
                     _validadorMaster.TratarErrosMaster(master);
                     _masterRepository.UpdateMaster(master);
                     await _masterRepository.SaveChanges();
@@ -354,10 +354,10 @@ namespace CtaCargo.CctImportacao.Application.Services
 
                     _mapper.Map(item, uld);
 
-                    var master = await GetMasterId(userSession.CompanyId, item.MasterNumero, item.VooId);
+                    var master = await GetMasterId(userSession.CompanyId, item.MasterNumero);
 
                     uld.MasterId = master.Id;
-                    uld.TotalParcial = item.QuantidadePecas < master.TotalPecas ? "P" : "T";
+                    uld.TotalParcial = master.TotalParcial;
                     uld.ModifiedDateTimeUtc = DateTime.UtcNow;
 
                     UldMasterEntityValidator validator = new UldMasterEntityValidator();
@@ -617,9 +617,9 @@ namespace CtaCargo.CctImportacao.Application.Services
             }
 
         }
-        private async Task<Master> GetMasterId(int companyId, string masterNumero, int vooId)
+        private async Task<Master> GetMasterId(int companyId, string masterNumero)
         {
-            var result = await _masterRepository.GetMasterIdByNumber(companyId, vooId, masterNumero);
+            var result = await _masterRepository.GetMasterByNumber(companyId, masterNumero);
             return result;
         }
         private async Task AtualizarValidacaoMaster(int companyId, List<UldMaster> uldMasters)

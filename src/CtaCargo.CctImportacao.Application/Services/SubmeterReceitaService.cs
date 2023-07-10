@@ -1248,7 +1248,7 @@ namespace CtaCargo.CctImportacao.Application.Services
                 case ("Received"):
                     master.SituacaoRFBId = Master.RFStatusEnvioType.Received;
                     master.StatusId = 2;
-                    master.Reenviar = false;
+                    // master.Reenviar = false;
                     master.CodigoErroRFB = null;
                     master.DescricaoErroRFB = null;
                     master.ProtocoloRFB = response.Reason;

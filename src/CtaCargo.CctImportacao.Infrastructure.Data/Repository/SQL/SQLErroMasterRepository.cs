@@ -16,9 +16,12 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
             _context = context;
         }
 
-        public void DeleteErroMaster(ICollection<ErroMaster> erroLista)
+        public void DeleteErroMaster(List<ErroMaster> erroLista)
         {
-            _context.ErrosMaster.RemoveRange(erroLista);
+            erroLista.ForEach(item => {
+                item.DataExclusao = DateTime.UtcNow;
+                _context.ErrosMaster.Update(item);
+            });
             _context.SaveChanges();
         }
     }

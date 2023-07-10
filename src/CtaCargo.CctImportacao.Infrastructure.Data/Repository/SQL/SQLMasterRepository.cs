@@ -43,7 +43,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
         {
             return await _context.Masters
                 .Include("ULDs")
-                .Include("ErrosMaster")
+                .Include(e => e.ErrosMaster.Where(e => e.DataExclusao == null))
                 .Include("UsuarioCriacaoInfo")
                 .Include("VooInfo")
                 .Where(predicate).ToListAsync();
@@ -180,7 +180,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
         public async Task<Master> GetMasterByNumber(int companyId, string masterNumber)
         {
             var result = await _context.Masters
-                .Where(x => x.Numero == masterNumber && x.DataExclusao == null)
+                .Where(x => x.EmpresaId == companyId && x.Numero == masterNumber && x.DataExclusao == null)
                 .OrderByDescending(x => x.Id)
                 .FirstOrDefaultAsync();
             return result;

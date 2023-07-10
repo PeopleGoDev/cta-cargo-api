@@ -27,8 +27,8 @@ namespace CtaCargo.CctImportacao.Application.Validators
             RuleFor(x => x.ConsignatarioPaisCodigo)
 				.MinimumLength(2)
                 .WithMessage("Sigla do País do consignatário inválido ou não informado.");
-			RuleFor(x => x.ConsignatarioCNPJ)
-				.Must(cnpj => CheckCNPJ(cnpj))
+			RuleFor(x => new { x.ConsignatarioCNPJ, x.ConsignatarioPaisCodigo })
+				.Must(cnpj => CheckCNPJ(cnpj.ConsignatarioCNPJ, cnpj.ConsignatarioPaisCodigo))
 				.WithMessage("CNPJ do consignatário invalido");
 			RuleFor(x => x.TotalPecas)
 				.NotNull()
@@ -84,8 +84,11 @@ namespace CtaCargo.CctImportacao.Application.Validators
 				.WithMessage("Campo Consolidado/Direto é obrigatório.");
 		}
 
-        private bool CheckCNPJ(string cnpj)
+        private bool CheckCNPJ(string cnpj, string paisCodigo)
         {
+			if (paisCodigo.ToUpper() != "BR")
+				return true;
+
 			if(cnpj.StartsWith("PP"))
             {
 				return ValidaPassaporte.IsPassporte(cnpj);

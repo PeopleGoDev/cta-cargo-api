@@ -95,12 +95,16 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
         public async Task<IEnumerable<VooListaQuery>> GetVoosByDate(QueryJunction<Voo> param)
         {
             return await _context.Voos
+                .Include(x => x.CompanhiaAereaInfo)
+                .Include(x => x.CompanhiaAereaInfo.CertificadoDigital)
                 .Where(param.ToPredicate())
                 .Select(x => new VooListaQuery
                 {
                     VooId = x.Id,
                     Numero = x.Numero,
-                    SituacaoVoo = x.StatusId
+                    SituacaoVoo = x.StatusId,
+                    CiaAereaNome = x.CompanhiaAereaInfo.Nome,
+                    CertificadoValidade = x.CompanhiaAereaInfo.CertificadoDigital.DataVencimento
                 }).ToListAsync();
         }
 

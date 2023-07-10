@@ -443,6 +443,7 @@ namespace CtaCargo.CctImportacao.Application.Services
                     master.Reenviar = true;
 
                 master.ModifiedDateTimeUtc = DateTime.UtcNow;
+                master.ModificadoPeloId = userSession.UserId;
                 master.VooId = voo.Id;
                 master.VooNumeroXML = input.NumeroVooXML;
                 master.AeroportoOrigemId = null;

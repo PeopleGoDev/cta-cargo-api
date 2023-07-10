@@ -173,7 +173,11 @@ namespace CtaCargo.CctImportacao.Application.Support
                             masterC.SummaryDescription = new Flight.TextType { Value = uldMaster.MasterInfo.DescricaoMercadoria };
                             masterC.TransportSplitDescription = new Flight.TextType { Value = uldMaster.TotalParcial };
                             masterC.TransportContractDocument = new Flight.TransportContractDocumentType();
-                            masterC.TransportContractDocument.ID = new Flight.IDType { Value = uldMaster.MasterInfo.Numero.Insert(3, "-") };
+
+                            masterC.TransportContractDocument.ID = new Flight.IDType
+                            {
+                                Value = uldMaster.MasterInfo.IndicadorAwbNaoIata ? uldMaster.MasterInfo.Numero : uldMaster.MasterInfo.Numero.Insert(3, "-")
+                            };
 
                             masterC.OriginLocation = new Flight.OriginLocationType
                             {
@@ -186,16 +190,17 @@ namespace CtaCargo.CctImportacao.Application.Support
                                 ID = new Flight.IDType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Codigo },
                                 Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Nome }
                             };
-
-                            // NCM do Master
-                            //string[] NCMs = uldMaster.MasterInfo.NCMLista.Split(",");
                             
-                            //masterC.IncludedMasterConsignmentItem = new Flight.IncludedMasterConsignmentItem();
-                            
-                            //masterC.IncludedMasterConsignmentItem.TypeCode = new Flight.CodeType[NCMs.Length];
-                            
-                            //for (int i = 0; i < NCMs.Length; i++)
-                            //    masterC.IncludedMasterConsignmentItem.TypeCode[i] = new Flight.CodeType { Value = NCMs[i] };
+                            if (uldMaster.MasterInfo.IndicadorAwbNaoIata) {
+                                masterC.IncludedCustomsNote = new Flight.CustomsNoteType[1];
+                                masterC.IncludedCustomsNote[0] = new Flight.CustomsNoteType
+                                {
+                                    Content = new Flight.TextType { Value = "NON-IATA" },
+                                    ContentCode = new Flight.CodeType { Value = "DI" },
+                                    SubjectCode = new Flight.CodeType { Value = "WBI" },
+                                    CountryID = new Flight.CountryIDType { Value = Flight.ISOTwoletterCountryCodeIdentifierContentType.BR }
+                                };
+                            };
 
                             masterConsigments.Add(masterC);
                         }
@@ -229,16 +234,12 @@ namespace CtaCargo.CctImportacao.Application.Support
                         };
 
                         masterC.PackageQuantity = new Flight.QuantityType { Value = 1 };
-
                         masterC.TotalPieceQuantity = new Flight.QuantityType { Value = Convert.ToDecimal(uldMaster.QuantidadePecas) };
-
                         masterC.SummaryDescription = new Flight.TextType { Value = uldMaster.MasterInfo.DescricaoMercadoria };
-
                         masterC.TransportSplitDescription = new Flight.TextType { Value = "T" };
-
                         masterC.TransportContractDocument = new Flight.TransportContractDocumentType
                         {
-                            ID = new Flight.IDType { Value = uldMaster.MasterInfo.Numero.Insert(3, "-") }
+                            ID = new Flight.IDType { Value = uldMaster.MasterInfo.IndicadorAwbNaoIata ? uldMaster.MasterInfo.Numero : uldMaster.MasterInfo.Numero.Insert(3, "-") }
                         };
 
                         masterC.OriginLocation = new Flight.OriginLocationType
@@ -253,18 +254,21 @@ namespace CtaCargo.CctImportacao.Application.Support
                             Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Nome }
                         };
 
-                        // NCM do Master
-                        //string[] NCMs = uldMaster.MasterInfo.NCMLista.Split(",");
-
-                        //masterC.IncludedMasterConsignmentItem = new Flight.IncludedMasterConsignmentItem();
-
-                        //masterC.IncludedMasterConsignmentItem.TypeCode = new Flight.CodeType[NCMs.Length];
-
-                        //for (int i = 0; i < NCMs.Length; i++)
-                        //    masterC.IncludedMasterConsignmentItem.TypeCode[i] = new Flight.CodeType { Value = NCMs[i] };
+                        if (uldMaster.MasterInfo.IndicadorAwbNaoIata)
+                        {
+                            masterC.IncludedCustomsNote = new Flight.CustomsNoteType[1];
+                            masterC.IncludedCustomsNote[0] = new Flight.CustomsNoteType
+                            {
+                                Content = new Flight.TextType { Value = "NON-IATA" },
+                                ContentCode = new Flight.CodeType { Value = "DI" },
+                                SubjectCode = new Flight.CodeType { Value = "WBI" },
+                                CountryID = new Flight.CountryIDType { Value = Flight.ISOTwoletterCountryCodeIdentifierContentType.BR }
+                            };
+                        };
 
                         masterConsigments.Add(masterC);
                     }
+
                     transpuld.IncludedMasterConsignment = masterConsigments.ToArray();
                     transportes.Add(transpuld);
                 }
@@ -297,10 +301,10 @@ namespace CtaCargo.CctImportacao.Application.Support
             #region MessageHeaderDocument
 
             Waybill.MessageHeaderDocumentType headerDocument = new Waybill.MessageHeaderDocumentType();
-            headerDocument.ID = new Waybill.IDType() { Value = $"{ master.Numero }_{ DateTime.Now.ToString("ddMMyyyhhmmss") }" };
+            headerDocument.ID = new Waybill.IDType() { Value = $"{master.Numero}_{DateTime.Now.ToString("ddMMyyyhhmmss")}" };
             headerDocument.Name = new Waybill.TextType() { Value = "MASTER AIR WAYBILL" };
 
-            if(master.CodigoConteudo != null && master.CodigoConteudo == "D")
+            if (master.CodigoConteudo != null && master.CodigoConteudo == "D")
                 headerDocument.TypeCode = new Waybill.DocumentCodeType() { Value = Waybill.DocumentNameCodeContentType.Item740 }; // Direct
             else
                 headerDocument.TypeCode = new Waybill.DocumentCodeType() { Value = Waybill.DocumentNameCodeContentType.Item741 }; // Consolidated
@@ -324,7 +328,10 @@ namespace CtaCargo.CctImportacao.Application.Support
             #region BusinessHeaderDocument
 
             Waybill.BusinessHeaderDocumentType businessDocument = new Waybill.BusinessHeaderDocumentType();
-            businessDocument.ID = new Waybill.IDType() { Value = $"{ master.Numero.Insert(3, "-") }" };
+            if (master.IndicadorAwbNaoIata)
+                businessDocument.ID = new Waybill.IDType() { Value = $"{master.Numero}" };
+            else
+                businessDocument.ID = new Waybill.IDType() { Value = $"{master.Numero.Insert(3, "-")}" };
 
             Waybill.HeaderNoteType headerNoteType;
 
@@ -344,7 +351,7 @@ namespace CtaCargo.CctImportacao.Application.Support
                     Content = new Waybill.TextType() { Value = "Consolidation" }
                 };
             }
-                
+
             businessDocument.SignatoryCarrierAuthentication = new Waybill.CarrierAuthenticationType
             {
                 ActualDateTime = master.AutenticacaoSignatarioData.Value,
@@ -480,12 +487,20 @@ namespace CtaCargo.CctImportacao.Application.Support
 
             #region MasterConsigment - IncludedCustomsNote
             string tipoDoc = "";
-            if (master.ConsignatarioCNPJ.StartsWith("PP"))
-                tipoDoc = $"PASSPORT{ master.ConsignatarioCNPJ.Substring(2) }";
-            else if (master.ConsignatarioCNPJ.Length == 11)
-                tipoDoc = $"CPF{ master.ConsignatarioCNPJ }";
+
+            if (master.ConsignatarioPaisCodigo.ToUpper() == "BR")
+            {
+                if (master.ConsignatarioCNPJ.StartsWith("PP"))
+                    tipoDoc = $"PASSPORT{master.ConsignatarioCNPJ.Substring(2)}";
+                else if (master.ConsignatarioCNPJ.Length == 11)
+                    tipoDoc = $"CPF{master.ConsignatarioCNPJ}";
+                else
+                    tipoDoc = $"CNPJ{master.ConsignatarioCNPJ}";
+            }
             else
-                tipoDoc = $"CNPJ{ master.ConsignatarioCNPJ }";
+            {
+                tipoDoc = $"CNPJ{master.CiaAereaInfo.CNPJ}";
+            }
 
             var customsNote = new List<Waybill.CustomsNoteType>();
 
@@ -500,7 +515,7 @@ namespace CtaCargo.CctImportacao.Application.Support
                 });
             }
 
-            if(master.IndicadorAwbNaoIata)
+            if (master.IndicadorAwbNaoIata)
             {
                 customsNote.Add(new Waybill.CustomsNoteType
                 {
@@ -539,122 +554,160 @@ namespace CtaCargo.CctImportacao.Application.Support
             int sequencyRating = 0;
 
             // Prepraid
-            if (master.ValorFretePP > 0)
+            sequencyRating++;
+            Waybill.RatingType ratingType = new Waybill.RatingType();
+            ratingType.TypeCode = new Waybill.CodeType { Value = "F" };
+
+            ratingType.TotalChargeAmount = new Waybill.AmountType
             {
-                sequencyRating++;
-                Waybill.RatingType ratingType = new Waybill.RatingType();
-                ratingType.TypeCode = new Waybill.CodeType { Value = "F" };
+                Value = master.ValorFretePP + master.ValorFreteFC,
+                currencyIDSpecified = true,
+                currencyID = valorPPUN
+            };
 
-                ratingType.TotalChargeAmount = new Waybill.AmountType
-                {
-                    Value = master.ValorFretePP,
-                    currencyIDSpecified = true,
-                    currencyID = valorPPUN
-                };
-
-                ratingType.ConsignmentItemQuantity = new Waybill.QuantityType { Value = 1 };
-                Waybill.MasterConsignmentItemType masterConsignmentItem = new Waybill.MasterConsignmentItemType();
-                masterConsignmentItem.SequenceNumeric = sequencyRating;
-                masterConsignmentItem.GrossWeightMeasure = new Waybill.MeasureType
-                {
-                    unitCodeSpecified = true,
-                    unitCode = pesoTotalUN,
-                    Value = Convert.ToDecimal(master.PesoTotalBruto)
-                };
+            ratingType.ConsignmentItemQuantity = new Waybill.QuantityType { Value = 1 };
+            Waybill.MasterConsignmentItemType masterConsignmentItem = new Waybill.MasterConsignmentItemType();
+            masterConsignmentItem.SequenceNumeric = sequencyRating;
+            masterConsignmentItem.GrossWeightMeasure = new Waybill.MeasureType
+            {
+                unitCodeSpecified = true,
+                unitCode = pesoTotalUN,
+                Value = Convert.ToDecimal(master.PesoTotalBruto)
+            };
+            if (master?.Volume > 0)
+            {
                 masterConsignmentItem.GrossVolumeMeasure = new Waybill.MeasureType
                 {
                     unitCodeSpecified = true,
                     unitCode = Waybill.MeasurementUnitCommonCodeContentType.MTQ,
-                    Value = 6
+                    Value = Convert.ToDecimal(master.Volume)
                 };
-                masterConsignmentItem.PieceQuantity = new Waybill.QuantityType { Value = master.TotalPecas };
-                masterConsignmentItem.NatureIdentificationTransportCargo = new Waybill.TransportCargoType();
-                masterConsignmentItem.NatureIdentificationTransportCargo.Identification = new Waybill.TextType()
-                {
-                    Value = master.DescricaoMercadoria
-                };
+            } else
+            {
+                masterConsignmentItem.TransportLogisticsPackage = new Waybill.LogisticsPackageType[1];
 
-                Waybill.MasterConsignmentItemType[] masterConsignmentItems = new Waybill.MasterConsignmentItemType[1];
-                masterConsignmentItems[0] = masterConsignmentItem;
-                masterConsignmentItems[0].ApplicableFreightRateServiceCharge = new Waybill.FreightRateServiceChargeType
+                masterConsignmentItem.TransportLogisticsPackage[0] = new Waybill.LogisticsPackageType
                 {
-                    CategoryCode = new Waybill.CodeType { Value = "Q" },
-                    ChargeableWeightMeasure = new Waybill.MeasureType
+                    ItemQuantity = new Waybill.QuantityType { Value = Convert.ToDecimal(master.TotalPecas) },
+                    GrossWeightMeasure = new Waybill.MeasureType
                     {
                         unitCodeSpecified = true,
-                        Value = Convert.ToDecimal(master.PesoTotalBruto),
-                        unitCode = pesoTotalUN
+                        unitCode = pesoTotalUN,
+                        Value = Convert.ToDecimal(master.PesoTotalBruto)
                     },
-                    AppliedRate = master.ValorFretePP / Convert.ToDecimal(master.PesoTotalBruto),
-                    AppliedAmount = new Waybill.AmountType
+                    LinearSpatialDimension = new Waybill.SpatialDimensionType
                     {
-                        currencyIDSpecified = true,
-                        currencyID = valorPPUN,
-                        Value = master.ValorFretePP
+                        HeightMeasure = new Waybill.MeasureType
+                        {
+                            Value = 10,
+                            unitCode = Waybill.MeasurementUnitCommonCodeContentType.CMT,
+                            unitCodeSpecified = true
+                        },
+                        LengthMeasure = new Waybill.MeasureType
+                        {
+                            Value = 10,
+                            unitCode = Waybill.MeasurementUnitCommonCodeContentType.CMT,
+                            unitCodeSpecified = true
+                        },
+                        WidthMeasure = new Waybill.MeasureType
+                        {
+                            Value = 10,
+                            unitCode = Waybill.MeasurementUnitCommonCodeContentType.CMT,
+                            unitCodeSpecified = true
+                        }
                     }
                 };
-                ratingType.IncludedMasterConsignmentItem = masterConsignmentItems;
-                ratingList.Add(ratingType);
-            }
+            };
+            masterConsignmentItem.PieceQuantity = new Waybill.QuantityType { Value = master.TotalPecas };
+            masterConsignmentItem.NatureIdentificationTransportCargo = new Waybill.TransportCargoType();
+            masterConsignmentItem.NatureIdentificationTransportCargo.Identification = new Waybill.TextType()
+            {
+                Value = master.DescricaoMercadoria
+            };
+
+            Waybill.MasterConsignmentItemType[] masterConsignmentItems = new Waybill.MasterConsignmentItemType[1];
+            masterConsignmentItems[0] = masterConsignmentItem;
+            //masterConsignmentItems[0].ApplicableFreightRateServiceCharge = new Waybill.FreightRateServiceChargeType
+            //{
+            //    CategoryCode = new Waybill.CodeType { Value = "Q" },
+            //    ChargeableWeightMeasure = new Waybill.MeasureType
+            //    {
+            //        unitCodeSpecified = true,
+            //        Value = Convert.ToDecimal(master.PesoTotalBruto),
+            //        unitCode = pesoTotalUN
+            //    },
+            //    AppliedRate = master.ValorFretePP / Convert.ToDecimal(master.PesoTotalBruto),
+            //    AppliedAmount = new Waybill.AmountType
+            //    {
+            //        currencyIDSpecified = true,
+            //        currencyID = valorPPUN,
+            //        Value = master.ValorFretePP
+            //    }
+            //};
+            ratingType.IncludedMasterConsignmentItem = masterConsignmentItems;
+            ratingList.Add(ratingType);
 
             // Freight Collect
-            if (master.ValorFreteFC > 0)
-            {
-                sequencyRating++;
-                Waybill.RatingType ratingType = new Waybill.RatingType();
-                ratingType.TypeCode = new Waybill.CodeType { Value = "C" };
+            //sequencyRating++;
+            //Waybill.RatingType ratingTypeFC = new Waybill.RatingType
+            //{
+            //    TypeCode = new Waybill.CodeType { Value = "C" },
 
-                ratingType.TotalChargeAmount = new Waybill.AmountType
-                {
-                    Value = master.ValorFreteFC,
-                    currencyIDSpecified = true,
-                    currencyID = valorFCUN
-                };
+            //    TotalChargeAmount = new Waybill.AmountType
+            //    {
+            //        Value = master.ValorFreteFC,
+            //        currencyIDSpecified = true,
+            //        currencyID = valorFCUN
+            //    },
+            //    ConsignmentItemQuantity = new Waybill.QuantityType { Value = 1 }
+            //};
 
-                ratingType.ConsignmentItemQuantity = new Waybill.QuantityType { Value = 1 };
-                Waybill.MasterConsignmentItemType masterConsignmentItem = new Waybill.MasterConsignmentItemType();
-                masterConsignmentItem.SequenceNumeric = sequencyRating;
-                masterConsignmentItem.GrossWeightMeasure = new Waybill.MeasureType
-                {
-                    unitCodeSpecified = true,
-                    unitCode = pesoTotalUN,
-                    Value = Convert.ToDecimal(master.PesoTotalBruto)
-                };
-                masterConsignmentItem.GrossVolumeMeasure = new Waybill.MeasureType
-                {
-                    unitCodeSpecified = true,
-                    unitCode = Waybill.MeasurementUnitCommonCodeContentType.MTQ,
-                    Value = 6
-                };
-                masterConsignmentItem.PieceQuantity = new Waybill.QuantityType { Value = master.TotalPecas };
-                masterConsignmentItem.NatureIdentificationTransportCargo = new Waybill.TransportCargoType();
-                masterConsignmentItem.NatureIdentificationTransportCargo.Identification = new Waybill.TextType()
-                {
-                    Value = master.DescricaoMercadoria
-                };
+            //Waybill.MasterConsignmentItemType masterConsignmentItemFC = new Waybill.MasterConsignmentItemType
+            //{
+            //    SequenceNumeric = sequencyRating,
+            //    GrossWeightMeasure = new Waybill.MeasureType
+            //    {
+            //        unitCodeSpecified = true,
+            //        unitCode = pesoTotalUN,
+            //        Value = Convert.ToDecimal(master.PesoTotalBruto)
+            //    },
+            //    GrossVolumeMeasure = new Waybill.MeasureType
+            //    {
+            //        unitCodeSpecified = true,
+            //        unitCode = Waybill.MeasurementUnitCommonCodeContentType.MTQ,
+            //        Value = 6
+            //    },
+            //    PieceQuantity = new Waybill.QuantityType { Value = master.TotalPecas },
+            //    NatureIdentificationTransportCargo = new Waybill.TransportCargoType
+            //    {
+            //        Identification = new Waybill.TextType
+            //        {
+            //            Value = master.DescricaoMercadoria
+            //        }
+            //    },
+            //    ApplicableFreightRateServiceCharge = new Waybill.FreightRateServiceChargeType
+            //    {
+            //        CategoryCode = new Waybill.CodeType { Value = "Q" },
+            //        ChargeableWeightMeasure = new Waybill.MeasureType
+            //        {
+            //            unitCodeSpecified = true,
+            //            Value = Convert.ToDecimal(master.PesoTotalBruto),
+            //            unitCode = pesoTotalUN
+            //        },
+            //        AppliedRate = master.ValorFretePP / Convert.ToDecimal(master.PesoTotalBruto),
+            //        AppliedAmount = new Waybill.AmountType
+            //        {
+            //            currencyIDSpecified = true,
+            //            currencyID = valorFCUN,
+            //            Value = master.ValorFreteFC
+            //        }
+            //    }
+            //};
 
-                Waybill.MasterConsignmentItemType[] masterConsignmentItems = new Waybill.MasterConsignmentItemType[1];
-                masterConsignmentItems[0] = masterConsignmentItem;
-                masterConsignmentItems[0].ApplicableFreightRateServiceCharge = new Waybill.FreightRateServiceChargeType
-                {
-                    CategoryCode = new Waybill.CodeType { Value = "Q" },
-                    ChargeableWeightMeasure = new Waybill.MeasureType
-                    {
-                        unitCodeSpecified = true,
-                        Value = Convert.ToDecimal(master.PesoTotalBruto),
-                        unitCode = pesoTotalUN
-                    },
-                    AppliedRate = master.ValorFretePP / Convert.ToDecimal(master.PesoTotalBruto),
-                    AppliedAmount = new Waybill.AmountType
-                    {
-                        currencyIDSpecified = true,
-                        currencyID = valorFCUN,
-                        Value = master.ValorFreteFC
-                    }
-                };
-                ratingType.IncludedMasterConsignmentItem = masterConsignmentItems;
-                ratingList.Add(ratingType);
-            }
+            //Waybill.MasterConsignmentItemType[] masterConsignmentItemsFC = new Waybill.MasterConsignmentItemType[1];
+            //masterConsignmentItemsFC[0] = masterConsignmentItemFC;
+            //ratingTypeFC.IncludedMasterConsignmentItem = masterConsignmentItemsFC;
+            //ratingList.Add(ratingTypeFC);
 
             masterConsigment.ApplicableRating = ratingList.ToArray();
 
@@ -662,52 +715,74 @@ namespace CtaCargo.CctImportacao.Application.Support
 
             #region MasterConsigment > ApplicableTotalRating
 
-            masterConsigment.ApplicableTotalRating = new Waybill.TotalRatingType[1];
+            //masterConsigment.ApplicableTotalRating = new Waybill.TotalRatingType[1];
 
-            masterConsigment.ApplicableTotalRating[0] = new Waybill.TotalRatingType();
-            masterConsigment.ApplicableTotalRating[0].TypeCode = new Waybill.CodeType() { Value = "F" };
-            List<Waybill.PrepaidCollectMonetarySummationType> listSumType = new List<Waybill.PrepaidCollectMonetarySummationType>();
+            //masterConsigment.ApplicableTotalRating[0] = new Waybill.TotalRatingType();
+            //masterConsigment.ApplicableTotalRating[0].TypeCode = new Waybill.CodeType() { Value = "F" };
 
-            if (master.ValorFretePP > 0)
+            //List<Waybill.PrepaidCollectMonetarySummationType> listSumType = new List<Waybill.PrepaidCollectMonetarySummationType>();
+
+            var applicableTotalRatingList = new List<Waybill.TotalRatingType>();
+
+            //if (master.ValorFretePP > 0)
+            //{
+            var applicableTotalRatingPP = new Waybill.TotalRatingType();
+            applicableTotalRatingPP.TypeCode = new Waybill.CodeType() { Value = "F" };
+
+            var sumPP = new Waybill.PrepaidCollectMonetarySummationType
             {
-                Waybill.PrepaidCollectMonetarySummationType sumPP = new Waybill.PrepaidCollectMonetarySummationType();
-                sumPP.WeightChargeTotalAmount = new Waybill.AmountType
+                WeightChargeTotalAmount = new Waybill.AmountType
                 {
                     currencyIDSpecified = true,
                     currencyID = valorPPUN,
                     Value = master.ValorFretePP
-                };
-                sumPP.GrandTotalAmount = new Waybill.AmountType()
+                },
+                GrandTotalAmount = new Waybill.AmountType
                 {
                     Value = master.ValorFretePP,
                     currencyIDSpecified = true,
                     currencyID = valorPPUN
-                };
-                sumPP.PrepaidIndicator = true;
-                listSumType.Add(sumPP);
+                },
+                PrepaidIndicator = true
             };
 
-            if (master.ValorFreteFC > 0)
+            //applicableTotalRatingPP.ApplicablePrepaidCollectMonetarySummation = new Waybill.PrepaidCollectMonetarySummationType[1];
+            //applicableTotalRatingPP.ApplicablePrepaidCollectMonetarySummation[0] = sumPP;
+
+            //applicableTotalRatingList.Add(applicableTotalRatingPP);
+            //};
+
+            //if (master.ValorFreteFC > 0)
+            //{
+            var applicableTotalRatingFC = new Waybill.TotalRatingType();
+            applicableTotalRatingFC.TypeCode = new Waybill.CodeType() { Value = "F" };
+
+            var sumFC = new Waybill.PrepaidCollectMonetarySummationType();
+            sumFC.WeightChargeTotalAmount = new Waybill.AmountType
             {
-                Waybill.PrepaidCollectMonetarySummationType sumFC = new Waybill.PrepaidCollectMonetarySummationType();
-                sumFC.WeightChargeTotalAmount = new Waybill.AmountType
-                {
-                    currencyIDSpecified = true,
-                    currencyID = valorFCUN,
-                    Value = master.ValorFreteFC
-                };
-
-                sumFC.GrandTotalAmount = new Waybill.AmountType()
-                {
-                    Value = master.ValorFreteFC,
-                    currencyIDSpecified = true,
-                    currencyID = valorFCUN
-                };
-                sumFC.PrepaidIndicator = false;
-                listSumType.Add(sumFC);
+                currencyIDSpecified = true,
+                currencyID = valorFCUN,
+                Value = master.ValorFreteFC
             };
-            masterConsigment.ApplicableTotalRating[0].ApplicablePrepaidCollectMonetarySummation = new Waybill.PrepaidCollectMonetarySummationType[listSumType.Count];
-            masterConsigment.ApplicableTotalRating[0].ApplicablePrepaidCollectMonetarySummation = listSumType.ToArray();
+
+            sumFC.GrandTotalAmount = new Waybill.AmountType()
+            {
+                Value = master.ValorFreteFC,
+                currencyIDSpecified = true,
+                currencyID = valorFCUN
+            };
+            sumFC.PrepaidIndicator = false;
+
+            applicableTotalRatingFC.ApplicablePrepaidCollectMonetarySummation = new Waybill.PrepaidCollectMonetarySummationType[2];
+            applicableTotalRatingFC.ApplicablePrepaidCollectMonetarySummation[0] = sumPP;
+            applicableTotalRatingFC.ApplicablePrepaidCollectMonetarySummation[1] = sumFC;
+
+            applicableTotalRatingList.Add(applicableTotalRatingFC);
+            //};
+            // masterConsigment.ApplicableTotalRating[0].ApplicablePrepaidCollectMonetarySummation = new Waybill.PrepaidCollectMonetarySummationType[listSumType.Count];
+
+            //masterConsigment.ApplicableTotalRating = new Waybill.TotalRatingType[1];
+            masterConsigment.ApplicableTotalRating = applicableTotalRatingList.ToArray();
             #endregion
 
             manmaster.MasterConsignment = masterConsigment;

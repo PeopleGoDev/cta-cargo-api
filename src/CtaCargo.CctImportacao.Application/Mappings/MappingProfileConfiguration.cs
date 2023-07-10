@@ -214,7 +214,8 @@ namespace CtaCargo.CctImportacao.Application.Mappings
                 .ForMember(dest => dest.AeroportoDestinoCodigo, m => m.MapFrom(a => a.AeroportoDestinoCodigo));
 
             CreateMap<VooListaQuery, VooListaResponseDto>()
-                .ForMember(dest => dest.SituacaoVoo, m => m.MapFrom(a => a.SituacaoVoo));
+                .ForMember(dest => dest.SituacaoVoo, m => m.MapFrom(a => a.SituacaoVoo))
+                .ForMember(dest => dest.CiaAereaNome, m => m.MapFrom(a => a.CiaAereaNome));
             #endregion
 
             #region Porto Iata
@@ -263,6 +264,7 @@ namespace CtaCargo.CctImportacao.Application.Mappings
             .ForMember(dest => dest.Numero, m => m.MapFrom(a => a.Numero))
             .ForMember(dest => dest.PesoTotalBruto, m => m.MapFrom(a => a.PesoTotalBruto))
             .ForMember(dest => dest.PesoTotalBrutoUN, m => m.MapFrom(a => a.PesoTotalBrutoUN))
+            .ForMember(dest => dest.TotalParcial, m => m.MapFrom(a => a.TotalParcial))
             .ForMember(dest => dest.TotalPecas, m => m.MapFrom(a => a.TotalPecas))
             .ForMember(dest => dest.ValorFOB, m => m.MapFrom(a => a.ValorFOB))
             .ForMember(dest => dest.ValorFOBUN, m => m.MapFrom(a => a.ValorFOBUN))
@@ -304,7 +306,7 @@ namespace CtaCargo.CctImportacao.Application.Mappings
             .ForMember(dest => dest.ConsolidadoDireto, m => m.MapFrom(a => a.CodigoConteudo))
             .ForMember(dest => dest.NaturezaCarga, m => m.MapFrom(a => a.NaturezaCarga))
             .ForMember(dest => dest.StatusVoo, m => m.MapFrom(a => a.VooInfo.StatusId))
-            .ForMember(dest => dest.Reenviar, m => m.MapFrom(a => a.VooInfo.Reenviar))
+            .ForMember(dest => dest.Reenviar, m => m.MapFrom(a => a.Reenviar))
             .ForMember(dest => dest.Erros, m => m.MapFrom(a => a.ErrosMaster))
             .ForMember(dest => dest.Volume, m => m.MapFrom(a => a.Volume))
             .ForMember(dest => dest.VolumeUN, m => m.MapFrom(a => a.VolumeUN));
@@ -321,6 +323,7 @@ namespace CtaCargo.CctImportacao.Application.Mappings
                 .ForMember(dest => dest.ValorFOB, m => m.MapFrom(a => a.ValorFOB))
                 .ForMember(dest => dest.ValorFOBUN, m => m.MapFrom(a => a.ValorFOBUN))
                 .ForMember(dest => dest.TotalPecas, m => m.MapFrom(a => a.TotalPecas))
+                .ForMember(dest => dest.TotalParcial, m => m.MapFrom(a => a.TotalParcial))
                 .ForMember(dest => dest.ValorFretePP, m => m.MapFrom(a => a.ValorFretePP))
                 .ForMember(dest => dest.ValorFretePPUN, m => m.MapFrom(a => a.ValorFretePPUN))
                 .ForMember(dest => dest.ValorFreteFC, m => m.MapFrom(a => a.ValorFreteFC))
@@ -355,13 +358,13 @@ namespace CtaCargo.CctImportacao.Application.Mappings
 
             CreateMap<MasterUpdateRequestDto, Master>()
                 .ForMember(dest => dest.Id, m => m.MapFrom(a => a.MasterId))
-                .ForMember(dest => dest.ModificadoPeloId, m => m.MapFrom(a => a.UsuarioAlteradorId))
                 .ForMember(dest => dest.Numero, m => m.MapFrom(a => a.Numero))
                 .ForMember(dest => dest.PesoTotalBruto, m => m.MapFrom(a => a.PesoTotalBruto))
                 .ForMember(dest => dest.PesoTotalBrutoUN, m => m.MapFrom(a => a.PesoTotalBrutoUN))
                 .ForMember(dest => dest.ValorFOB, m => m.MapFrom(a => a.ValorFOB))
                 .ForMember(dest => dest.ValorFOBUN, m => m.MapFrom(a => a.ValorFOBUN))
                 .ForMember(dest => dest.TotalPecas, m => m.MapFrom(a => a.TotalPecas))
+                .ForMember(dest => dest.TotalParcial, m => m.MapFrom(a => a.TotalParcial))
                 .ForMember(dest => dest.ValorFretePP, m => m.MapFrom(a => a.ValorFretePP))
                 .ForMember(dest => dest.ValorFretePPUN, m => m.MapFrom(a => a.ValorFretePPUN))
                 .ForMember(dest => dest.ValorFreteFC, m => m.MapFrom(a => a.ValorFreteFC))

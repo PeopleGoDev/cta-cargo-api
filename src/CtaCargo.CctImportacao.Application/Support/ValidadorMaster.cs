@@ -3,6 +3,7 @@ using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace CtaCargo.CctImportacao.Application.Support.Contracts
@@ -19,12 +20,10 @@ namespace CtaCargo.CctImportacao.Application.Support.Contracts
         public void TratarErrosMaster(Master master)
         {
             MasterEntityValidator validator = new MasterEntityValidator();
-
             var result = validator.Validate(master);
-
             master.StatusId = result.IsValid ? 1 : 0;
 
-            _erroMasterRepository.DeleteErroMaster(master.ErrosMaster);
+            _erroMasterRepository.DeleteErroMaster(master.ErrosMaster.ToList());
 
             foreach (var erro in result.Errors)
             {

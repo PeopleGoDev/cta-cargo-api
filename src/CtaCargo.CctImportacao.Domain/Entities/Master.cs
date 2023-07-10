@@ -208,5 +208,7 @@ namespace CtaCargo.CctImportacao.Domain.Entities
         [Column(TypeName = "varchar(3)")]
         public string VolumeUN { get; set; }
         public bool IndicadorAwbNaoIata { get; set; }
+        [Column(TypeName = "varchar(1)")]
+        public string TotalParcial { get; set; }
     }
 }
