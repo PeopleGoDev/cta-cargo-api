@@ -4,6 +4,7 @@ using CtaCargo.CctImportacao.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230716183948_Alteracoes024")]
+    partial class Alteracoes024
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1722,7 +1724,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
                     b.HasIndex("VooId");
 
-                    b.HasIndex("DataExclusao", "VooId");
+                    b.HasIndex("DataExclusao", "VooId")
+                        .IsUnique();
 
                     b.ToTable("VooTrecho", (string)null);
                 });

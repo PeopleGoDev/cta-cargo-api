@@ -4,6 +4,7 @@ using CtaCargo.CctImportacao.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230715160544_Alteracoes019")]
+    partial class Alteracoes019
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1437,7 +1439,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<int>("VooId")
                         .HasColumnType("int");
 
-                    b.Property<int>("VooTrechoId")
+                    b.Property<int?>("VooTrechoId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -1689,9 +1691,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("DataExclusao")
                         .HasColumnType("datetime");
 
-                    b.Property<DateTime?>("DataHoraChegadaEstimada")
-                        .HasColumnType("datetime");
-
                     b.Property<DateTime?>("DataHoraSaidaEstimada")
                         .HasColumnType("datetime");
 
@@ -1704,7 +1703,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("ModifiedDateTimeUtc")
                         .HasColumnType("datetime");
 
-                    b.Property<int?>("PortoIataDestinoId")
+                    b.Property<int?>("PortoDestinoId")
                         .HasColumnType("int");
 
                     b.Property<int>("VooId")
@@ -1718,13 +1717,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
                     b.HasIndex("ModificadoPeloId");
 
-                    b.HasIndex("PortoIataDestinoId");
+                    b.HasIndex("PortoDestinoId");
 
                     b.HasIndex("VooId");
 
-                    b.HasIndex("DataExclusao", "VooId");
-
-                    b.ToTable("VooTrecho", (string)null);
+                    b.ToTable("VooTrecho");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Infrastructure.Data.Context.ResumoVooUldView", b =>
@@ -2289,8 +2286,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasOne("CtaCargo.CctImportacao.Domain.Entities.VooTrecho", "VooTrechoInfo")
                         .WithMany("ULDs")
                         .HasForeignKey("VooTrechoId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Empresa");
 
@@ -2388,9 +2384,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.PortoIata", "PortoIataDestinoInfo")
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.PortoIata", "PortoDestinoInfo")
                         .WithMany()
-                        .HasForeignKey("PortoIataDestinoId")
+                        .HasForeignKey("PortoDestinoId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Voo", "VooInfo")
@@ -2401,7 +2397,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
                     b.Navigation("Empresa");
 
-                    b.Navigation("PortoIataDestinoInfo");
+                    b.Navigation("PortoDestinoInfo");
 
                     b.Navigation("UsuarioCriacaoInfo");
 

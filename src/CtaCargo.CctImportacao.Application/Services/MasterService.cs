@@ -622,7 +622,7 @@ namespace CtaCargo.CctImportacao.Application.Services
                         throw new Exception("Master processado na Receita Federal. Submeta o master para 'Exclusion' na Receita Federal e então prossiga com a exclusão.");
 
                     var uldsMaster = await _uldMasterRepository.GetUldMasterByMasterId(master.Id);
-                    await _uldMasterRepository.DeleteUldMasterList(uldsMaster);
+                    _uldMasterRepository.DeleteUldMasterList(uldsMaster, userSession.UserId);
                     _masterRepository.DeleteMaster(userSession.CompanyId, master);
                 }
 

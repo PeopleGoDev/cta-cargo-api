@@ -94,6 +94,15 @@ namespace CtaCargo.CctImportacao.Api.Controllers
             return await _vooService.ExcluirVoo(vooId, sessionInfo);
         }
 
+        [HttpGet]
+        [Authorize]
+        [Route("ListarVooTrechos")]
+        public ApiResponse<IEnumerable<VooTrechoResponse>> ListarVooTrechos(int vooId)
+        {
+            UserSession sessionInfo = GetUserSessionInfo();
+            return _vooService.VooTrechoPorVooId(sessionInfo, vooId);
+        }
+
         private UserSession GetUserSessionInfo()
         {
             var identity = User?.Identity as ClaimsIdentity;

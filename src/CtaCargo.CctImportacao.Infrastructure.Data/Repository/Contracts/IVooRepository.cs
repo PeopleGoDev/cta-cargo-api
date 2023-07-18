@@ -11,6 +11,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
         Task<bool> SaveChanges();
         Task<IEnumerable<Voo>> GetAllVoos(QueryJunction<Voo> param);
         Task<Voo> GetVooById(int vooId);
+        IEnumerable<VooTrecho> GetTrechoByVooId(int vooId);
         Task<Voo> GetVooIdByDataVooNumero(DateTime dataVoo, string numeroVoo);
         Task<SituacaoRFBQuery> GetVooRFBStatus(int vooId);
         Task<Voo> GetVooWithULDById(int companyId, int vooId);
@@ -18,5 +19,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
         void CreateVoo(Voo voo);
         void UpdateVoo(Voo voo);
         void DeleteVoo(Voo voo);
+        VooTrecho SelectTrecho(int id);
+        void AddTrecho(VooTrecho trecho);
+        void UpdateTrecho(VooTrecho trecho);
+        void RemoveTrecho(VooTrecho trecho);
     }
 }

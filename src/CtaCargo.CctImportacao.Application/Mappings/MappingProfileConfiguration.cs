@@ -157,62 +157,7 @@ namespace CtaCargo.CctImportacao.Application.Mappings
             #endregion
 
             #region voo
-            // Mapeamentos de Voos
-            CreateMap<Voo, VooResponseDto>()
-                .ForMember(dest => dest.VooId, m => m.MapFrom(a => a.Id))
-                .ForMember(dest => dest.Numero, m => m.MapFrom(a => a.Numero))
-                .ForMember(dest => dest.DataVoo, m => m.MapFrom(a => a.DataVoo))
-                .ForMember(dest => dest.DataHoraChegadaEstimada, m => m.MapFrom(a => a.DataHoraChegadaEstimada))
-                .ForMember(dest => dest.DataHoraChegadaReal, m => m.MapFrom(a => a.DataHoraChegadaReal))
-                .ForMember(dest => dest.DataHoraSaidaEstimada, m => m.MapFrom(a => a.DataHoraSaidaEstimada))
-                .ForMember(dest => dest.DataHoraSaidaReal, m => m.MapFrom(a => a.DataHoraSaidaReal))
-                .ForMember(dest => dest.AeroportoOrigemCodigo, m => m.MapFrom(a => a.AeroportoOrigemCodigo))
-                .ForMember(dest => dest.AeroportoDestinoCodigo, m => m.MapFrom(a => a.AeroportoDestinoCodigo))
-                .ForMember(dest => dest.PesoBruto, m => m.MapFrom(a => a.TotalPesoBruto))
-                .ForMember(dest => dest.PesoBrutoUnidade, m => m.MapFrom(a => a.TotalPesoBrutoUnidade))
-                .ForMember(dest => dest.Volume, m => m.MapFrom(a => a.TotalVolumeBruto))
-                .ForMember(dest => dest.VolumeUnidade, m => m.MapFrom(a => a.TotalVolumeBrutoUnidade))
-                .ForMember(dest => dest.TotalPacotes, m => m.MapFrom(a => a.TotalPacotes))
-                .ForMember(dest => dest.TotalPecas, m => m.MapFrom(a => a.TotalPecas))
-                .ForMember(dest => dest.StatusId, m => m.MapFrom(a => a.StatusId))
-                .ForMember(dest => dest.SituacaoRFBId, m => m.MapFrom(a => a.SituacaoRFBId))
-                .ForMember(dest => dest.ErroCodigoRFB, m => m.MapFrom(a => a.CodigoErroRFB))
-                .ForMember(dest => dest.ErroDescricaoRFB, m => m.MapFrom(a => a.DescricaoErroRFB))
-                .ForMember(dest => dest.DataProtocoloRFB, m => m.MapFrom(a => a.DataProtocoloRFB))
-                .ForMember(dest => dest.UsuarioCriacao, m => m.MapFrom(a => a.UsuarioCriacaoInfo.Nome))
-                .ForMember(dest => dest.DataCriacao, m => m.MapFrom(a => a.CreatedDateTimeUtc))
-                .ForMember(dest => dest.Reenviar, m => m.MapFrom(a => a.Reenviar));
-
-            CreateMap<VooInsertRequestDto, Voo>()
-                .ForMember(dest => dest.Numero, m => m.MapFrom(a => a.Numero))
-                .ForMember(dest => dest.DataVoo, m => m.MapFrom(a => a.DataVoo))
-                .ForMember(dest => dest.DataHoraChegadaEstimada, m => m.MapFrom(a => a.DataHoraChegadaEstimada))
-                .ForMember(dest => dest.DataHoraChegadaReal, m => m.MapFrom(a => a.DataHoraChegadaReal))
-                .ForMember(dest => dest.DataHoraSaidaEstimada, m => m.MapFrom(a => a.DataHoraSaidaEstimada))
-                .ForMember(dest => dest.DataHoraSaidaReal, m => m.MapFrom(a => a.DataHoraSaidaReal))
-                .ForMember(dest => dest.PortoIataOrigemId, m => m.MapFrom(a => a.PortoOrigemId))
-                .ForMember(dest => dest.PortoIataDestinoId, m => m.MapFrom(a => a.PortoDestinoId))
-                .ForMember(dest => dest.TotalPesoBruto, m => m.MapFrom(a => a.PesoBruto))
-                .ForMember(dest => dest.TotalPesoBrutoUnidade, m => m.MapFrom(a => a.PesoBrutoUnidade))
-                .ForMember(dest => dest.TotalVolumeBruto, m => m.MapFrom(a => a.Volume))
-                .ForMember(dest => dest.TotalVolumeBrutoUnidade, m => m.MapFrom(a => a.VolumeUnidade))
-                .ForMember(dest => dest.TotalPacotes, m => m.MapFrom(a => a.TotalPacotes))
-                .ForMember(dest => dest.TotalPecas, m => m.MapFrom(a => a.TotalPecas))
-                .ForMember(dest => dest.CriadoPeloId, m => m.MapFrom(a => a.UsuarioInsercaoId))
-                .ForMember(dest => dest.AeroportoOrigemCodigo, m => m.MapFrom(a => a.AeroportoOrigemCodigo))
-                .ForMember(dest => dest.AeroportoDestinoCodigo, m => m.MapFrom(a => a.AeroportoDestinoCodigo));
-
-            CreateMap<VooUpdateRequestDto, Voo>()
-                .ForMember(dest => dest.Id, m => m.MapFrom(a => a.VooId))
-                .ForMember(dest => dest.DataVoo, m => m.MapFrom(a => a.DataVoo))
-                .ForMember(dest => dest.DataHoraChegadaEstimada, m => m.MapFrom(a => a.DataHoraChegadaEstimada))
-                .ForMember(dest => dest.DataHoraChegadaReal, m => m.MapFrom(a => a.DataHoraChegadaReal))
-                .ForMember(dest => dest.DataHoraSaidaEstimada, m => m.MapFrom(a => a.DataHoraSaidaEstimada))
-                .ForMember(dest => dest.DataHoraSaidaReal, m => m.MapFrom(a => a.DataHoraSaidaReal))
-                .ForMember(dest => dest.ModificadoPeloId, m => m.MapFrom(a => a.UsuarioModificadorId))
-                .ForMember(dest => dest.AeroportoOrigemCodigo, m => m.MapFrom(a => a.AeroportoOrigemCodigo))
-                .ForMember(dest => dest.AeroportoDestinoCodigo, m => m.MapFrom(a => a.AeroportoDestinoCodigo));
-
+            // Mapeamentos de Voo
             CreateMap<VooListaQuery, VooListaResponseDto>()
                 .ForMember(dest => dest.SituacaoVoo, m => m.MapFrom(a => a.SituacaoVoo))
                 .ForMember(dest => dest.CiaAereaNome, m => m.MapFrom(a => a.CiaAereaNome));
@@ -414,21 +359,11 @@ namespace CtaCargo.CctImportacao.Application.Mappings
                 .ForMember(dest => dest.QuantidadePecas, m => m.MapFrom(a => a.QuantidadePecas))
                 .ForMember(dest => dest.DataCricao, m => m.MapFrom(a => a.CreatedDateTimeUtc));
 
-            CreateMap<UldMasterInsertRequest, UldMaster>()
-                .ForMember(dest => dest.ULDId, m => m.MapFrom(a => a.UldId))
-                .ForMember(dest => dest.ULDCaracteristicaCodigo, m => m.MapFrom(a => a.UldCaracteristicaCodigo))
-                .ForMember(dest => dest.ULDIdPrimario, m => m.MapFrom(a => a.UldIdPrimario))
-                .ForMember(dest => dest.CriadoPeloId, m => m.MapFrom(a => a.UsuarioId))
-                .ForMember(dest => dest.Peso, m => m.MapFrom(a => a.Peso))
-                .ForMember(dest => dest.QuantidadePecas, m => m.MapFrom(a => a.QuantidadePecas))
-                .ForMember(dest => dest.VooId, m => m.MapFrom(a => a.VooId));
-
             CreateMap<UldMasterUpdateRequest, UldMaster>()
                 .ForMember(dest => dest.Id, m => m.MapFrom(a => a.Id))
                 .ForMember(dest => dest.ULDId, m => m.MapFrom(a => a.UldId))
                 .ForMember(dest => dest.ULDCaracteristicaCodigo, m => m.MapFrom(a => a.UldCaracteristicaCodigo))
                 .ForMember(dest => dest.ULDIdPrimario, m => m.MapFrom(a => a.UldIdPrimario))
-                .ForMember(dest => dest.ModificadoPeloId, m => m.MapFrom(a => a.UsuarioId))
                 .ForMember(dest => dest.Peso, m => m.MapFrom(a => a.Peso))
                 .ForMember(dest => dest.QuantidadePecas, m => m.MapFrom(a => a.QuantidadePecas));
             #endregion

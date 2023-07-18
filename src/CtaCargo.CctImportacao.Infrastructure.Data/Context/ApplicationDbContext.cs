@@ -32,6 +32,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Context
         public DbSet<ReceitaFederalTransacao> ReceitaFederalTransacoes { get; set; }
         public DbSet<NCM> NCMs { get; set; }
         public DbSet<MasterHouseAssociacao> MasterHouseAssociacoes { get; set; }
+        public DbSet<VooTrecho> VooTrechos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -85,6 +86,12 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Context
             modelBuilder.Entity<Voo>()
                 .HasIndex(u => new { u.CiaAereaId, u.DataVoo, u.Numero, u.DataExclusao })
                 .IsUnique()
+                .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
+
+            modelBuilder.Entity<VooTrecho>()
+                .ToTable("VooTrecho");
+            modelBuilder.Entity<VooTrecho>()
+                .HasIndex(u => new { u.DataExclusao, u.VooId })
                 .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 
             modelBuilder.Entity<Master>()

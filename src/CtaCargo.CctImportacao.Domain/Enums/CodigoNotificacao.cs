@@ -5,5 +5,6 @@
         BadRequest = 400,
         RecursoNaoEncontrado = 404,
         ErroInesperado = 500,
+        Business = 200
     }
 }

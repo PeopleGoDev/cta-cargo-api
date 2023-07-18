@@ -7,9 +7,6 @@ namespace CtaCargo.CctImportacao.Application.Dtos.Request
 {
     public class UldMasterInsertRequest: UldMasterBaseDto
     {
-        public int UsuarioId { get; set; }
-        public int VooId { get; set; }
-        public int EmpresaId { get; set; }
-
+        public int TrechoId { get; set; }
     }
 }

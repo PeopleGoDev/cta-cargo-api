@@ -32,5 +32,9 @@ namespace CtaCargo.CctImportacao.Domain.Entities
         [Column(TypeName = "MONEY")]
         public decimal? Peso { get; set; }
         public string TotalParcial { get; set; }
+
+        public int VooTrechoId { get; set; }
+        [ForeignKey("VooTrechoId")]
+        public virtual VooTrecho VooTrechoInfo { get; set; }
     }
 }

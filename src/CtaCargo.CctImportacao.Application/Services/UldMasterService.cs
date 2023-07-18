@@ -7,12 +7,14 @@ using CtaCargo.CctImportacao.Application.Support;
 using CtaCargo.CctImportacao.Application.Validators;
 using CtaCargo.CctImportacao.Domain.Dtos;
 using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Exceptions;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using static CtaCargo.CctImportacao.Domain.Entities.Master;
 
@@ -46,7 +48,7 @@ namespace CtaCargo.CctImportacao.Application.Services
         #endregion
 
         #region Métodos Publicos
-        public async Task<ApiResponse<UldMasterResponseDto>> PegarUldMasterPorId(int uldId)
+        public async Task<ApiResponse<UldMasterResponseDto>> PegarUldMasterPorId(UserSession userSession, int uldId)
         {
             try
             {
@@ -94,7 +96,7 @@ namespace CtaCargo.CctImportacao.Application.Services
             }
 
         }
-        public async Task<ApiResponse<List<UldMasterResponseDto>>> ListarUldMasterPorMasterId(int masterId)
+        public async Task<ApiResponse<List<UldMasterResponseDto>>> ListarUldMasterPorMasterId(UserSession userSession, int masterId)
         {
             try
             {
@@ -142,7 +144,7 @@ namespace CtaCargo.CctImportacao.Application.Services
             }
 
         }
-        public async Task<ApiResponse<IEnumerable<UldMasterNumeroQuery>>> ListarUldMasterPorVooId(int vooId)
+        public async Task<ApiResponse<IEnumerable<UldMasterNumeroQuery>>> ListarUldMasterPorVooId(UserSession userSession, int vooId)
         {
             try
             {
@@ -174,7 +176,18 @@ namespace CtaCargo.CctImportacao.Application.Services
             }
 
         }
-        public async Task<ApiResponse<IEnumerable<MasterNumeroUldSumario>>> ListarMasterUldSumarioPorVooId(ListaUldMasterRequest input)
+        public async Task<ApiResponse<IEnumerable<UldMasterNumeroQuery>>> ListarUldMasterPorTrechoId(UserSession userSession, int trechoId)
+        {
+            List<UldMasterNumeroQuery> lista = await _uldMasterRepository.GetUldMasterByTrechoId(trechoId);
+
+            return new ApiResponse<IEnumerable<UldMasterNumeroQuery>>
+            {
+                Dados = lista,
+                Sucesso = true,
+                Notificacoes = null
+            };
+        }
+        public async Task<ApiResponse<IEnumerable<MasterNumeroUldSumario>>> ListarMasterUldSumarioPorVooId(UserSession userSession, ListaUldMasterRequest input)
         {
             try
             {
@@ -206,7 +219,7 @@ namespace CtaCargo.CctImportacao.Application.Services
             }
 
         }
-        public async Task<ApiResponse<IEnumerable<UldMasterResponseDto>>> ListarUldMasterPorLinha(ListaUldMasterRequest input)
+        public async Task<ApiResponse<IEnumerable<UldMasterResponseDto>>> ListarUldMasterPorLinha(UserSession userSession, ListaUldMasterRequest input)
         {
             try
             {
@@ -242,154 +255,127 @@ namespace CtaCargo.CctImportacao.Application.Services
         }
         public async Task<ApiResponse<List<UldMasterResponseDto>>> InserirUldMaster(UserSession userSession, List<UldMasterInsertRequest> input)
         {
-            try
+
+            var trecho = _vooRepository.SelectTrecho(input[0].TrechoId);
+
+            if (trecho == null)
+                throw new BusinessException("Trecho do voo não encontrado !");
+
+            if (trecho.VooInfo.SituacaoRFBId == RFStatusEnvioType.Received)
+                throw new BusinessException("Voo aguardando processamento na RFB. Atualize o status do voo!");
+
+            if (trecho.VooInfo.SituacaoRFBId == RFStatusEnvioType.Processed && !trecho.VooInfo.Reenviar)
+                throw new BusinessException("Voo processado pela Receita Federal não pode ser alterado!");
+
+            List<UldMaster> listaModel = new List<UldMaster>();
+
+            foreach (var item in input)
             {
-                var voo = await _vooRepository.GetVooById(input[0].VooId);
-
-                if (voo == null)
-                    throw new Exception("Voo não encontrado!");
-
-                if (voo.SituacaoRFBId == RFStatusEnvioType.Received)
-                    throw new Exception("Voo processando na Receita Federal não pode ser alterado!");
-
-                if (voo.SituacaoRFBId == RFStatusEnvioType.Processed && !voo.Reenviar)
-                    throw new Exception("Voo processado pela Receita Federal não pode ser alterado!");
-
-                List<UldMaster> listaModel = new List<UldMaster>();
-
-                foreach (var item in input)
+                var uld = new UldMaster
                 {
-                    var uld = _mapper.Map<UldMaster>(item);
-                    UldMasterEntityValidator validator = new UldMasterEntityValidator();
-                    var master = await GetMasterId(userSession.CompanyId, item.MasterNumero);
-                    uld.MasterId = master.Id;
-                    uld.TotalParcial = master.TotalParcial;
-                    var result = validator.Validate(uld);
+                    CreatedDateTimeUtc = DateTime.UtcNow,
+                    CriadoPeloId = userSession.UserId,
+                    EmpresaId = userSession.CompanyId,
+                    MasterNumero = item.MasterNumero,
+                    Peso = item.Peso,
+                    QuantidadePecas = item.QuantidadePecas,
+                    ULDCaracteristicaCodigo = item.UldCaracteristicaCodigo,
+                    ULDIdPrimario = item.UldIdPrimario,
+                    ULDId = item.UldId,
+                    VooId = trecho.VooInfo.Id,
+                    VooTrechoId = trecho.Id
+                };
 
-                    if (!result.IsValid)
-                        throw new Exception($"Não foi possível inserir a ULD {item.UldId}: {result.Errors[0].ErrorMessage}");
+                UldMasterEntityValidator validator = new UldMasterEntityValidator();
+                var master = await GetMasterId(userSession.CompanyId, trecho.VooInfo.Id, item.MasterNumero);
 
-                    uld.CreatedDateTimeUtc = DateTime.UtcNow;
-                    listaModel.Add(uld);
-                }
+                if (master == null)
+                    throw new BusinessException($"Master {item.MasterNumero} não foi encontrado no voo selecionado!");
 
-                if (await _uldMasterRepository.CreateUldMasterList(listaModel) == 0)
-                    throw new Exception("Não foi possivel inserir ULDs");
+                uld.MasterId = master.Id;
+                uld.TotalParcial = master.TotalParcial;
+                var result = validator.Validate(uld);
 
-                foreach (var item in listaModel)
+                if (!result.IsValid)
+                    throw new BusinessException($"{result.Errors[0].ErrorMessage}");
+
+                listaModel.Add(uld);
+            }
+
+            if (await _uldMasterRepository.CreateUldMasterList(listaModel) == 0)
+                throw new Exception("Não foi possivel inserir ULDs");
+
+            foreach (var item in listaModel)
+            {
+                var master = await _masterRepository.GetMasterByNumber(userSession.CompanyId, item.MasterNumero);
+                _validadorMaster.TratarErrosMaster(master);
+                _masterRepository.UpdateMaster(master);
+                await _masterRepository.SaveChanges();
+            }
+
+            var masterResponseDto = _mapper.Map<List<UldMasterResponseDto>>(listaModel);
+
+            return
+                new ApiResponse<List<UldMasterResponseDto>>
                 {
-                    var master = await _masterRepository.GetMasterByNumber(userSession.CompanyId, item.MasterNumero);
-                    _validadorMaster.TratarErrosMaster(master);
-                    _masterRepository.UpdateMaster(master);
-                    await _masterRepository.SaveChanges();
-                }
+                    Dados = masterResponseDto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
 
-                var masterResponseDto = _mapper.Map<List<UldMasterResponseDto>>(listaModel);
-
-                return
-                    new ApiResponse<List<UldMasterResponseDto>>
-                    {
-                        Dados = masterResponseDto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            catch (DbUpdateException e)
-            {
-                return ErrorHandling(e);
-            }
-            catch (Exception ex)
-            {
-                return
-                        new ApiResponse<List<UldMasterResponseDto>>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = $"Não Foi possível inserir a ULD: {ex.Message} !"
-                                }
-                            }
-                        };
-            }
         }
         public async Task<ApiResponse<List<UldMasterResponseDto>>> AtualizarUldMaster(UserSession userSession, List<UldMasterUpdateRequest> input)
         {
-            try
+            var trecho = _vooRepository.SelectTrecho(input[0].TrechoId);
+
+            if (trecho == null)
+                throw new BusinessException("Trecho não encontrado!");
+
+            if (trecho.VooInfo.Reenviar == false && (trecho.VooInfo.SituacaoRFBId == RFStatusEnvioType.Received))
+                throw new BusinessException("Voo processando na Receita Federal não pode ser alterado!");
+
+            if (trecho.VooInfo.Reenviar == false && trecho.VooInfo.SituacaoRFBId == RFStatusEnvioType.Processed)
+                throw new BusinessException("Voo processado pela Receita Federal não pode ser alterado!");
+
+            List<UldMasterResponseDto> uldsDto = new List<UldMasterResponseDto>();
+
+            foreach (var item in input)
             {
-                var voo = await _vooRepository.GetVooById(input[0].VooId);
+                var uld = await _uldMasterRepository.GetUldMasterById(item.Id);
 
-                if (voo == null)
-                    throw new Exception("Voo não encontrado!");
+                if (uld == null)
+                    throw new BusinessException($"Não foi possível atualiza a ULD: ULD {item.UldCaracteristicaCodigo + item.UldId + item.UldIdPrimario} não encontrado !");
 
-                if (voo.Reenviar == false && (voo.SituacaoRFBId == RFStatusEnvioType.Received))
-                    throw new Exception("Voo processando na Receita Federal não pode ser alterado!");
+                uld.Peso = item.Peso;
+                uld.QuantidadePecas = item.QuantidadePecas;
+                uld.ModificadoPeloId = userSession.UserId;
+                uld.ModifiedDateTimeUtc = DateTime.UtcNow;
+                if (item.UldCaracteristicaCodigo != null)
+                    uld.ULDCaracteristicaCodigo = item.UldCaracteristicaCodigo;
+                if (item.UldId != null)
+                    uld.ULDId = item.UldId;
+                if (item.UldIdPrimario != null)
+                    uld.ULDIdPrimario = item.UldIdPrimario;
 
-                if (voo.Reenviar == false && voo.SituacaoRFBId == RFStatusEnvioType.Processed)
-                    throw new Exception("Voo processado pela Receita Federal não pode ser alterado!");
+                var master = await GetMasterId(userSession.CompanyId, trecho.VooInfo.Id, item.MasterNumero);
 
-                List<UldMasterResponseDto> uldsDto = new List<UldMasterResponseDto>();
+                uld.MasterId = master.Id;
+                uld.TotalParcial = master.TotalParcial;
 
-                foreach (var item in input)
-                {
-                    var uld = await _uldMasterRepository.GetUldMasterById(item.Id);
+                UldMasterEntityValidator validator = new UldMasterEntityValidator();
 
-                    if (uld == null)
-                    {
-                        return new ApiResponse<List<UldMasterResponseDto>>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = $"Não foi possível atualiza a ULD: ULD { item.UldCaracteristicaCodigo + item.UldId + item.UldIdPrimario } não encontrado !"
-                                }
-                            }
-                        };
-                    }
+                var result = validator.Validate(uld);
 
-                    _mapper.Map(item, uld);
+                if (!result.IsValid)
+                    throw new BusinessException($"{result.Errors[0].ErrorMessage}");
 
-                    var master = await GetMasterId(userSession.CompanyId, item.MasterNumero);
+                _uldMasterRepository.UpdateUldMaster(uld);
 
-                    uld.MasterId = master.Id;
-                    uld.TotalParcial = master.TotalParcial;
-                    uld.ModifiedDateTimeUtc = DateTime.UtcNow;
+                var masterResponseDto = _mapper.Map<UldMasterResponseDto>(uld);
 
-                    UldMasterEntityValidator validator = new UldMasterEntityValidator();
-
-                    var result = validator.Validate(uld);
-
-                    if (result.IsValid)
-                    {
-                        if (await _uldMasterRepository.UpdateUldMaster(uld) > 0)
-                        {
-                            var masterResponseDto = _mapper.Map<UldMasterResponseDto>(uld);
-
-                            uldsDto.Add(masterResponseDto);
-                        }
-                        else
-                        {
-                            return
-                                new ApiResponse<List<UldMasterResponseDto>>
-                                {
-                                    Dados = null,
-                                    Sucesso = false,
-                                    Notificacoes = new List<Notificacao>() {
-                                    new Notificacao
-                                    {
-                                        Codigo = "9999",
-                                        Mensagem = "Não foi possível atualiza o Master: Erro Desconhecido!"
-                                    }
-                                    }
-                                };
-                        }
-                    }
-                }
+                uldsDto.Add(masterResponseDto);
+            }
+            if(_uldMasterRepository.SaveChanges() > 0 )
                 return
                     new ApiResponse<List<UldMasterResponseDto>>
                     {
@@ -397,157 +383,65 @@ namespace CtaCargo.CctImportacao.Application.Services
                         Sucesso = true,
                         Notificacoes = null
                     };
-            }
-            catch (DbUpdateException e)
-            {
-                return ErrorHandling(e);
-            }
-            catch (Exception ex)
-            {
-                return
-                        new ApiResponse<List<UldMasterResponseDto>>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = $"Não foi possível atualiza o Master: {ex.Message} !"
-                                }
-                            }
-                        };
-            }
 
+            throw new Exception("Internal error!");
         }
         public async Task<ApiResponse<string>> ExcluirUldMaster(UserSession userSession, UldMasterDeleteByIdInput input)
         {
-            try
+            var trecho = _vooRepository.SelectTrecho(input.TrechoId);
+
+            if (trecho == null)
+                throw new BusinessException("Trecho não encontrado!");
+
+            if (trecho.VooInfo.SituacaoRFBId == RFStatusEnvioType.Received)
+                throw new BusinessException("Voo estpa sendo processado na RFB. Atualize o status do voo !");
+
+            if (trecho.VooInfo.SituacaoRFBId == RFStatusEnvioType.Processed && !trecho.VooInfo.Reenviar)
+                throw new BusinessException("Voo processado pela RFB não pode ser alterado!");
+
+            var uldMasters = await _uldMasterRepository.GetUldMasterByIdList(input.ListaIds);
+            _uldMasterRepository.DeleteUldMasterList(uldMasters, userSession.UserId);
+
+            if(_uldMasterRepository.SaveChanges() == 0)
+                throw new BusinessException("Não foi possível excluir ULD(s): ULD(s) não encontrado(s) !");
+
+            await AtualizarValidacaoMaster(userSession.CompanyId, uldMasters);
+
+            return new ApiResponse<string>
             {
-                var voo = await _vooRepository.GetVooById(input.VooId);
-
-                if (voo == null)
-                    throw new Exception("Voo não encontrado!");
-
-                if (voo.SituacaoRFBId == RFStatusEnvioType.Received)
-                    throw new Exception("Voo em processamento na Receita Federal não pode ser alterado!");
-
-                if (voo.SituacaoRFBId == RFStatusEnvioType.Processed)
-                    throw new Exception("Voo processado pela Receita Federal não pode ser alterado!");
-
-                var uldMasters = await _uldMasterRepository.GetUldMasterByIdList(input.ListaIds);
-                var masterRepo = await _uldMasterRepository.DeleteUldMasterList(uldMasters);
-
-                await AtualizarValidacaoMaster(userSession.CompanyId, uldMasters);
-
-                if (masterRepo == 0)
-                {
-                    return
-                        new ApiResponse<string>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = "Não foi possível excluir ULD(s): ULD(s) não encontrado(s) !"
-                                }
-                            }
-                        };
-                }
-
-                return
-                    new ApiResponse<string>
-                    {
-                        Dados = "ULD(s) excluidos com sucesso!",
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-
-            }
-            catch (Exception ex)
-            {
-                return
-                        new ApiResponse<string>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = $"Não foi possível excluir ULD(s): {ex.Message} !"
-                                }
-                            }
-                        };
-            }
-
+                Dados = "ULD(s) excluidos com sucesso!",
+                Sucesso = true,
+                Notificacoes = null
+            };
         }
         public async Task<ApiResponse<string>> ExcluirUld(UserSession userSession, UldMasterDeleteByTagInput input)
         {
-            try
+            var voo = await _vooRepository.GetVooById(input.VooId);
+
+            if (voo == null)
+                throw new Exception("Voo não encontrado!");
+
+            if (voo.SituacaoRFBId == RFStatusEnvioType.Received)
+                throw new Exception("Voo submetido a Receita Federal não pode ser alterado!");
+
+            if (voo.SituacaoRFBId == RFStatusEnvioType.Processed)
+                throw new Exception("Voo processado pela Receita Federal não pode ser alterado!");
+
+            var uldMasters = await _uldMasterRepository.GetUldMasterByTag(input);
+
+            _uldMasterRepository.DeleteUldMasterList(uldMasters, userSession.UserId);
+
+            if (_uldMasterRepository.SaveChanges() == 0)
+                throw new BusinessException("Não foi possível excluir ULD(s): ULD(s) não encontrado(s) !");
+
+            await AtualizarValidacaoMaster(userSession.CompanyId, uldMasters);
+
+            return new ApiResponse<string>
             {
-                var voo = await _vooRepository.GetVooById(input.VooId);
-
-                if (voo == null)
-                    throw new Exception("Voo não encontrado!");
-                
-                if(voo.SituacaoRFBId == RFStatusEnvioType.Received)
-                    throw new Exception("Voo submetido a Receita Federal não pode ser alterado!");
-
-                if (voo.SituacaoRFBId == RFStatusEnvioType.Processed)
-                    throw new Exception("Voo processado pela Receita Federal não pode ser alterado!");
-
-                var uldMasters = await _uldMasterRepository.GetUldMasterByTag(input);
-
-                var masterRepo = await _uldMasterRepository.DeleteUldMasterList(uldMasters);
-
-                await AtualizarValidacaoMaster(userSession.CompanyId, uldMasters);
-
-                if (masterRepo == 0)
-                {
-                    return
-                        new ApiResponse<string>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = "Não foi possível excluir ULD(s): ULD(s) não encontrado(s) !"
-                                }
-                            }
-                        };
-                }
-
-                return
-                    new ApiResponse<string>
-                    {
-                        Dados = "ULD(s) excluidos com sucesso!",
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-
-            }
-            catch (Exception ex)
-            {
-                return
-                new ApiResponse<string>
-                {
-                    Dados = null,
-                    Sucesso = false,
-                    Notificacoes = new List<Notificacao>() {
-                        new Notificacao
-                        {
-                            Codigo = "9999",
-                            Mensagem = $"Não foi possível excluir ULD(s): {ex.Message} !"
-                        }
-                    }
-                };
-            }
-
+                Dados = "ULD(s) excluidos com sucesso!",
+                Sucesso = true,
+                Notificacoes = null
+            };
         }
         #endregion
 
@@ -617,9 +511,9 @@ namespace CtaCargo.CctImportacao.Application.Services
             }
 
         }
-        private async Task<Master> GetMasterId(int companyId, string masterNumero)
+        private async Task<Master> GetMasterId(int companyId, int vooId, string masterNumero)
         {
-            var result = await _masterRepository.GetMasterByNumber(companyId, masterNumero);
+            var result = await _masterRepository.GetMasterIdByNumber(companyId, vooId, masterNumero);
             return result;
         }
         private async Task AtualizarValidacaoMaster(int companyId, List<UldMaster> uldMasters)

@@ -12,16 +12,15 @@ namespace CtaCargo.CctImportacao.Application.Validators
             RuleFor(x => x.PortoIataOrigemId)
                 .NotNull()
                 .WithMessage("Código porto de origem não cadastrado.");
-            RuleFor(x => x.PortoIataDestinoId)
+            RuleFor(x => x.Trechos)
                 .NotNull()
-                .WithMessage("Código porto de destino não cadastrado.");
-            RuleFor(x => x.DataHoraSaidaEstimada)
-                .NotNull().WithMessage("Data e hora estimada de saida do vôo é obrigatoria.");
+                .WithMessage("Ao menos um trecho é obrigatórrio")
+                .NotEmpty()
+                .WithMessage("Ao menos um trecho é obrigatórrio");
             RuleFor(x => x.DataHoraSaidaReal)
                 .NotNull().WithMessage("Data e hora real de saida do vôo é obrigatória.");
             RuleFor(x => x.DataEmissaoXML)
                 .NotNull().WithMessage("Data de emissão do voo nula, altere o voo para a correção.");
-            
         }
     }
 }

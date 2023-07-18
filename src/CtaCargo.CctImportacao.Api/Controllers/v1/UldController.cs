@@ -28,7 +28,8 @@ namespace CtaCargo.CctImportacao.Api.Controllers.v1
         [Route("PegarUldMasterPorId")]
         public async Task<ApiResponse<UldMasterResponseDto>> PegarUldMasterPorId(int uldId)
         {
-            return await _uldMasterService.PegarUldMasterPorId(uldId);
+            var userSession = HttpContext.GetUserSession();
+            return await _uldMasterService.PegarUldMasterPorId(userSession, uldId);
         }
 
         [HttpGet]
@@ -36,7 +37,8 @@ namespace CtaCargo.CctImportacao.Api.Controllers.v1
         [Route("ListarUldMasterPorMasterId")]
         public async Task<ApiResponse<List<UldMasterResponseDto>>> ListarUldMasterPorMasterId(int masterId)
         {
-            return await _uldMasterService.ListarUldMasterPorMasterId(masterId);
+            var userSession = HttpContext.GetUserSession();
+            return await _uldMasterService.ListarUldMasterPorMasterId(userSession, masterId);
         }
 
         [HttpGet]
@@ -44,7 +46,17 @@ namespace CtaCargo.CctImportacao.Api.Controllers.v1
         [Route("ListarUldMasterPorVooId")]
         public async Task<ApiResponse<IEnumerable<UldMasterNumeroQuery>>> ListarUldMasterPorVooId(int vooId)
         {
-            return await _uldMasterService.ListarUldMasterPorVooId(vooId);
+            var userSession = HttpContext.GetUserSession();
+            return await _uldMasterService.ListarUldMasterPorVooId(userSession, vooId);
+        }
+
+        [HttpGet]
+        [Authorize]
+        [Route("ListarUldMasterPorTrechoId")]
+        public async Task<ApiResponse<IEnumerable<UldMasterNumeroQuery>>> ListarUldMasterPorTrechoId(int trechoId)
+        {
+            var userSession = HttpContext.GetUserSession();
+            return await _uldMasterService.ListarUldMasterPorTrechoId(userSession, trechoId);
         }
 
         [HttpPost]
@@ -52,7 +64,8 @@ namespace CtaCargo.CctImportacao.Api.Controllers.v1
         [Route("ListarUldMasterPorLinha")]
         public async Task<ApiResponse<IEnumerable<UldMasterResponseDto>>> ListarUldMasterPorLinha(ListaUldMasterRequest input)
         {
-            return await _uldMasterService.ListarUldMasterPorLinha(input);
+            var userSession = HttpContext.GetUserSession();
+            return await _uldMasterService.ListarUldMasterPorLinha(userSession, input);
         }
 
         [HttpPost]
@@ -60,7 +73,8 @@ namespace CtaCargo.CctImportacao.Api.Controllers.v1
         [Route("ListarMasterUldSumario")]
         public async Task<ApiResponse<IEnumerable<MasterNumeroUldSumario>>> ListarMasterUldSumario([FromBody] ListaUldMasterRequest input)
         {
-            return await _uldMasterService.ListarMasterUldSumarioPorVooId(input);
+            var userSession = HttpContext.GetUserSession();
+            return await _uldMasterService.ListarMasterUldSumarioPorVooId(userSession, input);
         }
 
         [HttpPost]

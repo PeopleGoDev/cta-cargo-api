@@ -92,71 +92,141 @@ namespace CtaCargo.CctImportacao.Application.Support
                 logmov.DepartureEvent.OccurrenceDepartureLocation.TypeCode = new Flight.CodeType { Value = "Airport" };
                 manvoo.LogisticsTransportMovement = logmov;
 
-                // ArrivalEvent
-                Flight.ArrivalEventType arrevent = new Flight.ArrivalEventType();
-                if (voo.DataHoraChegadaEstimada != null)
+                var arrivalEvents = new List<Flight.ArrivalEventType>();
+
+                foreach (VooTrecho trecho in voo.Trechos)
                 {
-                    arrevent.ArrivalOccurrenceDateTime = (DateTime)voo.DataHoraChegadaEstimada;
-                    arrevent.ArrivalDateTimeTypeCode = new Flight.CodeType { Value = "S" };
-                    arrevent.ArrivalOccurrenceDateTimeSpecified = true;
-                }
-                arrevent.DepartureOccurrenceDateTime = (DateTime)voo.DataHoraSaidaEstimada;
-                arrevent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "S" };
-                arrevent.DepartureOccurrenceDateTimeSpecified = true;
-                arrevent.OccurrenceArrivalLocation = new Flight.ArrivalLocationType();
-                arrevent.OccurrenceArrivalLocation.ID = new Flight.IDType { Value = voo.PortoIataDestinoInfo.Codigo };
-                arrevent.OccurrenceArrivalLocation.Name = new Flight.TextType { Value = voo.PortoIataDestinoInfo.Nome };
-                arrevent.OccurrenceArrivalLocation.TypeCode = new Flight.CodeType { Value = "Airport" };
+                    // ArrivalEvent
+                    Flight.ArrivalEventType arrevent = new Flight.ArrivalEventType();
+                    if (voo.DataHoraChegadaEstimada != null)
+                    {
+                        arrevent.ArrivalOccurrenceDateTime = (DateTime)voo.DataHoraChegadaEstimada;
+                        arrevent.ArrivalDateTimeTypeCode = new Flight.CodeType { Value = "S" };
+                        arrevent.ArrivalOccurrenceDateTimeSpecified = true;
+                    }
+                    arrevent.DepartureOccurrenceDateTime = (DateTime)voo.DataHoraSaidaEstimada;
+                    arrevent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "S" };
+                    arrevent.DepartureOccurrenceDateTimeSpecified = true;
+                    arrevent.OccurrenceArrivalLocation = new Flight.ArrivalLocationType();
+                    arrevent.OccurrenceArrivalLocation.ID = new Flight.IDType { Value = voo.PortoIataDestinoInfo.Codigo };
+                    arrevent.OccurrenceArrivalLocation.Name = new Flight.TextType { Value = voo.PortoIataDestinoInfo.Nome };
+                    arrevent.OccurrenceArrivalLocation.TypeCode = new Flight.CodeType { Value = "Airport" };
 
-                List<Flight.TransportCargoType> transportes = new List<Flight.TransportCargoType>();
-                // adicionar masters
-                IEnumerable<UldMaster> uldsMaster = voo.ULDs.Where(x => x.DataExclusao == null && x.ULDCaracteristicaCodigo != "BLK");
-                IEnumerable<UldMaster> blk = voo.ULDs.Where(x => x.DataExclusao == null && x.ULDCaracteristicaCodigo == "BLK");
+                    List<Flight.TransportCargoType> transportes = new List<Flight.TransportCargoType>();
+                    // adicionar masters
+                    IEnumerable<UldMaster> uldsMaster = trecho.ULDs.Where(x => x.DataExclusao == null && x.ULDCaracteristicaCodigo != "BLK");
+                    IEnumerable<UldMaster> blk = trecho.ULDs.Where(x => x.DataExclusao == null && x.ULDCaracteristicaCodigo == "BLK");
 
-                if (uldsMaster.Count() > 0)
-                {
-
-                    var grupos = uldsMaster.GroupBy(r => (r.ULDCaracteristicaCodigo, r.ULDId, r.ULDIdPrimario))
-                        .Select(g => (g.Key.ULDCaracteristicaCodigo, g.Key.ULDId, g.Key.ULDIdPrimario, Pecas: g.Sum(x => x.QuantidadePecas), Peso: g.Sum(x => x.Peso)));
-
-                    foreach (var item in grupos)
+                    if (uldsMaster.Count() > 0)
                     {
 
-                        var ulds = uldsMaster.Where(x => x.ULDCaracteristicaCodigo == item.ULDCaracteristicaCodigo &&
-                                            x.ULDId == item.ULDId &&
-                                            x.ULDIdPrimario == item.ULDIdPrimario).ToList();
+                        var grupos = uldsMaster.GroupBy(r => (r.ULDCaracteristicaCodigo, r.ULDId, r.ULDIdPrimario))
+                            .Select(g => (g.Key.ULDCaracteristicaCodigo, g.Key.ULDId, g.Key.ULDIdPrimario, Pecas: g.Sum(x => x.QuantidadePecas), Peso: g.Sum(x => x.Peso)));
+
+                        foreach (var item in grupos)
+                        {
+
+                            var ulds = uldsMaster.Where(x => x.ULDCaracteristicaCodigo == item.ULDCaracteristicaCodigo &&
+                                                x.ULDId == item.ULDId &&
+                                                x.ULDIdPrimario == item.ULDIdPrimario).ToList();
+
+                            Flight.TransportCargoType transpuld = new Flight.TransportCargoType();
+
+                            transpuld.TypeCode = new Flight.CodeType { Value = "ULD" };
+
+                            Enum.TryParse("KGM", out Flight.MeasurementUnitCommonCodeContentType pesoUN);
+
+                            Flight.UnitLoadTransportEquipmentType unitequip = new Flight.UnitLoadTransportEquipmentType
+                            {
+                                ID = new Flight.IDType { Value = item.ULDId },
+                                CharacteristicCode = new Flight.CodeType { Value = item.ULDCaracteristicaCodigo },
+                                OperatingParty = new Flight.OperatingPartyType
+                                {
+                                    PrimaryID = new Flight.IDType { Value = item.ULDIdPrimario }
+                                },
+                                PieceQuantity = new Flight.QuantityType { Value = Convert.ToDecimal(item.Pecas) },
+                                GrossWeightMeasure = new Flight.MeasureType
+                                {
+                                    Value = Convert.ToDecimal(item.Peso),
+                                    unitCodeSpecified = true,
+                                    unitCode = pesoUN
+                                }
+                            };
+
+                            transpuld.UtilizedUnitLoadTransportEquipment = unitequip;
+
+                            // Monta a lista de Master
+                            List<Flight.MasterConsignmentType> masterConsigments = new List<Flight.MasterConsignmentType>();
+
+                            foreach (UldMaster uldMaster in ulds)
+                            {
+
+                                Flight.MasterConsignmentType masterC = new Flight.MasterConsignmentType();
+
+                                Enum.TryParse(uldMaster.MasterInfo.PesoTotalBrutoUN, out Flight.MeasurementUnitCommonCodeContentType pesoTotalUN);
+
+                                masterC.GrossWeightMeasure = new Flight.MeasureType
+                                {
+                                    Value = Convert.ToDecimal(uldMaster.Peso),
+                                    unitCodeSpecified = true,
+                                    unitCode = pesoTotalUN
+                                };
+
+                                masterC.PackageQuantity = new Flight.QuantityType { Value = 1 };
+                                masterC.TotalPieceQuantity = new Flight.QuantityType { Value = Convert.ToDecimal(uldMaster.QuantidadePecas) };
+                                masterC.SummaryDescription = new Flight.TextType { Value = uldMaster.MasterInfo.DescricaoMercadoria };
+                                masterC.TransportSplitDescription = new Flight.TextType { Value = uldMaster.TotalParcial };
+                                masterC.TransportContractDocument = new Flight.TransportContractDocumentType();
+
+                                masterC.TransportContractDocument.ID = new Flight.IDType
+                                {
+                                    Value = uldMaster.MasterInfo.IndicadorAwbNaoIata ? uldMaster.MasterInfo.Numero : uldMaster.MasterInfo.Numero.Insert(3, "-")
+                                };
+
+                                masterC.OriginLocation = new Flight.OriginLocationType
+                                {
+                                    ID = new Flight.IDType { Value = uldMaster.MasterInfo.AeroportoOrigemInfo.Codigo },
+                                    Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoOrigemInfo.Nome }
+                                };
+
+                                masterC.FinalDestinationLocation = new Flight.FinalDestinationLocationType
+                                {
+                                    ID = new Flight.IDType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Codigo },
+                                    Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Nome }
+                                };
+
+                                if (uldMaster.MasterInfo.IndicadorAwbNaoIata)
+                                {
+                                    masterC.IncludedCustomsNote = new Flight.CustomsNoteType[1];
+                                    masterC.IncludedCustomsNote[0] = new Flight.CustomsNoteType
+                                    {
+                                        Content = new Flight.TextType { Value = "NON-IATA" },
+                                        ContentCode = new Flight.CodeType { Value = "DI" },
+                                        SubjectCode = new Flight.CodeType { Value = "WBI" },
+                                        CountryID = new Flight.CountryIDType { Value = Flight.ISOTwoletterCountryCodeIdentifierContentType.BR }
+                                    };
+                                };
+
+                                masterConsigments.Add(masterC);
+                            }
+
+                            transpuld.IncludedMasterConsignment = masterConsigments.ToArray();
+
+                            transportes.Add(transpuld);
+                        }
+                    }
+
+                    if (blk.Count() > 0)
+                    {
 
                         Flight.TransportCargoType transpuld = new Flight.TransportCargoType();
 
-                        transpuld.TypeCode = new Flight.CodeType { Value = "ULD" };
+                        transpuld.TypeCode = new Flight.CodeType { Value = "BLK" };
 
-                        Enum.TryParse("KGM", out Flight.MeasurementUnitCommonCodeContentType pesoUN);
-
-                        Flight.UnitLoadTransportEquipmentType unitequip = new Flight.UnitLoadTransportEquipmentType
-                        {
-                            ID = new Flight.IDType { Value = item.ULDId },
-                            CharacteristicCode = new Flight.CodeType { Value = item.ULDCaracteristicaCodigo },
-                            OperatingParty = new Flight.OperatingPartyType
-                            {
-                                PrimaryID = new Flight.IDType { Value = item.ULDIdPrimario }
-                            },
-                            PieceQuantity = new Flight.QuantityType { Value = Convert.ToDecimal(item.Pecas) },
-                            GrossWeightMeasure = new Flight.MeasureType
-                            {
-                                Value = Convert.ToDecimal(item.Peso),
-                                unitCodeSpecified = true,
-                                unitCode = pesoUN
-                            }
-                        };
-
-                        transpuld.UtilizedUnitLoadTransportEquipment = unitequip;
-
-                        // Monta a lista de Master
                         List<Flight.MasterConsignmentType> masterConsigments = new List<Flight.MasterConsignmentType>();
 
-                        foreach (UldMaster uldMaster in ulds)
+                        foreach (UldMaster uldMaster in blk)
                         {
-
                             Flight.MasterConsignmentType masterC = new Flight.MasterConsignmentType();
 
                             Enum.TryParse(uldMaster.MasterInfo.PesoTotalBrutoUN, out Flight.MeasurementUnitCommonCodeContentType pesoTotalUN);
@@ -171,12 +241,10 @@ namespace CtaCargo.CctImportacao.Application.Support
                             masterC.PackageQuantity = new Flight.QuantityType { Value = 1 };
                             masterC.TotalPieceQuantity = new Flight.QuantityType { Value = Convert.ToDecimal(uldMaster.QuantidadePecas) };
                             masterC.SummaryDescription = new Flight.TextType { Value = uldMaster.MasterInfo.DescricaoMercadoria };
-                            masterC.TransportSplitDescription = new Flight.TextType { Value = uldMaster.TotalParcial };
-                            masterC.TransportContractDocument = new Flight.TransportContractDocumentType();
-
-                            masterC.TransportContractDocument.ID = new Flight.IDType
+                            masterC.TransportSplitDescription = new Flight.TextType { Value = "T" };
+                            masterC.TransportContractDocument = new Flight.TransportContractDocumentType
                             {
-                                Value = uldMaster.MasterInfo.IndicadorAwbNaoIata ? uldMaster.MasterInfo.Numero : uldMaster.MasterInfo.Numero.Insert(3, "-")
+                                ID = new Flight.IDType { Value = uldMaster.MasterInfo.IndicadorAwbNaoIata ? uldMaster.MasterInfo.Numero : uldMaster.MasterInfo.Numero.Insert(3, "-") }
                             };
 
                             masterC.OriginLocation = new Flight.OriginLocationType
@@ -190,8 +258,9 @@ namespace CtaCargo.CctImportacao.Application.Support
                                 ID = new Flight.IDType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Codigo },
                                 Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Nome }
                             };
-                            
-                            if (uldMaster.MasterInfo.IndicadorAwbNaoIata) {
+
+                            if (uldMaster.MasterInfo.IndicadorAwbNaoIata)
+                            {
                                 masterC.IncludedCustomsNote = new Flight.CustomsNoteType[1];
                                 masterC.IncludedCustomsNote[0] = new Flight.CustomsNoteType
                                 {
@@ -206,76 +275,15 @@ namespace CtaCargo.CctImportacao.Application.Support
                         }
 
                         transpuld.IncludedMasterConsignment = masterConsigments.ToArray();
-
                         transportes.Add(transpuld);
                     }
+
+                    arrevent.AssociatedTransportCargo = transportes.ToArray();
+
+                    arrivalEvents.Add(arrevent);
                 }
-
-                if (blk.Count() > 0)
-                {
-
-                    Flight.TransportCargoType transpuld = new Flight.TransportCargoType();
-
-                    transpuld.TypeCode = new Flight.CodeType { Value = "BLK" };
-
-                    List<Flight.MasterConsignmentType> masterConsigments = new List<Flight.MasterConsignmentType>();
-
-                    foreach (UldMaster uldMaster in blk)
-                    {
-                        Flight.MasterConsignmentType masterC = new Flight.MasterConsignmentType();
-
-                        Enum.TryParse(uldMaster.MasterInfo.PesoTotalBrutoUN, out Flight.MeasurementUnitCommonCodeContentType pesoTotalUN);
-
-                        masterC.GrossWeightMeasure = new Flight.MeasureType
-                        {
-                            Value = Convert.ToDecimal(uldMaster.Peso),
-                            unitCodeSpecified = true,
-                            unitCode = pesoTotalUN
-                        };
-
-                        masterC.PackageQuantity = new Flight.QuantityType { Value = 1 };
-                        masterC.TotalPieceQuantity = new Flight.QuantityType { Value = Convert.ToDecimal(uldMaster.QuantidadePecas) };
-                        masterC.SummaryDescription = new Flight.TextType { Value = uldMaster.MasterInfo.DescricaoMercadoria };
-                        masterC.TransportSplitDescription = new Flight.TextType { Value = "T" };
-                        masterC.TransportContractDocument = new Flight.TransportContractDocumentType
-                        {
-                            ID = new Flight.IDType { Value = uldMaster.MasterInfo.IndicadorAwbNaoIata ? uldMaster.MasterInfo.Numero : uldMaster.MasterInfo.Numero.Insert(3, "-") }
-                        };
-
-                        masterC.OriginLocation = new Flight.OriginLocationType
-                        {
-                            ID = new Flight.IDType { Value = uldMaster.MasterInfo.AeroportoOrigemInfo.Codigo },
-                            Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoOrigemInfo.Nome }
-                        };
-
-                        masterC.FinalDestinationLocation = new Flight.FinalDestinationLocationType
-                        {
-                            ID = new Flight.IDType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Codigo },
-                            Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Nome }
-                        };
-
-                        if (uldMaster.MasterInfo.IndicadorAwbNaoIata)
-                        {
-                            masterC.IncludedCustomsNote = new Flight.CustomsNoteType[1];
-                            masterC.IncludedCustomsNote[0] = new Flight.CustomsNoteType
-                            {
-                                Content = new Flight.TextType { Value = "NON-IATA" },
-                                ContentCode = new Flight.CodeType { Value = "DI" },
-                                SubjectCode = new Flight.CodeType { Value = "WBI" },
-                                CountryID = new Flight.CountryIDType { Value = Flight.ISOTwoletterCountryCodeIdentifierContentType.BR }
-                            };
-                        };
-
-                        masterConsigments.Add(masterC);
-                    }
-
-                    transpuld.IncludedMasterConsignment = masterConsigments.ToArray();
-                    transportes.Add(transpuld);
-                }
-
-                arrevent.AssociatedTransportCargo = transportes.ToArray();
-                manvoo.ArrivalEvent = new Flight.ArrivalEventType[1];
-                manvoo.ArrivalEvent[0] = arrevent;
+                
+                manvoo.ArrivalEvent = arrivalEvents.ToArray();
 
                 XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
                 ns.Add("", "iata:datamodel:3");
