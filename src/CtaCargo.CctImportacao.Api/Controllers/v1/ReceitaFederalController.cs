@@ -26,17 +26,23 @@ public class ReceitaFederalController : Controller
     [Route("SubmeterVooCompleto")]
     public async Task<ApiResponse<string>> SubmeterVooCompleto(VooUploadInput input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _submeterRFB.SubmeterVoo(userSession, input);
+        return await _submeterRFB.SubmeterVoo(HttpContext.GetUserSession(), input);
     }
+
+    //[HttpPost]
+    //[Authorize]
+    //[Route("confirmdeparture")]
+    //public async Task<ApiResponse<string>> ConfirmeDeparture(ConfirmDepartureRequest input)
+    //{
+    //    return await _submeterRFB.SubmeterVoo(HttpContext.GetUserSession(), input);
+    //}
 
     [HttpPost]
     [Authorize]
     [Route("SubmeterMasterVooCompleto")]
     public async Task<ApiResponse<string>> SubmeterVooMasterCompleto(VooUploadInput input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _submeterRFB.SubmeterVooMaster(userSession, input);
+        return await _submeterRFB.SubmeterVooMaster(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -52,8 +58,7 @@ public class ReceitaFederalController : Controller
     [Route("SubmeterMasterExclusion")]
     public async Task<ApiResponse<string>> SubmeterMasterExclusion(MasterExclusaoRFBInput input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _submeterRFB.SubmeterMasterExclusion(userSession, input);
+        return await _submeterRFB.SubmeterMasterExclusion(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -75,7 +80,21 @@ public class ReceitaFederalController : Controller
         if(input.Masters is null) return BadRequest();
         if(input.Masters.Count == 0)  return BadRequest();
 
-        var userSession = HttpContext.GetUserSession();
-        return Ok(await _submeterRFB.SubmeterAssociacaoHousesMaster(userSession, input));
+        return Ok(await _submeterRFB.SubmeterAssociacaoHousesMaster(HttpContext.GetUserSession(), input));
     }
+
+    [HttpGet]
+    [Authorize]
+    [Route("CancelarAssociacaoHouseMaster")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<string>))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelarAssociacaoHousesMaster(int associationId)
+    {
+        if (associationId == null) return BadRequest();
+        if (associationId <= 0) return BadRequest();
+
+        return Ok(await _submeterRFB.CancelarAssociacaoHousesMaster(HttpContext.GetUserSession(), associationId));
+    }
+
+
 }

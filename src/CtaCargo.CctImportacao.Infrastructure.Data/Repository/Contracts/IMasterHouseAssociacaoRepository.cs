@@ -11,7 +11,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
         void DeleteMasterHouseAssociacao(MasterHouseAssociacao masterHouseAssociacao);
         void InsertMasterHouseAssociacao(MasterHouseAssociacao masterHouseAssociacao);
         Task<bool> SaveChanges();
-        Task<MasterHouseAssociacao> SelectMasterHouseAssociacaoById(int id);
+        Task<MasterHouseAssociacao> SelectMasterHouseAssociacaoById(int ciaId, int id);
         Task<MasterHouseAssociacao> SelectMasterHouseAssociacaoByMaster(string master);
         Task<List<MasterHouseAssociacao>> SelectMasterHouseAssociacaoParam(Expression<Func<MasterHouseAssociacao, bool>> predicate);
         void UpdateMasterHouseAssociacao(MasterHouseAssociacao associacao);

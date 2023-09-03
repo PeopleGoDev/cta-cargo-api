@@ -82,8 +82,7 @@ namespace CtaCargo.CctImportacao.Api.Controllers.v1
         [Route("InserirUldMaster")]
         public async Task<ApiResponse<List<UldMasterResponseDto>>> InserirUldMaster(List<UldMasterInsertRequest> input)
         {
-            var userSession = HttpContext.GetUserSession();
-            return await _uldMasterService.InserirUldMaster(userSession, input);
+            return await _uldMasterService.InserirUldMaster(HttpContext.GetUserSession(), input);
         }
 
         [HttpPost]
@@ -100,8 +99,7 @@ namespace CtaCargo.CctImportacao.Api.Controllers.v1
         [Route("ExcluirUldMaster")]
         public async Task<ApiResponse<string>> ExcluirUldMaster(UldMasterDeleteByIdInput input)
         {
-            var userSession = HttpContext.GetUserSession();
-            return await _uldMasterService.ExcluirUldMaster(userSession, input);
+            return await _uldMasterService.ExcluirUldMaster(HttpContext.GetUserSession(), input);
         }
 
         [HttpPost]
@@ -109,8 +107,7 @@ namespace CtaCargo.CctImportacao.Api.Controllers.v1
         [Route("ExcluirUld")]
         public async Task<ApiResponse<string>> ExcluirUld(UldMasterDeleteByTagInput input)
         {
-            var userSession = HttpContext.GetUserSession();
-            return await _uldMasterService.ExcluirUld(userSession, input);
+            return await _uldMasterService.ExcluirUld(HttpContext.GetUserSession(), input);
         }
 
     }

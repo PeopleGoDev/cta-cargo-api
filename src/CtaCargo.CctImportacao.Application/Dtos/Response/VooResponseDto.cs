@@ -12,6 +12,7 @@ public class VooResponseDto
     public string Numero { get; set; }
     public DateTime DataVoo { get; set; }
     public DateTime? DataHoraSaidaReal { get; set; }
+    public DateTime? DataHoraSaidaPrevista { get; set; }
     public DateTime? DataHoraChegadaEstimada { get; set; }
     public int StatusId { get; set; }
     public int SituacaoRFBId { get; set; }
@@ -35,6 +36,7 @@ public class VooResponseDto
             DataCriacao = voo.CreatedDateTimeUtc,
             DataHoraChegadaEstimada = voo.DataHoraChegadaEstimada,
             DataHoraSaidaReal = voo.DataHoraSaidaReal,
+            DataHoraSaidaPrevista = voo.DataHoraSaidaEstimada,
             DataProtocoloRFB = voo.DataProtocoloRFB,
             DataVoo = voo.DataVoo,
             ErroCodigoRFB = voo.CodigoErroRFB,
@@ -47,8 +49,9 @@ public class VooResponseDto
             UsuarioCriacao = voo.UsuarioCriacaoInfo?.Nome,
             VooId = voo.Id,
             Trechos = (from c in voo.Trechos
-                       select new VooTrechoResponse(c.Id, c.AeroportoDestinoCodigo, c.DataHoraChegadaEstimada, c.DataHoraSaidaEstimada))
-                           .ToList()
+                       select new VooTrechoResponse(c.Id, c.AeroportoDestinoCodigo, c.DataHoraChegadaEstimada, c.DataHoraSaidaEstimada,
+                       c.PortoIataDestinoInfo?.SiglaPais))
+                       .ToList()
         };
     }
 }
@@ -58,4 +61,4 @@ public class VooUploadResponse: VooResponseDto
     public List<UldMasterNumeroQuery> ULDs { get; set; }
 }
 
-public record VooTrechoResponse (int Id, string AeroportoDestinoCodigo, DateTime? DataHoraChegadaEstimada = null, DateTime? DataHoraSaidaEstimada = null);
+public record VooTrechoResponse (int Id, string AeroportoDestinoCodigo, DateTime? DataHoraChegadaEstimada = null, DateTime? DataHoraSaidaEstimada = null, string? PaisDestinoCodigo = null);

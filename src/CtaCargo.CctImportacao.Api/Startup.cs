@@ -113,12 +113,16 @@ public class Startup
 
         app.UseHttpsRedirection();
 
-        app.UseSwagger();
-
-        app.UseSwaggerUI(c =>
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        if (environment != "Production")
         {
-            c.SwaggerEndpoint("/swagger/v1/swagger.json", "CTA Cargo - CCT Importacao API v1");
-        });
+            app.UseSwagger();
+
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "CTA Cargo - CCT Importacao API v1");
+            });
+        };
 
         app.UseMiddleware<ExceptionMiddleware>();
 

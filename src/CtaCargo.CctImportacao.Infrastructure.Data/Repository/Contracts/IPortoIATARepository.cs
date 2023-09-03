@@ -12,6 +12,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
         Task<IEnumerable<PortoIata>> GetAllPortosIATA(int empresaId);
         Task<PortoIata> GetPortoIATAById(int portoIATAId);
         Task<int?> GetPortoIATAIdByCodigo(string codigo);
+        PortoIata GetPortoIATAByCode(int empresaId, string codigo);
         void CreatePortoIATA(PortoIata portoIATA);
         void UpdatePortoIATA(PortoIata portoIATA);
         void DeletePortoIATA(PortoIata portoIATA);

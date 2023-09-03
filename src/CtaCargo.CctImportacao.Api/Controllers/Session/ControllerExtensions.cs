@@ -15,7 +15,9 @@ namespace CtaCargo.CctImportacao.Api.Controllers.Session
                 return new UserSession()
                 {
                     CompanyId = int.Parse(identity.FindFirst("CompanyId").Value),
-                    UserId = int.Parse(identity.FindFirst("UserId").Value)
+                    UserId = int.Parse(identity.FindFirst("UserId").Value),
+                    UserName = identity.FindFirst(ClaimTypes.Name).Value,
+                    Environment = identity.FindFirst("Environment").Value
                 };
             }
             return null;

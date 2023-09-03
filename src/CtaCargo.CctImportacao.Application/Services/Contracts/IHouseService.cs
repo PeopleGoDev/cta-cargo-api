@@ -13,7 +13,7 @@ namespace CtaCargo.CctImportacao.Application.Services.Contracts
         Task<ApiResponse<HouseResponseDto>> AtualizarReenviarAssociacaoHouse(UserSession userSession, int houseId);
         Task<ApiResponse<HouseResponseDto>> ExcluirHouse(UserSession userSession, int houseId);
         Task<ApiResponse<HouseResponseDto>> HousePorId(UserSession userSession, int houseId);
-        Task<ApiResponse<HouseResponseDto>> InserirHouse(UserSession userSession, HouseInsertRequestDto houseRequest);
+        Task<ApiResponse<HouseResponseDto>> InserirHouse(UserSession userSession, HouseInsertRequestDto houseRequest, string inputMode = "Manual");
         Task<ApiResponse<IEnumerable<HouseResponseDto>>> ListarHouses(UserSession userSession, HouseListarRequest input);
         Task<ApiResponse<IEnumerable<HouseResponseDto>>> ListarHousesPorDataCriacao(UserSession userSession, MasterHousePorDataCriacaoRequest input);
         Task<List<MasterHouseAssociationUploadResponse>> SelectHouseAssociationForUpload(UserSession userSession, HouseListarRequest input);

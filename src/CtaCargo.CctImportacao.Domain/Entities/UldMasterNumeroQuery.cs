@@ -21,7 +21,7 @@ namespace CtaCargo.CctImportacao.Domain.Entities
 
     public class UldMasterNumeroQueryChildren
     {
-        public int MasterId { get; set; }
+        public int? MasterId { get; set; }
         public string MasterNumero { get; set; }
         public string UldId { get; set; }
         public string UldCaracteristicaCodigo { get; set; }
@@ -33,6 +33,7 @@ namespace CtaCargo.CctImportacao.Domain.Entities
         public string UsuarioCriacao { get; set; }
         public DateTime DataCricao { get; set; }
         public string TotalParcial { get; set; }
+        public bool Transferencia { get; set; }
     }
 
     public class MasterNumeroUldSumario

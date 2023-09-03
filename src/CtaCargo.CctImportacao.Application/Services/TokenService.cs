@@ -20,6 +20,8 @@ namespace CtaCargo.CctImportacao.Application.Services
 
         public string GenerateToken(Usuario user)
         {
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
             var jwtSettingsSection = _configuration.GetSection("TokenJwtSettings");
 
             int intDias = Convert.ToInt32(jwtSettingsSection.GetSection("ExpiracaoEmHoras").Value);
@@ -33,7 +35,8 @@ namespace CtaCargo.CctImportacao.Application.Services
                     new Claim(ClaimTypes.Name, user.Nome),
                     new Claim(ClaimTypes.Email, user.EMail),
                     new Claim("CompanyId", user.EmpresaId.ToString()),
-                    new Claim("UserId", user.Id.ToString())
+                    new Claim("UserId", user.Id.ToString()),
+                    new Claim("Environment", environment)
                 }),
                 Expires = DateTime.UtcNow.AddHours(intDias),
                 SigningCredentials = new SigningCredentials(

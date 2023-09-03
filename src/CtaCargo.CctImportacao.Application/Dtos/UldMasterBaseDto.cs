@@ -12,5 +12,8 @@ namespace CtaCargo.CctImportacao.Application.Dtos
         public string UldIdPrimario { get; set; }
         public int QuantidadePecas { get; set; }
         public decimal Peso { get; set; }
+        public string PesoUN { get; set; }
+        public bool Transferencia { get; set; }
+        public string TipoDivisao { get; set; }
     }
 }

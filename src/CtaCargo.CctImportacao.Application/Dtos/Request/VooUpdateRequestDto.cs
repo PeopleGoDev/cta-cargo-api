@@ -9,6 +9,7 @@ public class VooUpdateRequestDto
     public string? Numero { get; set; }
     public DateTime? DataVoo { get; set; }
     public DateTime? DataHoraSaidaReal { get; set; }
+    public DateTime? DataHoraSaidaPrevista { get; set; }
     public string? AeroportoOrigemCodigo { get; set; }
     public List<VooUpdateTrechoRequest> Trechos { get; set; }
 }

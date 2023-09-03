@@ -64,15 +64,18 @@ namespace CtaCargo.CctImportacao.Application.Validators
 			RuleFor(x => x.DataEmissaoXML)
 				.NotNull()
 				.WithMessage("Data de emissão é obrigatória.");
-			RuleFor(x => x.NCMLista)
-				.NotNull()
-				.WithMessage("É requerido ao menos 1 NCM no house.")
-				.NotEmpty()
-				.WithMessage("É requerido ao menos 1 NCM no house.");
+			//RuleFor(x => x.NCMLista)
+			//	.NotNull()
+			//	.WithMessage("É requerido ao menos 1 NCM no house.")
+			//	.NotEmpty()
+			//	.WithMessage("É requerido ao menos 1 NCM no house.");
 		}
 
 		private bool CheckCNPJ(string cnpj)
 		{
+			if (cnpj == null || cnpj.Length == 0)
+				return true;
+
 			if (cnpj.StartsWith("PP"))
 			{
 				return ValidaPassaporte.IsPassporte(cnpj);

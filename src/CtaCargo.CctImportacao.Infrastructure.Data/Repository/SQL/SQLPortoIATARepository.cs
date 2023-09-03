@@ -59,6 +59,14 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
                 .FirstOrDefaultAsync();
         }
 
+        public PortoIata GetPortoIATAByCode(int empresaId, string codigo)
+        {
+            return _context.PortosIATA.FirstOrDefault(x =>
+                x.EmpresaId == empresaId &&
+                x.Codigo == codigo &&
+                x.DataExclusao == null);
+        }
+
         public async Task<bool> SaveChanges()
         {
             return (await _context.SaveChangesAsync() >= 0);

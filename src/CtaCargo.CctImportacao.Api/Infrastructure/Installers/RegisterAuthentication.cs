@@ -7,36 +7,35 @@ using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Text;
 
-namespace CtaCargo.CctImportacao.Api.Infrastructure.Installers
+namespace CtaCargo.CctImportacao.Api.Infrastructure.Installers;
+
+public class RegisterAuthentication : IServiceRegistration
 {
-    public class RegisterAuthentication : IServiceRegistration
+    public void RegisterAppServices(IServiceCollection services, IConfiguration configuration = null)
     {
-        public void RegisterAppServices(IServiceCollection services, IConfiguration configuration = null)
-        {
-            var jwtSettingsSection = configuration.GetSection("TokenJwtSettings");
+        var jwtSettingsSection = configuration.GetSection("TokenJwtSettings");
 
-            services.Configure<TokenJwtSettings>(jwtSettingsSection);
+        services.Configure<TokenJwtSettings>(jwtSettingsSection);
 
-            var tokenJwtSettings = jwtSettingsSection.Get<TokenJwtSettings>();
+        var tokenJwtSettings = jwtSettingsSection.Get<TokenJwtSettings>();
 
-            services
-                .AddAuthentication(options =>
+        services
+            .AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(bearerOptions =>
+            {
+                bearerOptions.RequireHttpsMetadata = true;
+                bearerOptions.SaveToken = true;
+                bearerOptions.TokenValidationParameters = new TokenValidationParameters
                 {
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                })
-                .AddJwtBearer(bearerOptions =>
-                {
-                    bearerOptions.RequireHttpsMetadata = true;
-                    bearerOptions.SaveToken = true;
-                    bearerOptions.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(tokenJwtSettings.Secret)),
-                        ValidateIssuer = false,
-                        ValidateAudience = false,
-                    };
-                });
-        }
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(tokenJwtSettings.Secret)),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                };
+            });
     }
 }

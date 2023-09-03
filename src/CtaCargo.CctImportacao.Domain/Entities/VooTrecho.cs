@@ -7,11 +7,6 @@ namespace CtaCargo.CctImportacao.Domain.Entities;
 
 public class VooTrecho : BaseEntity
 {
-    public VooTrecho()
-    {
-        ULDs = new HashSet<UldMaster>();
-    }
-
     [Key]
     [Required]
     public int Id { get; set; }
@@ -28,7 +23,7 @@ public class VooTrecho : BaseEntity
     [Column(TypeName = "datetime")]
     public DateTime? DataHoraChegadaEstimada { get; set; }
 
-    public virtual ICollection<UldMaster> ULDs { get; set; }
+    public ICollection<UldMaster> ULDs { get; set; } = new List<UldMaster>();
 
     [Column(TypeName = "datetime")]
     public DateTime? DataExclusao { get; set; }
@@ -36,4 +31,6 @@ public class VooTrecho : BaseEntity
     public int? PortoIataDestinoId { get; set; }
     [ForeignKey("PortoIataDestinoId")]
     public virtual PortoIata PortoIataDestinoInfo { get; set; }
+    [Column(TypeName = "datetime")]
+    public DateTime? DataHoraSaidaAtual { get; set; }
 }

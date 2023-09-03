@@ -6,10 +6,10 @@ using CtaCargo.CctImportacao.Application.Support;
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Application.Validators;
 using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Exceptions;
 using CtaCargo.CctImportacao.Infrastructure.Data;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using FluentValidation.Results;
-using Microsoft.Extensions.Azure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -118,6 +118,55 @@ namespace CtaCargo.CctImportacao.Application.Services
             }
 
         }
+
+        //public async Task<ApiResponse<string>> UpdateItineraryTime(UserSession userSession, ConfirmDepartureRequest input)
+        //{
+
+        //    var situacaoRFBvoo = await _vooRepository.GetVooRFBStatus(input.VooId);
+
+        //    if (situacaoRFBvoo == null)
+        //        throw new Exception("Voo não encontrado !");
+
+        //    if (situacaoRFBvoo.Reenviar)
+        //    {
+        //        return await SubmeterVooInterno(userSession, input, true);
+        //    }
+        //    else
+        //    {
+        //        switch (situacaoRFBvoo.SituacaoRFB)
+        //        {
+        //            case Master.RFStatusEnvioType.Received:
+        //                return await VerificarVooEntregue(userSession, input);
+        //            case Master.RFStatusEnvioType.Processed:
+        //                return new ApiResponse<string>()
+        //                {
+        //                    Sucesso = true,
+        //                    Dados = "Enviado com sucesso !",
+        //                    Notificacoes = null
+        //                };
+        //            // return await EnviarMastersAutomatico(userSession, input);
+        //            case Master.RFStatusEnvioType.NoSubmitted:
+        //            case Master.RFStatusEnvioType.Rejected:
+        //                return await SubmeterVooInterno(userSession, input);
+        //            default:
+        //                return new ApiResponse<string>()
+        //                {
+        //                    Sucesso = false,
+        //                    Dados = null,
+        //                    Notificacoes = new List<Notificacao>() {
+        //                            new Notificacao()
+        //                            {
+        //                                Codigo = "9999",
+        //                                Mensagem = $"Erro na execução da tarefa: Status do vôo não identicado !"
+        //                            }
+        //                        }
+        //                };
+        //        }
+        //    }
+
+
+        //}
+
         public async Task<ApiResponse<string>> SubmeterVooMaster(UserSession userSession, VooUploadInput input)
         {
             try
@@ -371,6 +420,57 @@ namespace CtaCargo.CctImportacao.Application.Services
                 };
             }
         }
+
+        public async Task<ApiResponse<string>> CancelarAssociacaoHousesMaster(UserSession userSession, int associationId)
+        {
+            var association = await _masterHouseAssociacaoRepository.SelectMasterHouseAssociacaoById(userSession.CompanyId, associationId);
+
+            if (association == null)
+                throw new BusinessException("Associação não encontrada !");
+
+            QueryJunction<House> param = new QueryJunction<House>();
+            param.Add(x => x.MasterNumeroXML == association.MasterNumber);
+            param.Add(x => x.DataExclusao == null);
+
+            var houses = _houseRepository.GetHouseForUploading(param);
+
+            if (houses == null || houses.Count() == 0)
+                throw new BusinessException("Não há houses associados a este Master !");
+
+            var agenteId = houses.FirstOrDefault().AgenteDeCargaId;
+
+            var masterInfo = new SubmeterRFBMasterHouseItemRequest
+            {
+                DestinationLocation = association.FinalDestinationLocation,
+                MasterNumber = association.MasterNumber,
+                OriginLocation = association.OriginLocation,
+                PackageQuantity = association.PackageQuantity,
+                TotalPiece = association.TotalPieceQuantity,
+                TotalWeight = association.GrossWeight,
+                TotalWeightUnit = association.GrossWeightUnit
+            };
+
+            X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateAgenteDeCargaAsync(agenteId.Value);
+
+            TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado, "AGECARGA");
+
+            if (association.SituacaoDeletionAssociacaoRFBId == 1)
+            {
+                var res = _uploadReceitaFederal.CheckFileProtocol(association.ProtocoloDeletionAssociacaoRFB, token);
+                await ProcessaRetornoChecagemAssociacaoHouseMaster(res, association, houses);
+            }
+            else
+            {
+                await CancelarAssociacaoHouseMasterList(association, userSession, masterInfo, houses, certificado, token);
+            }
+            return new ApiResponse<string>()
+            {
+                Sucesso = true,
+                Dados = "Dados submetidos com sucesso!",
+                Notificacoes = null
+            };
+
+        }
         #endregion
 
         #region Upload Voo
@@ -379,7 +479,7 @@ namespace CtaCargo.CctImportacao.Application.Services
             Voo voo = await _vooRepository.GetVooWithULDById(userSession.CompanyId, input.VooId);
 
             if (voo == null)
-                throw new Exception("Voo não encontrado !");
+                throw new BusinessException("Voo não encontrado !");
 
             VooEntityValidator validator = new VooEntityValidator();
 
@@ -789,6 +889,9 @@ namespace CtaCargo.CctImportacao.Application.Services
                         case 0:
                         case 2:
                         case 3:
+                            if (house.SituacaoRFBId == 2 && !house.Reenviar)
+                                break;
+
                             string xml;
                             if (house.SituacaoRFBId == 2)
                                 xml = _motorIata.GenHouseManifest(house, IataXmlPurposeCode.Update);
@@ -861,6 +964,7 @@ namespace CtaCargo.CctImportacao.Application.Services
                         house.CodigoErroRFB = response.errorList[0].code;
                         house.DescricaoErroRFB = string.Join("\n", response.errorList.Select(x => x.description));
                         house.DataChecagemRFB = response.dateTime;
+                        house.Reenviar = false;
                         foreach (ErrorListCheckFileRFB item in response.errorList)
                         {
                             notificacoes.Add(new Notificacao { Codigo = item.code, Mensagem = item.description });
@@ -872,6 +976,7 @@ namespace CtaCargo.CctImportacao.Application.Services
                 case "Processed":
                     house.SituacaoRFBId = 2;
                     house.DataChecagemRFB = response.dateTime;
+                    house.Reenviar = false;
                     _houseRepository.UpdateHouse(house);
                     await _houseRepository.SaveChanges();
                     return null;
@@ -915,6 +1020,25 @@ namespace CtaCargo.CctImportacao.Application.Services
             }
             await SubmeterHouseMasterAssociacao(userSession, freightFowarderCnpj, masterInfo, houseList, token, certificado);
         }
+
+        private async Task CancelarAssociacaoHouseMasterList(MasterHouseAssociacao associacao,
+            UserSession userSession,
+            SubmeterRFBMasterHouseItemRequest masterInfo,
+            List<House> houses,
+            X509Certificate2 certificado,
+            TokenResponse token)
+        {
+
+            string freightFowarderCnpj = houses.FirstOrDefault().AgenteDeCargaInfo.CNPJ;
+
+            List<House> houseList = new List<House>();
+            foreach (var house in houses)
+            {
+                houseList.Add(house);
+            }
+            await CancelarHouseMasterAssociacao(associacao, userSession, freightFowarderCnpj, masterInfo, houseList, token, certificado);
+        }
+
         private async Task SubmeterHouseMasterAssociacao(UserSession userSession,
             string FreightFowarderTaxId, 
             SubmeterRFBMasterHouseItemRequest masterInfo, 
@@ -957,7 +1081,8 @@ namespace CtaCargo.CctImportacao.Application.Services
                 if (!CheckUploadAvailability(houses))
                     return;
 
-                operation = IataXmlPurposeCode.Update;
+                if(associacao.SituacaoAssociacaoRFBId == 2)
+                    operation = IataXmlPurposeCode.Update;
             }
 
             string xmlAssociacao = _motorIata
@@ -970,6 +1095,28 @@ namespace CtaCargo.CctImportacao.Application.Services
             
             return;
         }
+
+        private async Task CancelarHouseMasterAssociacao(MasterHouseAssociacao associacao, UserSession userSession,
+            string FreightFowarderTaxId,
+            SubmeterRFBMasterHouseItemRequest masterInfo,
+            List<House> houses,
+            TokenResponse token,
+            X509Certificate2 certificado)
+        {
+
+            var operation = IataXmlPurposeCode.Deletion;
+
+            string xmlAssociacao = _motorIata
+                .GenMasterHouseManifest(masterInfo, houses, operation, associacao.CreatedDateTimeUtc);
+
+            var responseAssociacao = _uploadReceitaFederal
+                .SubmitHouseMaster(FreightFowarderTaxId, xmlAssociacao, token, certificado);
+
+            await ProcessarRetornoExclusaoAssociacao(responseAssociacao, associacao, houses);
+
+            return;
+        }
+
         private bool CheckUploadAvailability(List<House> houses)
         {
             return houses
@@ -1102,6 +1249,96 @@ namespace CtaCargo.CctImportacao.Application.Services
             });
             await _masterHouseAssociacaoRepository.SaveChanges();
         }
+
+        private async Task ProcessaRetornoChecagemAssociacaoHouseMaster(ProtocoloReceitaCheckFile response,
+            MasterHouseAssociacao associacao,
+            List<House> houses)
+        {
+            switch (response.status)
+            {
+                case "Rejected":
+                    associacao.SituacaoDeletionAssociacaoRFBId = 3;
+                    if (response.errorList.Length > 0)
+                    {
+                        associacao.CodigoErroDeletionAssociacaoRFB = response.errorList[0].code;
+                        associacao.DescricaoErroDeletionAssociacaoRFB = string.Join("\n", response.errorList.Select(x => x.description));
+                        associacao.DataChecagemDeletionAssociacaoRFB = response.dateTime;
+                    }
+                    _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
+                    break;
+                case "Processed":
+                    associacao.SituacaoDeletionAssociacaoRFBId = 4;
+                    associacao.DataChecagemDeletionAssociacaoRFB = response.dateTime;
+                    associacao.DataExclusao = DateTime.UtcNow;
+                    _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
+                    break;
+                default:
+                    break;
+            }
+            houses.ForEach(house =>
+            {
+                switch (response.status)
+                {
+                    case "Processed":
+                        house.SituacaoAssociacaoRFBId = 0;
+                        house.DataChecagemAssociacaoRFB = null;
+                        house.DescricaoErroAssociacaoRFB = null;
+                        house.DataProtocoloAssociacaoRFB = null;
+                        house.ProtocoloAssociacaoRFB = null;
+                        house.ReenviarAssociacao = false;
+                        _houseRepository.UpdateHouse(house);
+                        break;
+                    default:
+                        break;
+                }
+            });
+            await _masterHouseAssociacaoRepository.SaveChanges();
+        }
+
+        private async Task ProcessarRetornoExclusaoAssociacao(ReceitaRetornoProtocol response,
+            MasterHouseAssociacao associacao,
+            List<House> houses)
+        {
+            switch (response.StatusCode)
+            {
+                case "Received":
+                    associacao.SituacaoDeletionAssociacaoRFBId = 1;
+                    associacao.CodigoErroDeletionAssociacaoRFB = null;
+                    associacao.DescricaoErroDeletionAssociacaoRFB = null;
+                    associacao.ProtocoloDeletionAssociacaoRFB = response.Reason;
+                    associacao.DataProtocoloDeletionAssociacaoRFB = response.IssueDateTime;
+                    _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
+                    break;
+                case "Rejected":
+                    associacao.SituacaoDeletionAssociacaoRFBId = 3;
+                    associacao.CodigoErroDeletionAssociacaoRFB = response.StatusCode ;
+                    associacao.DescricaoErroDeletionAssociacaoRFB = response.Reason;
+                    associacao.DataProtocoloDeletionAssociacaoRFB = response.IssueDateTime;
+                    _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
+                    break;
+                case "Processed":
+                    associacao.SituacaoDeletionAssociacaoRFBId = 2;
+                    associacao.CodigoErroDeletionAssociacaoRFB = null;
+                    associacao.DescricaoErroDeletionAssociacaoRFB = null;
+                    associacao.DataProtocoloDeletionAssociacaoRFB = response.IssueDateTime;
+                    _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
+                    break;
+            }
+
+            if (response.StatusCode == "Processed")
+            {
+                houses.ForEach(house =>
+                {
+                    house.SituacaoAssociacaoRFBId = 0;
+                    house.CodigoErroAssociacaoRFB = null;
+                    house.DescricaoErroAssociacaoRFB = null;
+                    house.DataProtocoloAssociacaoRFB = null;
+                    house.ReenviarAssociacao = false;
+                    _houseRepository.UpdateHouse(house);
+                });
+            }
+            await _vooRepository.SaveChanges();
+        }
         #endregion
 
         #region Métodos Privados
@@ -1208,6 +1445,7 @@ namespace CtaCargo.CctImportacao.Application.Services
                         Notificacoes = null
                     };
                 case "Rejected":
+                    voo.StatusId = 1;
                     voo.SituacaoRFBId = RFStatusEnvioType.Rejected;
                     voo.DescricaoErroRFB = response.Reason;
                     voo.DataProtocoloRFB = response.IssueDateTime;
@@ -1220,6 +1458,7 @@ namespace CtaCargo.CctImportacao.Application.Services
                         Notificacoes = null
                     };
                 case "Processed":
+                    voo.StatusId = 2;
                     voo.SituacaoRFBId = RFStatusEnvioType.Processed;
                     voo.CodigoErroRFB = null;
                     voo.DescricaoErroRFB = null;

@@ -11,7 +11,7 @@ namespace CtaCargo.CctImportacao.Application.Services.Contracts
         Task<ApiResponse<VooResponseDto>> AtualizarVoo(VooUpdateRequestDto vooRequest, UserSession userSessionInfo);
         Task<ApiResponse<VooResponseDto>> AtualizarReenviarVoo(int vooId, UserSession userSessionInfo);
         Task<ApiResponse<VooResponseDto>> ExcluirVoo(int vooId, UserSession userSessionInfo);
-        Task<ApiResponse<VooResponseDto>> InserirVoo(VooInsertRequestDto vooRequest, UserSession userSessionInfo);
+        Task<ApiResponse<VooResponseDto>> InserirVoo(VooInsertRequestDto input, UserSession userSession, string inputMode = "Manual");
         Task<ApiResponse<IEnumerable<VooResponseDto>>> ListarVoos(VooListarInputDto input, UserSession userSessionInfo);
         ApiResponse<IEnumerable<VooTrechoResponse>> VooTrechoPorVooId(UserSession userSessionInfo, int vooId);
         Task<ApiResponse<IEnumerable<VooListaResponseDto>>> ListarVoosLista(VooListarInputDto input, UserSession userSessionInfo);

@@ -24,6 +24,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
         Task<SituacaoRFBQuery> GetMasterRFBStatus(int masterId);
         Task<int> GetMasterIdByNumberValidate(int ciaId, string numero, DateTime dataLimite);
         Task<bool> SaveChanges();
+        void ClearChangeTracker();
         void UpdateMaster(Master master);
+        FileImport GetMasterFileImportById(int ciaId, int fileId);
+        List<FileImport> GetMasterFileImportList(int ciaId);
     }
 }

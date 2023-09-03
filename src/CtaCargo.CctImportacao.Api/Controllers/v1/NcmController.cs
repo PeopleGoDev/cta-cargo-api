@@ -2,7 +2,10 @@
 using CtaCargo.CctImportacao.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
+using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace CtaCargo.CctImportacao.Api.Controllers.v1
 {
@@ -23,10 +26,16 @@ namespace CtaCargo.CctImportacao.Api.Controllers.v1
         [Route("search")]
         public IEnumerable<NCM> GetNcmByDescriptionLike(string q)
         {
-            
-            if(q == null || q.Length < 3 )
-                return new List<NCM>();
+            string search = q.Replace(".", "");
 
+            Regex regex = new Regex(@"^\d{2,8}$");
+            if(regex.Match(search).Success)
+            {
+                return _NCMService.GetNcmByCodeStart(search);
+            }
+
+            if (q == null || q.Length < 3)
+                return new List<NCM>();
             return _NCMService.GetNcmByDescriptionLike(q);
         }
 

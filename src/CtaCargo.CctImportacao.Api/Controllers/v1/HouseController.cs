@@ -34,8 +34,7 @@ public class HouseController : Controller
     [Route("ListarHouses")]
     public async Task<ApiResponse<IEnumerable<HouseResponseDto>>> ListarHouses(HouseListarRequest input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _houseService.ListarHouses(userSession, input);
+        return await _houseService.ListarHouses(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -43,8 +42,7 @@ public class HouseController : Controller
     [Route("listhouseassociationupload")]
     public async Task<List<MasterHouseAssociationUploadResponse>> SelectHouseAssociationForUpload(HouseListarRequest input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _houseService.SelectHouseAssociationForUpload(userSession, input);
+        return await _houseService.SelectHouseAssociationForUpload(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -52,8 +50,7 @@ public class HouseController : Controller
     [Route("ListarHousesPorDataCriacao")]
     public async Task<ApiResponse<IEnumerable<HouseResponseDto>>> ListarHouses(MasterHousePorDataCriacaoRequest input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _houseService.ListarHousesPorDataCriacao(userSession, input);
+        return await _houseService.ListarHousesPorDataCriacao(HttpContext.GetUserSession(), input);
     }
     
     [HttpPost]
@@ -61,8 +58,7 @@ public class HouseController : Controller
     [Route("InserirHouse")]
     public async Task<ApiResponse<HouseResponseDto>> InserirHouse([FromBody]HouseInsertRequestDto input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _houseService.InserirHouse(userSession, input);
+        return await _houseService.InserirHouse(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -70,8 +66,7 @@ public class HouseController : Controller
     [Route("AtualizarHouse")]
     public async Task<ApiResponse<HouseResponseDto>> AtualizarHouse([FromBody]HouseUpdateRequestDto input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _houseService.AtualizarHouse(userSession, input);
+        return await _houseService.AtualizarHouse(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -79,8 +74,7 @@ public class HouseController : Controller
     [Route("AtualizarReenviarHouse")]
     public async Task<ApiResponse<HouseResponseDto>> AtualizarReenviarHouse([FromQuery] int houseId)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _houseService.AtualizarReenviarHouse(userSession, houseId);
+        return await _houseService.AtualizarReenviarHouse(HttpContext.GetUserSession(), houseId);
     }
 
     [HttpPost]
@@ -88,8 +82,7 @@ public class HouseController : Controller
     [Route("AtualizarReenviarAssociacaoHouse")]
     public async Task<ApiResponse<HouseResponseDto>> AtualizarReenviarAssociacaoHouse([FromQuery] int houseId)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _houseService.AtualizarReenviarAssociacaoHouse(userSession, houseId);
+        return await _houseService.AtualizarReenviarAssociacaoHouse(HttpContext.GetUserSession(), houseId);
     }
 
     [HttpDelete]
@@ -97,7 +90,6 @@ public class HouseController : Controller
     [Route("ExcluirHouse")]
     public async Task<ApiResponse<HouseResponseDto>> ExcluirHouse(int houseId)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _houseService.ExcluirHouse(userSession, houseId);
+        return await _houseService.ExcluirHouse(HttpContext.GetUserSession(), houseId);
     }
 }

@@ -45,6 +45,7 @@ public class SQLVooRepository : IVooRepository
         return await _context.Voos
             .Include("UsuarioCriacaoInfo")
             .Include(x => x.Trechos.Where(t => t.DataExclusao == null))
+            .Include("Trechos.PortoIataDestinoInfo")
             .Where(param.ToPredicate())
             .OrderByDescending( x => x.DataVoo)
             .ToListAsync();
@@ -58,7 +59,24 @@ public class SQLVooRepository : IVooRepository
             .Include("PortoIataDestinoInfo")
             .Include("CompanhiaAereaInfo")
             .Include(x => x.Trechos.Where(t => t.DataExclusao == null))
+            .Include("Trechos.ULDs")
+            .Include("Trechos.ULDs.UsuarioCriacaoInfo")
             .FirstOrDefaultAsync(x => x.Id == vooId && x.DataExclusao == null);
+    }
+
+    public async Task<Voo> GetVooForExclusionById(int ciaId, int vooId)
+    {
+        return await _context.Voos
+            .Include(x => x.Masters.Where(y => y.DataExclusao == null))
+            .FirstOrDefaultAsync(x => x.EmpresaId == ciaId &&  x.Id == vooId && x.DataExclusao == null);
+    }
+
+    public async Task<Voo> GetVooByIdSimple(int companyId, int vooId)
+    {
+        return await _context.Voos
+            .Include("PortoIataOrigemInfo")
+            .Include("CompanhiaAereaInfo")
+            .FirstOrDefaultAsync(x => x.EmpresaId == companyId && x.Id == vooId && x.DataExclusao == null);
     }
 
     public IEnumerable<VooTrecho> GetTrechoByVooId(int vooId)
@@ -67,11 +85,20 @@ public class SQLVooRepository : IVooRepository
             .Where(x => x.VooId == vooId && x.DataExclusao == null);
     }
 
-    public async Task<Voo> GetVooIdByDataVooNumero(DateTime dataVoo, string numeroVoo)
+    public Voo GetVooIdByDataVooNumero(int companyId, DateTime dataVoo, string numeroVoo)
     {
-        return await _context.Voos
-            .Where(x => x.DataVoo == dataVoo && x.Numero == numeroVoo && x.DataExclusao == null)
-            .FirstOrDefaultAsync();
+        return _context.Voos
+            .Include("UsuarioCriacaoInfo")
+            .Include("PortoIataOrigemInfo")
+            .Include("PortoIataDestinoInfo")
+            .Include("CompanhiaAereaInfo")
+            .Include(x => x.Trechos.Where(t => t.DataExclusao == null))
+            .Include("Trechos.ULDs")
+            .Where(x => x.EmpresaId == companyId && 
+                        x.DataVoo == dataVoo && 
+                        x.Numero == numeroVoo && 
+                        x.DataExclusao == null)
+            .FirstOrDefault();
     }
 
     public async Task<SituacaoRFBQuery> GetVooRFBStatus(int vooId)
@@ -91,12 +118,13 @@ public class SQLVooRepository : IVooRepository
     public async Task<Voo> GetVooWithULDById(int companyId, int vooId)
     {
         return await _context.Voos
-            .Include("ULDs")
-            .Include("ULDs.MasterInfo")
-            .Include("ULDs.MasterInfo.AeroportoOrigemInfo")
-            .Include("ULDs.MasterInfo.AeroportoDestinoInfo")
+            .Include("Trechos")
+            .Include("Trechos.ULDs")
+            .Include("Trechos.ULDs.MasterInfo")
+            .Include("Trechos.ULDs.MasterInfo.AeroportoOrigemInfo")
+            .Include("Trechos.ULDs.MasterInfo.AeroportoDestinoInfo")
             .Include("PortoIataOrigemInfo")
-            .Include("PortoIataDestinoInfo")
+            .Include("Trechos.PortoIataDestinoInfo")
             .Include("CompanhiaAereaInfo")
             .FirstOrDefaultAsync(x => x.EmpresaId == companyId && x.Id == vooId && x.DataExclusao == null);
     }

@@ -39,10 +39,10 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
             return await _context.MasterHouseAssociacoes.Where(predicate).ToListAsync();
         }
 
-        public async Task<MasterHouseAssociacao> SelectMasterHouseAssociacaoById(int id)
+        public async Task<MasterHouseAssociacao> SelectMasterHouseAssociacaoById(int ciaId, int id)
         {
             return await _context.MasterHouseAssociacoes
-                .FirstOrDefaultAsync(x => x.Id == id && x.DataExclusao == null);
+                .FirstOrDefaultAsync(x => x.EmpresaId == ciaId && x.Id == id && x.DataExclusao == null);
         }
 
         public async Task<MasterHouseAssociacao> SelectMasterHouseAssociacaoByMaster(string master)

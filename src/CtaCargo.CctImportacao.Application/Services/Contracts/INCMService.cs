@@ -6,6 +6,7 @@ namespace CtaCargo.CctImportacao.Application.Services.Contracts
     public interface INcmService
     {
         IEnumerable<NCM> GetNcmByDescriptionLike(string like);
+        IEnumerable<NCM> GetNcmByCodeStart(string code);
         IEnumerable<NCM> GetNcmByCode(string[] codes);
     }
 }

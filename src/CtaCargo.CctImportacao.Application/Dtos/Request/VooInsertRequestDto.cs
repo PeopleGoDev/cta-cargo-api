@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace CtaCargo.CctImportacao.Application.Dtos.Request;
 
@@ -9,6 +8,7 @@ public class VooInsertRequestDto
     public string Numero { get; set; }
     public DateTime DataVoo { get; set; }
     public DateTime? DataHoraSaidaReal { get; set; }
+    public DateTime? DataHoraSaidaPrevista { get; set; }
     public string AeroportoOrigemCodigo { get; set; }
     public List<VooInsertTrechoRequest> Trechos { get; set; } 
 }

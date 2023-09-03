@@ -97,21 +97,9 @@ public class VooService : IVooService
     public async Task<ApiResponse<VooUploadResponse>> VooUploadPorId(int vooId, UserSession userSessionInfo)
     {
         var voo = await _vooRepository.GetVooById(vooId);
-        if (voo == null)
-            return new ApiResponse<VooUploadResponse>
-            {
-                Dados = null,
-                Sucesso = false,
-                Notificacoes = new List<Notificacao>() {
-                        new Notificacao
-                        {
-                            Codigo = "9999",
-                            Mensagem = "Voo não encontrado !"
-                        }
-                }
-            };
 
-        var ulds = await _uldMasterRepository.GetUldMasterByVooId(vooId);
+        if (voo == null)
+            throw new BusinessException("Voo não encontrado!");
 
         var response = new VooUploadResponse
         {
@@ -131,8 +119,44 @@ public class VooService : IVooService
             StatusId = (int)voo.StatusId,
             UsuarioCriacao = voo.UsuarioCriacaoInfo?.Nome,
             VooId = voo.Id,
-            ULDs = ulds
+            Trechos = voo.Trechos.Select(x => new VooTrechoResponse(x.Id, x.AeroportoDestinoCodigo,
+                x.DataHoraChegadaEstimada,
+                x.DataHoraSaidaEstimada)
+            ).ToList(),
+            ULDs = new List<UldMasterNumeroQuery>()
         };
+
+        foreach (var trecho in voo.Trechos)
+        {
+
+            var result = trecho.ULDs.Where(x => x.DataExclusao == null)
+                .Select(c => new UldMasterNumeroQueryChildren
+                {
+                    Id = c.Id,
+                    DataCricao = c.CreatedDateTimeUtc,
+                    MasterNumero = c.MasterNumero,
+                    Peso = c.Peso,
+                    PesoUnidade = c.PesoUN,
+                    QuantidadePecas = c.QuantidadePecas,
+                    UldCaracteristicaCodigo = c.ULDCaracteristicaCodigo,
+                    UldId = c.ULDId,
+                    UldIdPrimario = c.ULDIdPrimario,
+                    UsuarioCriacao = c.UsuarioCriacaoInfo?.Nome,
+                    TotalParcial = c.TotalParcial
+                }).ToList();
+
+            var result1 = result
+                .GroupBy(g => new { g.UldCaracteristicaCodigo, g.UldId, g.UldIdPrimario })
+                .Select(s => new UldMasterNumeroQuery
+                {
+                    ULDCaracteristicaCodigo = s.Key.UldCaracteristicaCodigo,
+                    ULDId = s.Key.UldId,
+                    ULDIdPrimario = s.Key.UldIdPrimario,
+                    ULDs = s.ToList()
+                }).ToList();
+
+            response.ULDs.AddRange(result1);
+        }
 
         return new ApiResponse<VooUploadResponse>
         {
@@ -228,12 +252,12 @@ public class VooService : IVooService
             Notificacoes = null
         };
     }
-    public async Task<ApiResponse<VooResponseDto>> InserirVoo(VooInsertRequestDto input, UserSession userSessionInfo)
+    public async Task<ApiResponse<VooResponseDto>> InserirVoo(VooInsertRequestDto input, UserSession userSession, string inputMode="Manual")
     {
         if (!ValidarNumeroVoo(input.Numero))
             throw new BusinessException("Número do voo invalido!");
 
-        CiaAerea cia = await _ciaAereaRepository.GetCiaAereaByIataCode(userSessionInfo.CompanyId, input.Numero.Substring(0, 2));
+        CiaAerea cia = await _ciaAereaRepository.GetCiaAereaByIataCode(userSession.CompanyId, input.Numero.Substring(0, 2));
 
         if (cia == null)
             throw new BusinessException($"Companhia Aérea {input.Numero.Substring(0, 2)} não cadastrada!");
@@ -252,14 +276,17 @@ public class VooService : IVooService
 
         var voo = new Voo();
 
-        voo.EmpresaId = userSessionInfo.CompanyId;
-        voo.CriadoPeloId = userSessionInfo.UserId;
+        voo.EmpresaId = userSession.CompanyId;
+        voo.CriadoPeloId = userSession.UserId;
+        voo.Environment = userSession.Environment;
+        voo.InputMode = inputMode;
         voo.CreatedDateTimeUtc = DateTime.UtcNow;
         voo.CiaAereaId = cia.Id;
         voo.Numero = input.Numero;
         voo.CiaAereaId = cia.Id;
         voo.DataVoo = input.DataVoo;
         voo.DataHoraSaidaReal = input.DataHoraSaidaReal;
+        voo.DataHoraSaidaEstimada = input.DataHoraSaidaPrevista;
         voo.PortoIataOrigemId = codigoOrigemId > 0 ? codigoOrigemId : null;
         voo.PortoIataDestinoId = codigoDestinoId > 0 ? codigoDestinoId : null;
         voo.DataEmissaoXML = DateTime.UtcNow;
@@ -274,10 +301,10 @@ public class VooService : IVooService
             {
                 AeroportoDestinoCodigo = item.AeroportoDestinoCodigo,
                 CreatedDateTimeUtc = DateTime.UtcNow,
-                CriadoPeloId = userSessionInfo.UserId,
+                CriadoPeloId = userSession.UserId,
                 DataHoraChegadaEstimada = item.DataHoraChegadaEstimada,
                 DataHoraSaidaEstimada = item.DataHoraSaidaEstimada,
-                EmpresaId = userSessionInfo.CompanyId,
+                EmpresaId = userSession.CompanyId,
                 VooId = voo.Id
             };
             var codigoPortoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(item.AeroportoDestinoCodigo);
@@ -329,6 +356,8 @@ public class VooService : IVooService
         }
         if (input.DataHoraSaidaReal != null)
             voo.DataHoraSaidaReal = input.DataHoraSaidaReal;
+        if (input.DataHoraSaidaPrevista != null)
+            voo.DataHoraSaidaEstimada = input.DataHoraSaidaPrevista;
 
         voo.PortoIataDestinoId = codigoDestinoId > 0 ? codigoDestinoId  : null;
 
@@ -455,22 +484,13 @@ public class VooService : IVooService
     }
     public async Task<ApiResponse<VooResponseDto>> ExcluirVoo(int vooId, UserSession userSessionInfo)
     {
-        var vooRepo = await _vooRepository.GetVooById(vooId);
+        var vooRepo = await _vooRepository.GetVooForExclusionById(userSessionInfo.CompanyId, vooId);
+
         if (vooRepo == null)
-        {
-            return new ApiResponse<VooResponseDto>
-            {
-                Dados = null,
-                Sucesso = false,
-                Notificacoes = new List<Notificacao>() {
-                        new Notificacao
-                        {
-                            Codigo = "9999",
-                            Mensagem = "Não foi possível excluir voo: Voo não encontrado !"
-                        }
-                }
-            };
-        }
+            throw new BusinessException("Não foi possível excluir voo: Voo não encontrado !");
+
+        if(vooRepo.Masters != null && vooRepo.Masters.Count > 0)
+            throw new BusinessException("Não é possível excluir voo com master atrelado. Exclua/Mova o(s) master(s) atrelado(s) a este voo para continuar com a exclusão !");
 
         _vooRepository.DeleteVoo(vooRepo);
 
@@ -485,21 +505,7 @@ public class VooService : IVooService
                 };
         }
         else
-        {
-            return new ApiResponse<VooResponseDto>
-            {
-                Dados = null,
-                Sucesso = false,
-                Notificacoes = new List<Notificacao>() {
-                        new Notificacao
-                        {
-                            Codigo = "9999",
-                            Mensagem = "Não foi possível excluir voo: Erro Desconhecido!"
-                        }
-                }
-            };
-        }
-
+            throw new BusinessException("Não foi possível excluir voo: Erro Desconhecido !");
     }
     private ApiResponse<VooResponseDto> ErrorHandling(Exception exception)
     {

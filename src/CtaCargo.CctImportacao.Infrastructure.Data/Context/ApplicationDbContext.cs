@@ -33,6 +33,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Context
         public DbSet<NCM> NCMs { get; set; }
         public DbSet<MasterHouseAssociacao> MasterHouseAssociacoes { get; set; }
         public DbSet<VooTrecho> VooTrechos { get; set; }
+        public DbSet<Configura> Configuracoes { get; set; }
+        public DbSet<FileImport> FileImport { get; set; }
+        public DbSet<FileImportDetail> FileImportDetails { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -82,14 +85,24 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Context
                 .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 
             modelBuilder.Entity<Voo>()
-                .ToTable("Voo");
+                .ToTable("Voo")
+                .HasMany(x => x.Trechos)
+                .WithOne(e => e.VooInfo)
+                .HasForeignKey(e => e.VooId)
+                .HasPrincipalKey(e => e.Id);
+
             modelBuilder.Entity<Voo>()
                 .HasIndex(u => new { u.CiaAereaId, u.DataVoo, u.Numero, u.DataExclusao })
                 .IsUnique()
                 .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 
             modelBuilder.Entity<VooTrecho>()
-                .ToTable("VooTrecho");
+                .ToTable("VooTrecho")
+                .HasMany(a => a.ULDs)
+                .WithOne(e => e.VooTrecho)
+                .HasForeignKey(e => e.VooTrechoId)
+                .HasPrincipalKey(e => e.Id);
+
             modelBuilder.Entity<VooTrecho>()
                 .HasIndex(u => new { u.DataExclusao, u.VooId })
                 .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
@@ -116,7 +129,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Context
             modelBuilder.Entity<UldMaster>()
                 .ToTable("ULDMaster");
             modelBuilder.Entity<UldMaster>()
-                .HasIndex(u => new { u.MasterId, u.ULDCaracteristicaCodigo, u.ULDId, u.ULDIdPrimario, u.DataExclusao })
+                .HasIndex(u => new { u.VooTrechoId, u.MasterNumero, u.ULDCaracteristicaCodigo, u.ULDId, u.ULDIdPrimario, u.DataExclusao })
                 .IsUnique()
                 .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 
@@ -154,11 +167,25 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Context
                 .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 
             modelBuilder.Entity<NCM>().ToTable("NCMs");
-            modelBuilder.Entity<NCM>().HasIndex(u => new { u.Seleciona, u.Descricao })
+            modelBuilder.Entity<NCM>()
+                .HasIndex(u => new { u.Seleciona, u.Descricao })
                 .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
-            
+            modelBuilder.Entity<NCM>()
+                .HasIndex(u => new { u.Seleciona, u.CodigoNumero })
+                .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
+
             modelBuilder.Entity<MasterHouseAssociacao>().ToTable("MasterHouseAssociacao");
             modelBuilder.Entity<MasterHouseAssociacao>().HasIndex(u => new { u.DataExclusao, u.MasterNumber })
+                .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
+
+            modelBuilder.Entity<FileImport>()
+                .ToTable("FileImport")
+                .HasIndex(x => new { x.EmpresaId, x.Id, x.DataExclusao })
+                .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
+
+            modelBuilder.Entity<FileImport>()
+                .ToTable("FileImport")
+                .HasIndex(x => new { x.EmpresaId, x.Type, x.DataExclusao })
                 .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 
             modelBuilder.Entity<ResumoVooUldView>(eb =>

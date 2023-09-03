@@ -261,7 +261,6 @@ namespace CtaCargo.CctImportacao.Application.Mappings
 
             CreateMap<MasterInsertRequestDto, Master>()
                 .ForMember(dest => dest.VooId, m => m.MapFrom(a => a.VooId))
-                .ForMember(dest => dest.CriadoPeloId, m => m.MapFrom(a => a.UsuarioInsercaoId))
                 .ForMember(dest => dest.Numero, m => m.MapFrom(a => a.Numero))
                 .ForMember(dest => dest.PesoTotalBruto, m => m.MapFrom(a => a.PesoTotalBruto))
                 .ForMember(dest => dest.PesoTotalBrutoUN, m => m.MapFrom(a => a.PesoTotalBrutoUN))
@@ -292,7 +291,6 @@ namespace CtaCargo.CctImportacao.Application.Mappings
                 .ForMember(dest => dest.ConsignatarioPaisCodigo, m => m.MapFrom(a => a.ConsignatarioPaisCodigo))
                 .ForMember(dest => dest.ConsignatarioSubdivisao, m => m.MapFrom(a => a.ConsignatarioSubdivisao))
                 .ForMember(dest => dest.ConsignatarioCNPJ, m => m.MapFrom(a => a.ConsignatarioCNPJ))
-                .ForMember(dest => dest.CiaAereaId, m => m.MapFrom(a => a.CiaAereaId))
                 .ForMember(dest => dest.NCMLista, m => m.MapFrom(a => a.GetNCMListaString()))
                 .ForMember(dest => dest.CodigoConteudo, m => m.MapFrom(a => a.ConsolidadoDireto))
                 .ForMember(dest => dest.AeroportoOrigemCodigo, m => m.MapFrom(a => a.AeroportoOrigemCodigo))

@@ -89,7 +89,7 @@ public class SQLUldMasterRepository : IUldMasterRepository
             {
                 Id = c.Id,
                 DataCricao = c.CreatedDateTimeUtc,
-                MasterNumero = c.MasterInfo.Numero,
+                MasterNumero = c.MasterNumero,
                 Peso = c.Peso,
                 PesoUnidade = c.MasterInfo.PesoTotalBrutoUN,
                 QuantidadePecas = c.QuantidadePecas,
@@ -117,21 +117,22 @@ public class SQLUldMasterRepository : IUldMasterRepository
     {
         var result = await _context.ULDMasters
             .Include("UsuarioCriacaoInfo")
-            .Include("MasterInfo")
             .Where(x => x.VooTrechoId == trechoId && x.DataExclusao == null)
             .Select(c => new UldMasterNumeroQueryChildren
             {
                 Id = c.Id,
                 DataCricao = c.CreatedDateTimeUtc,
-                MasterNumero = c.MasterInfo.Numero,
+                MasterNumero = c.MasterNumero,
                 Peso = c.Peso,
-                PesoUnidade = c.MasterInfo.PesoTotalBrutoUN,
+                PesoUnidade = c.PesoUN,
                 QuantidadePecas = c.QuantidadePecas,
                 UldCaracteristicaCodigo = c.ULDCaracteristicaCodigo,
                 UldId = c.ULDId,
                 UldIdPrimario = c.ULDIdPrimario,
                 UsuarioCriacao = c.UsuarioCriacaoInfo.Nome,
-                TotalParcial = c.TotalParcial
+                TotalParcial = c.TotalParcial,
+                Transferencia = c.Tranferencia,
+                MasterId = c.MasterId
             }).ToListAsync();
 
         var result1 = result

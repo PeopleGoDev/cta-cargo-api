@@ -18,11 +18,14 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
 
         public void DeleteErroMaster(List<ErroMaster> erroLista)
         {
-            erroLista.ForEach(item => {
-                item.DataExclusao = DateTime.UtcNow;
-                _context.ErrosMaster.Update(item);
-            });
-            _context.SaveChanges();
+            if (erroLista.Count > 0)
+            {
+                erroLista.ForEach(item =>
+                {
+                    item.DataExclusao = DateTime.UtcNow;
+                    _context.ErrosMaster.Update(item);
+                });
+            }
         }
     }
 }

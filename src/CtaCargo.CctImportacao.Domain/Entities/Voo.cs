@@ -5,15 +5,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 using static CtaCargo.CctImportacao.Domain.Entities.Master;
 
 namespace CtaCargo.CctImportacao.Domain.Entities;
-
 public class Voo : BaseEntity
 {
-    public Voo()
-    {
-        Masters = new HashSet<Master>();
-        Trechos = new HashSet<VooTrecho>();
-    }
-
     [Key]
     [Required]
     public int Id { get; set; }
@@ -56,8 +49,8 @@ public class Voo : BaseEntity
     public string CodigoErroRFB { get; set; }
     [Column(TypeName = "varchar(250)")]
     public string DescricaoErroRFB { get; set; }
-    public virtual ICollection<Master> Masters { get; set; }
-    public virtual ICollection<VooTrecho> Trechos { get; set; }
+    public ICollection<Master> Masters { get; set; } = new List<Master>();
+    public ICollection<VooTrecho> Trechos { get; set; } = new List<VooTrecho>();
     [Column(TypeName = "datetime")]
     public DateTime? DataExclusao { get; set; }
     [Column(TypeName = "datetime")]
@@ -71,4 +64,10 @@ public class Voo : BaseEntity
     [Column(TypeName = "varchar(3)")]
     public string AeroportoDestinoCodigo { get; set; }
     public bool Reenviar { get; set; }
+    [Column(TypeName = "varchar(30)")]
+    public string InputMode { get; set; }
+    [Column(TypeName = "varchar(30)")]
+    public string Environment { get; set; }
+    [Column(TypeName = "datetime")]
+    public DateTime? XmlIssueDate { get; set; }
 }

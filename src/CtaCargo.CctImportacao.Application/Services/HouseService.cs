@@ -5,6 +5,7 @@ using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using CtaCargo.CctImportacao.Application.Validators;
 using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Exceptions;
 using CtaCargo.CctImportacao.Infrastructure.Data;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.Data.SqlClient;
@@ -182,6 +183,7 @@ public class HouseService : IHouseService
                 Houses = (from c in findHouses
                           select new MasterHouseAssociationHouseItemResponse
                           {
+                              Id = c.Id,
                               Number = c.Numero,
                               AssociationCheckDate = c.DataChecagemAssociacaoRFB,
                               AssociationDate = c.DataProtocoloAssociacaoRFB,
@@ -205,6 +207,7 @@ public class HouseService : IHouseService
             {
                 resp.Summary = new MasterHouseAssociationSummaryUploadResponse
                 {
+                    Id = findSummary.Id,
                     ConsignmentItemQuantity = findSummary.ConsigmentItemQuantity,
                     DestinationLocation = findSummary.FinalDestinationLocation,
                     DocumentId = findSummary.MessageHeaderDocumentId,
@@ -213,7 +216,11 @@ public class HouseService : IHouseService
                     PackageQuantity = findSummary.PackageQuantity,
                     TotalPieceQuantity = findSummary.TotalPieceQuantity,
                     TotalWeight = findSummary.GrossWeight,
-                    TotalWeightUnit = findSummary.GrossWeightUnit
+                    TotalWeightUnit = findSummary.GrossWeightUnit,
+                    RFBCreationStatus = findSummary.SituacaoAssociacaoRFBId,
+                    RFBCreationProtocol = findSummary.ProtocoloAssociacaoRFB,
+                    RFBCancelationStatus = findSummary.SituacaoDeletionAssociacaoRFBId,
+                    RFBCancelationProtocol = findSummary.ProtocoloDeletionAssociacaoRFB
                 };
             }
 
@@ -222,7 +229,7 @@ public class HouseService : IHouseService
 
         return response;
     }
-    public async Task<ApiResponse<HouseResponseDto>> InserirHouse(UserSession userSession, HouseInsertRequestDto input)
+    public async Task<ApiResponse<HouseResponseDto>> InserirHouse(UserSession userSession, HouseInsertRequestDto input, string inputMode="Manual")
     {
         try
         {
@@ -258,6 +265,8 @@ public class HouseService : IHouseService
             house.AgenteDeCargaId = agenteDeCarga.Id;
             house.CriadoPeloId = userSession.UserId;
             house.EmpresaId = userSession.CompanyId;
+            house.Environment = userSession.Environment;
+            house.InputMode = inputMode;
 
             var result = validator.Validate(house);
 
@@ -512,81 +521,28 @@ public class HouseService : IHouseService
     }
     public async Task<ApiResponse<HouseResponseDto>> AtualizarReenviarAssociacaoHouse(UserSession userSession, int houseId)
     {
-        try
+        var house = await _houseRepository.GetHouseById(houseId);
+
+        if (house == null)
+            throw new BusinessException("House não encontrado !");
+
+        house.ReenviarAssociacao = true;
+
+        _houseRepository.UpdateHouse(house);
+
+        if (await _houseRepository.SaveChanges())
         {
-            var house = await _houseRepository.GetHouseById(houseId);
-
-            if (house == null)
-            {
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "House não encontrado !"
-                            }
-                        }
-                    };
-            }
-
-            house.ReenviarAssociacao = true;
-
-            _houseRepository.UpdateHouse(house);
-
-            if (await _houseRepository.SaveChanges())
-            {
-                var HouseResponseDto = _mapper.Map<HouseResponseDto>(house);
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = HouseResponseDto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            else
-            {
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível atualiza o House: Erro Desconhecido!"
-                            }
-                        }
-                    };
-            }
-
-        }
-        catch (DbUpdateException e)
-        {
-            return ErrorHandling(e);
-        }
-        catch (Exception ex)
-        {
+            var HouseResponseDto = _mapper.Map<HouseResponseDto>(house);
             return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Não foi possível atualiza o House: {ex.Message} !"
-                            }
-                        }
-                    };
+                new ApiResponse<HouseResponseDto>
+                {
+                    Dados = HouseResponseDto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
         }
-
+        else
+            throw new BusinessException("Não foi possível atualiza o House: Erro Desconhecido!");
     }
     public async Task<ApiResponse<HouseResponseDto>> ExcluirHouse(UserSession userSession, int houseId)
     {

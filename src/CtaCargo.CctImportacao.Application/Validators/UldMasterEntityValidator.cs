@@ -27,6 +27,11 @@ namespace CtaCargo.CctImportacao.Application.Validators
 			RuleFor(x => x.Peso)
 				.GreaterThanOrEqualTo(0)
 				.WithMessage("Peso deve ser maior que zero.");
-		}
+            RuleFor(x => x.PesoUN)
+                .NotEmpty()
+                .WithMessage("Unidade do Peso é obrigatório.")
+                .NotNull()
+                .WithMessage("Unidade do Peso é obrigatório.");
+        }
     }
 }
