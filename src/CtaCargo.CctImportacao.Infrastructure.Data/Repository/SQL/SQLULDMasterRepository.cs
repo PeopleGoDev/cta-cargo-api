@@ -70,6 +70,18 @@ public class SQLUldMasterRepository : IUldMasterRepository
     {
         return await _context.ULDMasters.Where(x => x.MasterId == masterId).ToListAsync();
     }
+
+    public async Task<UldMaster> GetUldMasterByMasterNumber(int ciaId, string masterNumber)
+    {
+        return await _context.ULDMasters.Where(x => x.EmpresaId == ciaId && 
+            x.MasterNumero == masterNumber && 
+            x.DataExclusao == null)
+            .Include(x => x.VooTrecho)
+            .Include("VooTrecho.VooInfo")
+            .OrderByDescending(x => x.CreatedDateTimeUtc)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<List<UldMaster>> GetUldMasterByLinha(int vooId, string linha)
     {
         string uldchar = linha.Substring(0, 3);

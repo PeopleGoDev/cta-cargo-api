@@ -33,7 +33,7 @@ public class MotorIata : IMotorIata
         return "";
     }
 
-    public string GenFlightManifest(Voo voo)
+    public string GenFlightManifest(Voo voo, int? trechoId = null, DateTime? actualDateTime = null)
     {
         try
         {
@@ -95,8 +95,18 @@ public class MotorIata : IMotorIata
             logmov.TotalPackageQuantity = new Flight.QuantityType { Value = totalPacotes };
             logmov.TotalPieceQuantity = new Flight.QuantityType { Value = totalPecas };
             logmov.DepartureEvent = new Flight.DepartureEventType();
-            logmov.DepartureEvent.DepartureOccurrenceDateTime = (DateTime)voo.DataHoraSaidaReal;
-            logmov.DepartureEvent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "A" };
+
+            if (voo.DataHoraSaidaReal != null)
+            {
+                logmov.DepartureEvent.DepartureOccurrenceDateTime = (DateTime)voo.DataHoraSaidaReal;
+                logmov.DepartureEvent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "A" };
+            }
+            else
+            {
+                logmov.DepartureEvent.DepartureOccurrenceDateTime = (DateTime)voo.DataHoraSaidaEstimada;
+                logmov.DepartureEvent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "S" };
+            }
+
             logmov.DepartureEvent.OccurrenceDepartureLocation = new Flight.DepartureLocationType();
             logmov.DepartureEvent.OccurrenceDepartureLocation.ID = new Flight.IDType { Value = voo.PortoIataOrigemInfo.Codigo };
             logmov.DepartureEvent.OccurrenceDepartureLocation.Name = new Flight.TextType { Value = voo.PortoIataOrigemInfo.Nome };
@@ -115,12 +125,21 @@ public class MotorIata : IMotorIata
                     arrevent.ArrivalDateTimeTypeCode = new Flight.CodeType { Value = "S" };
                     arrevent.ArrivalOccurrenceDateTimeSpecified = true;
                 };
-                if (trecho.DataHoraSaidaEstimada != null)
+                if (trechoId == trecho.Id && actualDateTime != null)
                 {
-                    arrevent.DepartureOccurrenceDateTime = trecho.DataHoraSaidaEstimada;
-                    arrevent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "S" };
+                    arrevent.DepartureOccurrenceDateTime = actualDateTime;
+                    arrevent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "A" };
                     arrevent.DepartureOccurrenceDateTimeSpecified = true;
-                };
+                }
+                else
+                {
+                    if (trecho.DataHoraSaidaEstimada != null)
+                    {
+                        arrevent.DepartureOccurrenceDateTime = trecho.DataHoraSaidaEstimada;
+                        arrevent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "S" };
+                        arrevent.DepartureOccurrenceDateTimeSpecified = true;
+                    };
+                }
                 arrevent.OccurrenceArrivalLocation = new Flight.ArrivalLocationType();
                 arrevent.OccurrenceArrivalLocation.ID = new Flight.IDType { Value = trecho.PortoIataDestinoInfo.Codigo };
                 arrevent.OccurrenceArrivalLocation.Name = new Flight.TextType { Value = trecho.PortoIataDestinoInfo.Nome };
@@ -522,8 +541,8 @@ public class MotorIata : IMotorIata
             ScheduledOccurrenceDateTime = (DateTime)master.VooInfo.DataHoraSaidaEstimada,
             OccurrenceDepartureLocation = new Waybill.DepartureLocationType
             {
-                ID = new Waybill.IDType { Value = master.VooInfo.PortoIataOrigemInfo.Codigo },
-                Name = new Waybill.TextType { Value = master.VooInfo.PortoIataOrigemInfo.Nome },
+                ID = new Waybill.IDType { Value = master.AeroportoOrigemCodigo },
+                Name = new Waybill.TextType { Value = master.VooInfo.PortoIataOrigemInfo?.Nome ?? null },
                 TypeCode = new Waybill.CodeType { Value = "Airport" }
             }
         };
@@ -724,7 +743,7 @@ public class MotorIata : IMotorIata
                     currencyIDSpecified = true,
                     currencyID = valorFCUN
                 },
-                PrepaidIndicator = true
+                PrepaidIndicator = false
             });
         }
 

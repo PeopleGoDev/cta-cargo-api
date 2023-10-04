@@ -10,4 +10,8 @@
     <None Remove="Interfaces\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="8.6.2" />
+  </ItemGroup>
+
 </Project>

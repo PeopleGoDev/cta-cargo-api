@@ -73,10 +73,19 @@ public class SQLHouseRepository : IHouseRepository
        x.CreatedDateTimeUtc <= dataFinal).ToListAsync();
     }
 
-    public async Task<House> GetHouseById(int houseId)
+    public async Task<House> GetHouseById(int ciaId, int houseId)
     {
-        return await _context.Houses.FirstOrDefaultAsync(x => x.Id == houseId &&
+        return await _context.Houses.FirstOrDefaultAsync(x => x.EmpresaId == ciaId && x.Id == houseId &&
         x.DataExclusao == null);
+    }
+
+    public async Task<House> GetHouseByIdForExclusionUpload(int ciaId, int houseId)
+    {
+        return await _context.Houses
+            .Include("AgenteDeCargaInfo")
+            .Include("AeroportoOrigemInfo")
+            .Include("AeroportoDestinoInfo")
+            .FirstOrDefaultAsync(x => x.EmpresaId == ciaId && x.Id == houseId && x.DataExclusao == null);
     }
 
     public string[] GetMastersByParam(QueryJunction<House> param)

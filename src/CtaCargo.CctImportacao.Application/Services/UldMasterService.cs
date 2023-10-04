@@ -3,11 +3,11 @@ using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
-using CtaCargo.CctImportacao.Application.Support;
-using CtaCargo.CctImportacao.Application.Validators;
+using CtaCargo.CctImportacao.Application.Validator;
 using CtaCargo.CctImportacao.Domain.Dtos;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Exceptions;
+using CtaCargo.CctImportacao.Domain.Validator;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.Data.SqlClient;
 using System;
@@ -291,16 +291,12 @@ public class UldMasterService : IUldMasterService
 
             UldMasterEntityValidator validator = new UldMasterEntityValidator();
 
-            if (!item.Transferencia)
-            {
-                var master = await GetMasterId(userSession.CompanyId, item.MasterNumero);
+            var masterId = await GetMasterId(userSession.CompanyId, item.MasterNumero);
 
-                if (master == null)
-                    throw new BusinessException($"Master {item.MasterNumero} não foi encontrado no voo selecionado!");
+            if (masterId == null)
+                throw new BusinessException($"Master {item.MasterNumero} não foi encontrado no voo selecionado!");
 
-                uld.MasterId = master.Id;
-                
-            }
+            uld.MasterId = masterId;
 
             var result = validator.Validate(uld);
 
@@ -363,11 +359,12 @@ public class UldMasterService : IUldMasterService
             if (item.UldIdPrimario != null)
                 uld.ULDIdPrimario = item.UldIdPrimario;
 
-            if (!item.Transferencia)
-            {
-                var master = await GetMasterId(userSession.CompanyId, item.MasterNumero);
-                uld.MasterId = master.Id;
-            }
+            var masterId = await GetMasterId(userSession.CompanyId, item.MasterNumero);
+
+            if (masterId == null)
+                throw new BusinessException($"Master {item.MasterNumero} não foi encontrado no voo selecionado!");
+
+            uld.MasterId = masterId;
 
             UldMasterEntityValidator validator = new UldMasterEntityValidator();
 
@@ -518,10 +515,13 @@ public class UldMasterService : IUldMasterService
         }
 
     }
-    private async Task<Master> GetMasterId(int companyId, string masterNumero)
+    private async Task<int?> GetMasterId(int companyId, string masterNumero)
     {
         var result = await _masterRepository.GetMasterByNumber(companyId, masterNumero);
-        return result;
+        if (result == null)
+            return null;
+
+        return result.Id;
     }
     private async Task AtualizarValidacaoMaster(int companyId, List<UldMaster> uldMasters)
     {
@@ -532,7 +532,7 @@ public class UldMasterService : IUldMasterService
             var master = await _masterRepository.GetMasterIdByNumber(companyId, uld.Key.VooId, uld.Key.MasterNumero);
             if (master != null)
             {
-                _validadorMaster.TratarErrosMaster(master);
+                _validadorMaster.InserirErrosMaster(master);
                 _masterRepository.UpdateMaster(master);
                 await _masterRepository.SaveChanges();
             }

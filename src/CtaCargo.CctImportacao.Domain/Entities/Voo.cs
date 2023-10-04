@@ -70,4 +70,9 @@ public class Voo : BaseEntity
     public string Environment { get; set; }
     [Column(TypeName = "datetime")]
     public DateTime? XmlIssueDate { get; set; }
+    public int? ParentFlightId { get; set; }
+    [ForeignKey("ParentFlightId")]
+    public virtual Voo ParentFlightInfo { get; set; }
+    [Column(TypeName = "varchar(2)")]
+    public string CountryOrigin { get; set; }
 }

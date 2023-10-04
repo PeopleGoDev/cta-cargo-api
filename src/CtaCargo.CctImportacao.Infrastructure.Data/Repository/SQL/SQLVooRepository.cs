@@ -1,4 +1,5 @@
 ﻿using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Model.Iata.FlightManifest;
 using CtaCargo.CctImportacao.Infrastructure.Data.Context;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.EntityFrameworkCore;
@@ -46,6 +47,7 @@ public class SQLVooRepository : IVooRepository
             .Include("UsuarioCriacaoInfo")
             .Include(x => x.Trechos.Where(t => t.DataExclusao == null))
             .Include("Trechos.PortoIataDestinoInfo")
+            .Include(x => x.ParentFlightInfo)
             .Where(param.ToPredicate())
             .OrderByDescending( x => x.DataVoo)
             .ToListAsync();
@@ -118,7 +120,7 @@ public class SQLVooRepository : IVooRepository
     public async Task<Voo> GetVooWithULDById(int companyId, int vooId)
     {
         return await _context.Voos
-            .Include("Trechos")
+            .Include(x => x.Trechos.Where(y => y.DataExclusao == null))
             .Include("Trechos.ULDs")
             .Include("Trechos.ULDs.MasterInfo")
             .Include("Trechos.ULDs.MasterInfo.AeroportoOrigemInfo")
@@ -161,6 +163,16 @@ public class SQLVooRepository : IVooRepository
             .Include(x => x.VooInfo)
             .FirstOrDefault(x => x.DataExclusao == null && x.Id == id);
     }
+
+    public VooTrecho? GetVooBySegment(int ciaId, string airportOfDestiny, DateTime estimateArrival)
+    {
+        return _context.VooTrechos
+            .Include(x => x.VooInfo)
+            .Where(x => x.EmpresaId == ciaId && x.AeroportoDestinoCodigo == airportOfDestiny &&
+                          x.DataHoraChegadaEstimada.Value == estimateArrival && x.DataExclusao == null)
+            .FirstOrDefault();
+    }
+
     public void AddTrecho(VooTrecho trecho)
     {
         _context.VooTrechos.Add(trecho);

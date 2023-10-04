@@ -12,7 +12,7 @@ namespace CtaCargo.CctImportacao.Application.Support.Contracts
         List<ArquivoXML> MastersXML { get; set; }
         List<ArquivoXML> VoosXML { get; set; }
 
-        string GenFlightManifest(Voo voo);
+        string GenFlightManifest(Voo voo, int? trechoId = null, DateTime? actualDateTime = null);
         string GenFullManifest(Voo vooCompleto);
         string GenHouseManifest(House house, IataXmlPurposeCode purposeCode);
         string GenMasterManifest(Master master, IataXmlPurposeCode purposeCode);

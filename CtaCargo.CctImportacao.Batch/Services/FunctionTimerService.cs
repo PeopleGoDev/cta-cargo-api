@@ -1,6 +1,8 @@
 ﻿using CtaCargo.CctImportacao.Batch.Services.Interface;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Model.Iata.FlightManifest;
+using CtaCargo.CctImportacao.Domain.Model.Iata.HouseManifest;
+using CtaCargo.CctImportacao.Domain.Model.Iata.WaybillManifest;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.Extensions.Logging;
 using System.Xml.Serialization;
@@ -11,13 +13,16 @@ public class FunctionTimerService
 {
     private readonly IConfiguraRepository _configuraRepository;
     private readonly ImportFlightXMLService _importFlightXMLService;
+    private readonly ImportWaybillXMLService _importWaybillXMLService;
     private readonly ILogger _logger;
+
     public FunctionTimerService(IConfiguraRepository configuraRepository, ImportFlightXMLService importFlightXMLService,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory, ImportWaybillXMLService importWaybillXMLService)
     {
         _configuraRepository = configuraRepository;
         _importFlightXMLService = importFlightXMLService;
         _logger = loggerFactory.CreateLogger<ImportFunction>();
+        _importWaybillXMLService = importWaybillXMLService;
     }
 
     public async Task CheckFiles()
@@ -33,6 +38,10 @@ public class FunctionTimerService
                 _importFlightXMLService.CiaAereaId = dir.CiaAereaId;
                 _importFlightXMLService.EmpresaId = dir.EmpresaId;
                 _importFlightXMLService.UsuarioId = dir.UsuarioId;
+
+                _importWaybillXMLService.CiaAereaId = dir.CiaAereaId;
+                _importWaybillXMLService.EmpresaId = dir.EmpresaId;
+                _importWaybillXMLService.UsuarioId = dir.UsuarioId;
 
                 var files = impservice.ListFiles();
 
@@ -50,6 +59,27 @@ public class FunctionTimerService
                         if (arquivoVooXML != null)
                         {
                             var result = await _importFlightXMLService.ImportFlightXML(arquivoVooXML);
+                            impservice.MoveToImportFolder(file.Name);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, ex.Message);
+                        impservice.MoveToErrorFolder(file.Name);
+                    }
+                }
+
+                foreach (var file in xfwbFiles)
+                {
+                    try
+                    {
+                        var fileStream = impservice.ReadFile(file.Name);
+
+                        WaybillType? masterXML = DeserializeFromStream<WaybillType>(fileStream);
+
+                        if (masterXML != null)
+                        {
+                            var result = await _importWaybillXMLService.ImportWaybillXml(masterXML);
                             impservice.MoveToImportFolder(file.Name);
                         }
                     }

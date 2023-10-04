@@ -33,6 +33,10 @@ namespace CtaCargo.CctImportacao.Api.Infrastructure.Middlewares
             {
                 await HandleBusinessExceptionAsync(httpContext, exception);
             }
+            catch(BadRequestException exception)
+            {
+                await HandleBadRequestExceptionAsync(httpContext, exception);
+            }
             catch (Exception exception)
             {
                 await HandleExceptionAsync(httpContext, exception);
@@ -72,6 +76,24 @@ namespace CtaCargo.CctImportacao.Api.Infrastructure.Middlewares
             var response = JsonConvert.SerializeObject(apiResponse);
             httpContext.Response.ContentType = "application/json";
             httpContext.Response.StatusCode = (int)HttpStatusCode.OK;
+            await httpContext.Response.WriteAsync(response);
+        }
+
+        private async Task HandleBadRequestExceptionAsync(HttpContext httpContext, BadRequestException badRequestException)
+        {
+            var apiResponse = new ApiResponse<object>
+            {
+                Sucesso = false,
+                Dados = null,
+                Notificacoes = new List<Notificacao>
+                {
+                    new Notificacao( Domain.Enums.CodigoNotificacao.BadRequest, badRequestException.Message)
+                }
+            };
+
+            var response = JsonConvert.SerializeObject(apiResponse);
+            httpContext.Response.ContentType = "application/json";
+            httpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             await httpContext.Response.WriteAsync(response);
         }
 

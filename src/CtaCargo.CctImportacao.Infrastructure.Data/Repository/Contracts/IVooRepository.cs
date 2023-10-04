@@ -24,5 +24,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
         void AddTrecho(VooTrecho trecho);
         void UpdateTrecho(VooTrecho trecho);
         void RemoveTrecho(VooTrecho trecho);
+        VooTrecho? GetVooBySegment(int ciaId, string airportOfDestiny, DateTime estimateArrival);
     }
 }

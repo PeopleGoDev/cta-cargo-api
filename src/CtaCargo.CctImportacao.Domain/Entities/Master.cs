@@ -98,7 +98,7 @@ public class Master : BaseEntity
     [ForeignKey("AeroportoDestinoId")]
     public virtual PortoIata AeroportoDestinoInfo { get; set; }
     public ICollection<MasterInstrucaoManuseio> InstrucoesManuseios { get; set; }
-    [Column(TypeName = "varchar(150)")]
+    [Column(TypeName = "varchar(250)")]
     public string  OutrasInstrucoesManuseio { get; set; }
     [Column(TypeName = "varchar(2)")]
     public string CodigoManuseioProdutoAlgandega { get; set; }
@@ -160,7 +160,7 @@ public class Master : BaseEntity
     public DateTime? AutenticacaoSignatarioData { get; set; }
     [Column(TypeName = "varchar(60)")]
     public string AutenticacaoSignatariaNome { get; set; }
-    [Column(TypeName = "varchar(3)")]
+    [Column(TypeName = "varchar(70)")]
     public string AutenticacaoSignatariaLocal { get; set; }
     public virtual List<UldMaster> ULDs { get; set; } = new List<UldMaster>();
     public virtual List<ErroMaster> ErrosMaster { get; set; } = new List<ErroMaster>();
@@ -211,4 +211,8 @@ public class Master : BaseEntity
     public string Environment { get; set; }
     [Column(TypeName = "datetime")]
     public DateTime? XmlIssueDate { get; set; }
+    [Column(TypeName = "varchar(3)")]
+    public string FlightAirportOfDestiny { get;set; }
+    public DateTime? FlightEstimatedArrival { get; set; }
+    public string StatusCodeRFB { get; set; }
 }

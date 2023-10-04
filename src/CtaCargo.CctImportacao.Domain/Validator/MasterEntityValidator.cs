@@ -1,7 +1,7 @@
 ﻿using CtaCargo.CctImportacao.Domain.Entities;
 using FluentValidation;
 
-namespace CtaCargo.CctImportacao.Application.Validators;
+namespace CtaCargo.CctImportacao.Domain.Validator;
 
 public class MasterEntityValidator : AbstractValidator<Master>
 {

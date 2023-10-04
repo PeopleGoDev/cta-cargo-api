@@ -170,4 +170,17 @@ public class House : BaseEntity
     public string Environment { get; set; }
     [Column(TypeName = "datetime")]
     public DateTime? XmlIssueDate { get; set; }
+
+
+
+
+    [Column(TypeName = "varchar(50)")]
+    public string ProtocoloDeletionRFB { get; set; }
+    [Column(TypeName = "varchar(40)")]
+    public string CodigoErroDeletionRFB { get; set; }
+    [Column(TypeName = "text")]
+    public string DescricaoErroDeletionRFB { get; set; }
+    public int SituacaoDeletionRFBId { get; set; } // “Received” , “Rejected”, “Processed”
+    public DateTime? DataProtocoloDeletionRFB { get; set; }
+    public DateTime? DataChecagemDeletionRFB { get; set; }
 }

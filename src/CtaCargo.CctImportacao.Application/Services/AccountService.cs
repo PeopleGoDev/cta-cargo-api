@@ -2,7 +2,7 @@
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
-using CtaCargo.CctImportacao.Application.Validators;
+using CtaCargo.CctImportacao.Domain.Validator;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Exceptions;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;

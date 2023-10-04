@@ -3,7 +3,7 @@ using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
-using CtaCargo.CctImportacao.Application.Validators;
+using CtaCargo.CctImportacao.Domain.Validator;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Exceptions;
 using CtaCargo.CctImportacao.Infrastructure.Data;
@@ -265,8 +265,8 @@ public class VooService : IVooService
         if (input.Trechos == null || input.Trechos.Count == 0)
             throw new BusinessException($"É necessário ao menos um aeroporto de chegada!");
 
-        var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoOrigemCodigo);
-        var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.Trechos.LastOrDefault().AeroportoDestinoCodigo);
+        var codigoOrigem = _portoIATARepository.GetPortoIATAByCode(userSession.CompanyId, input.AeroportoOrigemCodigo);
+        var codigoDestino = _portoIATARepository.GetPortoIATAByCode(userSession.CompanyId, input.Trechos.LastOrDefault().AeroportoDestinoCodigo);
 
         input.DataVoo = new DateTime(
             input.DataVoo.Year,
@@ -287,8 +287,9 @@ public class VooService : IVooService
         voo.DataVoo = input.DataVoo;
         voo.DataHoraSaidaReal = input.DataHoraSaidaReal;
         voo.DataHoraSaidaEstimada = input.DataHoraSaidaPrevista;
-        voo.PortoIataOrigemId = codigoOrigemId > 0 ? codigoOrigemId : null;
-        voo.PortoIataDestinoId = codigoDestinoId > 0 ? codigoDestinoId : null;
+        voo.CountryOrigin = codigoOrigem != null ? codigoOrigem.SiglaPais : null;
+        voo.PortoIataOrigemId = codigoOrigem !=  null ? codigoOrigem.Id : null;
+        voo.PortoIataDestinoId = codigoDestino != null ? codigoDestino.Id : null;
         voo.DataEmissaoXML = DateTime.UtcNow;
         voo.AeroportoOrigemCodigo = input.AeroportoOrigemCodigo;
         voo.AeroportoDestinoCodigo = input.Trechos.LastOrDefault().AeroportoDestinoCodigo;
@@ -335,7 +336,7 @@ public class VooService : IVooService
         var voo = await _vooRepository.GetVooById(input.VooId);
 
         if (voo == null)
-            throw new BusinessException("Não foi possível atualiza o voo: Voo não encontrado !");
+            throw new BusinessException("Voo não encontrado");
 
         if (input.Trechos == null || input.Trechos.Count == 0)
             throw new BusinessException($"É necessário ao menos um aeroporto de chegada!");
@@ -350,9 +351,10 @@ public class VooService : IVooService
             voo.DataVoo = input.DataVoo.Value;
         if (input.AeroportoOrigemCodigo != null)
         {
-            var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoOrigemCodigo);
+            var codigoOrigem = _portoIATARepository.GetPortoIATAByCode(userSessionInfo.CompanyId, input.AeroportoOrigemCodigo);
             voo.AeroportoOrigemCodigo = input.AeroportoOrigemCodigo;
-            voo.PortoIataOrigemId = codigoOrigemId;
+            voo.PortoIataOrigemId = codigoOrigem.Id;
+            voo.CountryOrigin = codigoOrigem.SiglaPais;
         }
         if (input.DataHoraSaidaReal != null)
             voo.DataHoraSaidaReal = input.DataHoraSaidaReal;
@@ -506,6 +508,125 @@ public class VooService : IVooService
         }
         else
             throw new BusinessException("Não foi possível excluir voo: Erro Desconhecido !");
+    }
+    public async Task<ApiResponse<VooResponseDto>> CloneFlightForDeparturing(UserSession userSession, CloneFlightForDeparturingRequest input)
+    {
+        CiaAerea cia = await _ciaAereaRepository.GetCiaAereaByIataCode(userSession.CompanyId, input.FlightNumber.Substring(0, 2));
+
+        if (cia == null)
+            throw new BusinessException($"Companhia Aérea {input.FlightNumber.Substring(0, 2)} não cadastrada!");
+
+        var voo = await _vooRepository.GetVooById(input.FlightId);
+
+        if (voo == null)
+            throw new BusinessException("Voo não encontrado");
+
+        Voo newFlight = new Voo();
+        newFlight.Trechos = new List<VooTrecho>();
+
+        bool found = false;
+        VooTrecho portOfOrigin = null;
+        VooTrecho lastSegment = null;
+
+        foreach (var segment in voo.Trechos)
+        {
+            if (found)
+            {
+                var newSegment = new VooTrecho
+                {
+                    AeroportoDestinoCodigo = segment.AeroportoDestinoCodigo,
+                    PortoIataDestinoId = segment.PortoIataDestinoId,
+                    EmpresaId = segment.EmpresaId,
+                    CriadoPeloId = userSession.UserId,
+                    CreatedDateTimeUtc = DateTime.UtcNow,
+                    DataHoraChegadaEstimada = segment.DataHoraChegadaEstimada,
+                    DataHoraSaidaEstimada = segment.DataHoraSaidaEstimada,
+                    VooId = newFlight.Id
+                };
+                newSegment.ULDs = new List<UldMaster>();
+
+                foreach (var uld in segment.ULDs)
+                {
+                    var newUld = new UldMaster
+                    {
+                        CriadoPeloId = userSession.UserId,
+                        EmpresaId = userSession.CompanyId,
+                        Environment = userSession.Environment,
+                        InputMode = uld.InputMode,
+                        MasterId = uld.MasterId,
+                        Peso = uld.Peso,
+                        PesoUN = uld.PesoUN,
+                        MasterNumero = uld.MasterNumero,
+                        CreatedDateTimeUtc = DateTime.UtcNow,
+                        TotalParcial = uld.TotalParcial,
+                        Tranferencia = uld.Tranferencia,
+                        ULDCaracteristicaCodigo = uld.ULDCaracteristicaCodigo,
+                        ULDId = uld.ULDId,
+                        ULDIdPrimario = uld.ULDIdPrimario,
+                        ULDObs = uld.ULDObs,
+                        QuantidadePecas = uld.QuantidadePecas,
+                        VooId = newFlight.Id,
+                        VooTrechoId = segment.Id,
+                    };
+
+                    newSegment.ULDs.Add(newUld);
+                }
+
+                newFlight.Trechos.Add(newSegment);
+            }
+
+            if(segment.Id ==  input.SegmentId)
+            {
+                if (segment.PortoIataDestinoInfo == null || segment.PortoIataDestinoInfo.SiglaPais != "BR")
+                    throw new BusinessException("Trecho selecionado não possui Porto IATA ou Porto IATA não é do Brasil");
+
+                found = true;
+                portOfOrigin = segment;
+
+                newFlight.AeroportoOrigemCodigo = segment.AeroportoDestinoCodigo;
+                newFlight.CiaAereaId = voo.CiaAereaId;
+                newFlight.CreatedDateTimeUtc = DateTime.UtcNow;
+                newFlight.CriadoPeloId = userSession.UserId;
+                newFlight.DataHoraSaidaEstimada = segment.DataHoraSaidaEstimada;
+                newFlight.DataVoo = new DateTime( 
+                    segment.DataHoraSaidaEstimada.Value.Year,
+                    segment.DataHoraSaidaEstimada.Value.Month,
+                    segment.DataHoraSaidaEstimada.Value.Day,
+                    0,0,0);
+                newFlight.EmpresaId = voo.EmpresaId;
+                newFlight.Environment = userSession.Environment;
+                newFlight.Numero = input.FlightNumber;
+                newFlight.ParentFlightId = voo.Id;
+                newFlight.PortoIataOrigemId = segment.PortoIataDestinoId;
+                newFlight.SituacaoRFBId = 0;
+                newFlight.DataEmissaoXML = DateTime.UtcNow;
+            }
+            lastSegment = segment;
+        }
+
+        if (!found)
+            throw new BusinessException("Trecho não encontrado");
+
+        if(lastSegment.Id != input.SegmentId)
+        {
+            newFlight.PortoIataDestinoId = lastSegment.PortoIataDestinoId;
+            newFlight.AeroportoDestinoCodigo = lastSegment.AeroportoDestinoCodigo;
+        }
+
+        _vooRepository.CreateVoo(newFlight);
+
+        if(await _vooRepository.SaveChanges())
+        {
+            return
+                new ApiResponse<VooResponseDto>
+                {
+                    Dados = newFlight, // Implicit convertion
+                    Sucesso = true,
+                    Notificacoes = null
+                };
+        }
+
+        throw new BusinessException("Não foi possivel gerar o voo");
     }
     private ApiResponse<VooResponseDto> ErrorHandling(Exception exception)
     {

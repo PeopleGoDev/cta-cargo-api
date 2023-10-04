@@ -7,7 +7,7 @@ namespace CtaCargo.CctImportacao.Application.Support.Contracts
     {
         Task<X509Certificate2> GetCertificateCiaAereaAsync(int ciaAereaId);
         Task<X509Certificate2> GetCertificateAgenteDeCargaAsync(int agenteDeCargaId);
-        Task<X509Certificate2> GetCertificateUsuarioAsync(int usuarioId);
+        Task<X509Certificate2> GetCertificateUsuarioAsync(int usuarioId, bool optionalError = true);
 
     }
 }

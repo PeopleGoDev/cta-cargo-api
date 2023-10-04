@@ -1,10 +1,10 @@
 ﻿using CtaCargo.CctImportacao.Domain.Entities;
 using System.Collections.Generic;
 
-namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
+namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
+
+public interface IErroMasterRepository
 {
-    public interface IErroMasterRepository
-    {
-        void DeleteErroMaster(List<ErroMaster> erroLista);
-    }
+    void UpdateErroMaster(ErroMaster erroMaster);
+    void DeleteErroMaster(List<ErroMaster> erroLista);
 }

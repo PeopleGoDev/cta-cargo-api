@@ -23,7 +23,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CtaCargo.CctImportacao.Infr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CtaCargo.CctImportacao.Test", "tests\CtaCargo.CctImportacao.Test\CtaCargo.CctImportacao.Test.csproj", "{CE0D89C5-7B07-471D-BF08-3B0D57CFEBCE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CtaCargo.CctImportacao.Batch", "CtaCargo.CctImportacao.Batch\CtaCargo.CctImportacao.Batch.csproj", "{4A3D3F7E-B8ED-4331-83B7-B143DC329310}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CtaCargo.CctImportacao.Batch", "CtaCargo.CctImportacao.Batch\CtaCargo.CctImportacao.Batch.csproj", "{4A3D3F7E-B8ED-4331-83B7-B143DC329310}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

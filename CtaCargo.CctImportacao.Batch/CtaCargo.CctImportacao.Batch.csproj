@@ -13,6 +13,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.10.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\src\CtaCargo.CctImportacao.Application\CtaCargo.CctImportacao.Application.csproj" />
     <ProjectReference Include="..\src\CtaCargo.CctImportacao.Domain\CtaCargo.CctImportacao.Domain.csproj" />
     <ProjectReference Include="..\src\CtaCargo.CctImportacao.Infrastructure.Data\CtaCargo.CctImportacao.Infrastructure.Data.csproj" />
   </ItemGroup>

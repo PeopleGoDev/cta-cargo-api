@@ -1,4 +1,5 @@
 ﻿using CtaCargo.CctImportacao.Application.Support.Contracts;
+using CtaCargo.CctImportacao.Domain.Exceptions;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
@@ -31,13 +32,7 @@ namespace CtaCargo.CctImportacao.Application.Support
                 ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
                 request.Method = "POST";
-                //request.ContentType = "application/x-www-form-urlencoded";
-                //request.ContentType = "application/json";
-                //request.ContentLength = postData.Length;
-                //request.Headers.Add("Authorization", "Basic SEtuclJZVURheWR5aGZPMVlzeWVMV3B0d1VNYTpURGU5ZWNVREVsMU54dTFxMzNja2x5VjVJbzBh");
                 request.Headers.Add("Role-Type", perfil);
-                //request.Headers.Add("Pucomex", "TRUE");
-                
                 request.ProtocolVersion = HttpVersion.Version11;
 
                 request.ClientCertificates.Add(certificado);
@@ -67,7 +62,6 @@ namespace CtaCargo.CctImportacao.Application.Support
                 {
                     token.SetToken = response.Headers.Get("Set-Token");
                     token.XCSRFToken = response.Headers.Get("X-CSRF-Token");
-                    //token = JsonSerializer.Deserialize<TokenResponse>(content);
                     return token;
                 }
 
@@ -77,7 +71,7 @@ namespace CtaCargo.CctImportacao.Application.Support
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw new BusinessException(ex.Message);
             }
 
         }

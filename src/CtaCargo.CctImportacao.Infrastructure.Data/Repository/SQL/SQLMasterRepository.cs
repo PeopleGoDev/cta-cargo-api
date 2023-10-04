@@ -132,7 +132,6 @@ public class SQLMasterRepository : IMasterRepository
             .Include("AeroportoOrigemInfo")
             .Include("AeroportoDestinoInfo")
             .Include("ErrosMaster")
-            //.Include("ULDs")
             .Include("VooInfo")
             .Include("VooInfo.CompanhiaAereaInfo")
             .Include("VooInfo.PortoIataOrigemInfo")
@@ -140,6 +139,22 @@ public class SQLMasterRepository : IMasterRepository
             .Include("VooInfo.Trechos")
             .Include("VooInfo.Trechos.PortoIataDestinoInfo")
             .Where(x => x.EmpresaId == companyId && x.VooId == vooId && x.DataExclusao == null)
+            .ToListAsync();
+    }
+
+    public async Task<List<Master>> GetMastersForUploadSelected(int companyId, int[] masterIdList)
+    {
+        return await _context.Masters
+            .Include("CiaAereaInfo")
+            .Include("AeroportoOrigemInfo")
+            .Include("AeroportoDestinoInfo")
+            .Include("VooInfo")
+            .Include("VooInfo.CompanhiaAereaInfo")
+            .Include("VooInfo.PortoIataOrigemInfo")
+            .Include("VooInfo.PortoIataDestinoInfo")
+            .Include("VooInfo.Trechos")
+            .Include("VooInfo.Trechos.PortoIataDestinoInfo")
+            .Where(x => x.EmpresaId == companyId && masterIdList.Contains(x.Id) && x.DataExclusao == null)
             .ToListAsync();
     }
 
@@ -183,6 +198,7 @@ public class SQLMasterRepository : IMasterRepository
     {
         var result = await _context.Masters
             .Where(x => x.EmpresaId == companyId && x.Numero == masterNumber && x.DataExclusao == null)
+            .Include(x => x.ErrosMaster)
             .OrderByDescending(x => x.Id)
             .FirstOrDefaultAsync();
         return result;
@@ -205,6 +221,7 @@ public class SQLMasterRepository : IMasterRepository
     {
         var result = await _context.Masters
             .Where(x => x.CiaAereaId == ciaId && x.Numero == numero && x.CreatedDateTimeUtc >= dataLimite && x.DataExclusao == null)
+            .Include(x => x.ErrosMaster)
             .Select(x => x.Id)
             .FirstOrDefaultAsync();
         return result;

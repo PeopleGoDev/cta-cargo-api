@@ -2,9 +2,12 @@
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
+using CtaCargo.CctImportacao.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace CtaCargo.CctImportacao.Api.Controllers.v1;
@@ -24,7 +27,7 @@ public class ReceitaFederalController : Controller
     [HttpPost]
     [Authorize]
     [Route("SubmeterVooCompleto")]
-    public async Task<ApiResponse<string>> SubmeterVooCompleto(VooUploadInput input)
+    public async Task<ApiResponse<string>> SubmeterVooCompleto(FlightUploadRequest input)
     {
         return await _submeterRFB.SubmeterVoo(HttpContext.GetUserSession(), input);
     }
@@ -40,15 +43,30 @@ public class ReceitaFederalController : Controller
     [HttpPost]
     [Authorize]
     [Route("SubmeterMasterVooCompleto")]
-    public async Task<ApiResponse<string>> SubmeterVooMasterCompleto(VooUploadInput input)
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<IEnumerable<FileUploadResponse>>))]
+    public async Task<IActionResult> SubmeterVooMasterCompleto(FlightUploadRequest input)
     {
-        return await _submeterRFB.SubmeterVooMaster(HttpContext.GetUserSession(), input);
+        var response = await _submeterRFB.SubmeterVooMaster(HttpContext.GetUserSession(), input);
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Authorize]
+    [Route("SubmeterMasterSelecionado")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<IEnumerable<FileUploadResponse>>))]
+    public async Task<IActionResult> SubmeterMasterSelecionado(FlightUploadRequest input)
+    {
+        if (input.idList == null || input.idList.IsNullOrEmpty())
+            throw new BadRequestException("Lista de id(s) de master(s) requerida!");
+
+        var response = await _submeterRFB.SubmeterMasterSelecionado(HttpContext.GetUserSession(), input);
+        return Ok(response);
     }
 
     [HttpPost]
     [Authorize]
     [Route("VerificarProtocoloVoo")]
-    public async Task<ApiResponse<string>> VerificarProtocoloVoo(VooUploadInput input)
+    public async Task<ApiResponse<string>> VerificarProtocoloVoo(FlightUploadRequest input)
     {
         return await _submeterRFB.VerificarProtocoloVoo(input);
     }
@@ -56,9 +74,11 @@ public class ReceitaFederalController : Controller
     [HttpPost]
     [Authorize]
     [Route("SubmeterMasterExclusion")]
-    public async Task<ApiResponse<string>> SubmeterMasterExclusion(MasterExclusaoRFBInput input)
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<IEnumerable<FileUploadResponse>>))]
+    public async Task<IActionResult> SubmeterMasterExclusion(MasterExclusaoRFBInput input)
     {
-        return await _submeterRFB.SubmeterMasterExclusion(HttpContext.GetUserSession(), input);
+        var response = await _submeterRFB.SubmeterMasterExclusion(HttpContext.GetUserSession(), input);
+        return Ok(response);
     }
 
     [HttpPost]
@@ -93,8 +113,19 @@ public class ReceitaFederalController : Controller
         if (associationId == null) return BadRequest();
         if (associationId <= 0) return BadRequest();
 
-        return Ok(await _submeterRFB.CancelarAssociacaoHousesMaster(HttpContext.GetUserSession(), associationId));
+        return Ok(await _submeterRFB.SubmeterAssociation(HttpContext.GetUserSession(), associationId));
     }
 
+    [HttpGet]
+    [Authorize]
+    [Route("CancelarHouse")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<HouseResponseDto>))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelarHouses(int houseId)
+    {
+        if (houseId == null) return BadRequest();
+        if (houseId <= 0) return BadRequest();
 
+        return Ok(await _submeterRFB.SubmeterHouseExclusion(HttpContext.GetUserSession(), houseId));
+    }
 }

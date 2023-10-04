@@ -18,6 +18,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
         Task<Master> GetMasterForUploadById(int companyId, int masterId);
         Task<List<Master>> GetMastersForUploadById(int companyId, int[] masterArrayId);
         Task<List<Master>> GetMastersForUploadByVooId(int companyId, int vooId);
+        Task<List<Master>> GetMastersForUploadSelected(int companyId, int[] masterIdList);
         Task<IEnumerable<MasterListaQuery>> GetMastersListaByVooId(int companyId, int vooId);
         Task<Master> GetMasterIdByNumber(int companyId, int? vooId, string masterNumber);
         Task<Master> GetMasterByNumber(int companyId, string masterNumber);

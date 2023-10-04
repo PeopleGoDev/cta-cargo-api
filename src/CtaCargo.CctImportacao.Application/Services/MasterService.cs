@@ -3,13 +3,12 @@ using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
-using CtaCargo.CctImportacao.Application.Support;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Exceptions;
+using CtaCargo.CctImportacao.Application.Validator;
 using CtaCargo.CctImportacao.Infrastructure.Data;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualBasic.FileIO;
 using System;
 using System.Collections.Generic;
@@ -319,107 +318,83 @@ public class MasterService : IMasterService
     }
     public async Task<ApiResponse<MasterResponseDto>> AtualizarMaster(UserSession userSession, MasterUpdateRequestDto input)
     {
-        try
+        DateTime dataVoo = new DateTime(input.DataVoo.Year,
+            input.DataVoo.Month,
+            input.DataVoo.Day,
+            0, 0, 0, 0);
+
+        Voo voo = _vooRepository.GetVooIdByDataVooNumero(userSession.CompanyId, dataVoo, input.NumeroVooXML);
+
+        if (voo == null)
+            throw new BusinessException($"Voo # {input.NumeroVooXML} não foi encontrado na data do voo {input.DataVoo.ToString("dd/MM/yyyy")}.");
+
+        var master = await _masterRepository.GetMasterById(userSession.CompanyId, input.MasterId);
+
+        if (master == null)
+            throw new BusinessException($"Master não encontrado!");
+
+        if (master.SituacaoRFBId == RFStatusEnvioType.Received)
+            throw new BusinessException($"Master não pode ser alterado, pois está em processamento na Receita Federal.");
+
+        var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoOrigemCodigo);
+        var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoDestinoCodigo);
+        int? codigoNaturezaCargaId = 0;
+
+        if (input.NaturezaCarga != null && input.NaturezaCarga.Length == 3)
+            codigoNaturezaCargaId = await _naturezaCargaRepository.GetNaturezaCargaIdByCodigo(input.NaturezaCarga);
+
+        _mapper.Map(input, master);
+
+        if (master.SituacaoRFBId == RFStatusEnvioType.Processed || master.SituacaoRFBId == RFStatusEnvioType.ProcessedDeletion)
+            master.Reenviar = true;
+
+        master.ModifiedDateTimeUtc = DateTime.UtcNow;
+        master.ModificadoPeloId = userSession.UserId;
+        master.VooId = voo.Id;
+        master.VooNumeroXML = input.NumeroVooXML;
+        master.AeroportoOrigemId = null;
+        if (codigoOrigemId > 0)
+            master.AeroportoOrigemId = codigoOrigemId;
+
+        master.AeroportoDestinoId = null;
+        if (codigoDestinoId > 0)
+            master.AeroportoDestinoId = codigoDestinoId;
+
+        master.NaturezaCargaId = null;
+        if (codigoNaturezaCargaId > 0)
+            master.NaturezaCargaId = codigoNaturezaCargaId;
+
+        master.AutenticacaoSignatariaLocal = input.AeroportoOrigemCodigo;
+
+        _validadorMaster.InserirErrosMaster(master);
+        _masterRepository.UpdateMaster(master);
+
+        if (await _masterRepository.SaveChanges())
         {
-            DateTime dataVoo = new DateTime(input.DataVoo.Year,
-                input.DataVoo.Month,
-                input.DataVoo.Day,
-                0, 0, 0, 0);
-
-            Voo voo = _vooRepository.GetVooIdByDataVooNumero(userSession.CompanyId, dataVoo, input.NumeroVooXML);
-
-            if (voo == null)
-                throw new Exception($"Voo # { input.NumeroVooXML } não foi encontrado na data do voo { input.DataVoo.ToString("dd/MM/yyyy") }.");
-
-            var master = await _masterRepository.GetMasterById(userSession.CompanyId, input.MasterId);
-
-            if (master == null)
-                throw new Exception($"Master não encontrado!");
-
-            if (master.SituacaoRFBId == RFStatusEnvioType.Received)
-                throw new Exception($"Master não pode ser alterado, pois está em processamento na Receita Federal.");
-
-            var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoOrigemCodigo);
-            var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoDestinoCodigo);
-            int? codigoNaturezaCargaId = 0;
-
-            if (input.NaturezaCarga != null && input.NaturezaCarga.Length == 3)
-                codigoNaturezaCargaId = await _naturezaCargaRepository.GetNaturezaCargaIdByCodigo(input.NaturezaCarga);
-
-            _mapper.Map(input, master);
-
-            if (master.SituacaoRFBId == RFStatusEnvioType.Processed || master.SituacaoRFBId == RFStatusEnvioType.ProcessedDeletion)
-                master.Reenviar = true;
-
-            master.ModifiedDateTimeUtc = DateTime.UtcNow;
-            master.ModificadoPeloId = userSession.UserId;
-            master.VooId = voo.Id;
-            master.VooNumeroXML = input.NumeroVooXML;
-            master.AeroportoOrigemId = null;
-            if (codigoOrigemId > 0)
-                master.AeroportoOrigemId = codigoOrigemId;
-
-            master.AeroportoDestinoId = null;
-            if (codigoDestinoId > 0)
-                master.AeroportoDestinoId = codigoDestinoId;
-
-            master.NaturezaCargaId = null;
-            if (codigoNaturezaCargaId > 0)
-                master.NaturezaCargaId = codigoNaturezaCargaId;
-
-            master.AutenticacaoSignatariaLocal = input.AeroportoOrigemCodigo;
-
-            _validadorMaster.TratarErrosMaster(master);
-            _masterRepository.UpdateMaster(master);
-
-            if (await _masterRepository.SaveChanges())
-            {
-                var MasterResponseDto = _mapper.Map<MasterResponseDto>(master);
-                return
-                    new ApiResponse<MasterResponseDto>
-                    {
-                        Dados = MasterResponseDto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            else
-            {
-                return
-                    new ApiResponse<MasterResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
+            var MasterResponseDto = _mapper.Map<MasterResponseDto>(master);
+            return
+                new ApiResponse<MasterResponseDto>
+                {
+                    Dados = MasterResponseDto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
+        }
+        else
+        {
+            return
+                new ApiResponse<MasterResponseDto>
+                {
+                    Dados = null,
+                    Sucesso = false,
+                    Notificacoes = new List<Notificacao>() {
                             new Notificacao
                             {
                                 Codigo = "9999",
                                 Mensagem = "Não foi possível atualizar Master: Erro Desconhecido!"
                             }
-                        }
-                    };
-            }
-
-        }
-        catch (DbUpdateException e)
-        {
-            return ErrorHandling(e);
-        }
-        catch (Exception ex)
-        {
-            return
-                    new ApiResponse<MasterResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Não foi possível atualiza o Master: {ex.Message} !"
-                            }
-                        }
-                    };
+                    }
+                };
         }
     }
     public async Task<ApiResponse<IEnumerable<MasterResponseDto>>> AtualizarReenviarMaster(UserSession userSession, AtualizarMasterReenviarRequest input)
@@ -449,7 +424,7 @@ public class MasterService : IMasterService
                 if (master.SituacaoRFBId == RFStatusEnvioType.Processed || master.SituacaoRFBId == RFStatusEnvioType.ProcessedDeletion)
                 {
                     master.Reenviar = true;
-                    _validadorMaster.TratarErrosMaster(master);
+                    _validadorMaster.InserirErrosMaster(master);
                     _masterRepository.UpdateMaster(master);
                 }
             }
@@ -663,11 +638,11 @@ public class MasterService : IMasterService
         if (voo == null)
             throw new BusinessException($"Voo # {input.NumeroVooXML} não foi encontrado na data do voo {input.DataVoo.ToString("dd/MM/yyyy")}.");
 
-        if (voo.SituacaoRFBId == RFStatusEnvioType.Received)
-            throw new BusinessException($"O Voo # {voo.Numero} não pode ser alterado, pois está em processamento na Receita Federal. Faça a verificação do Voo para atualizar o Status.");
+        //if (voo.SituacaoRFBId == RFStatusEnvioType.Received)
+        //    throw new BusinessException($"O Voo # {voo.Numero} não pode ser alterado, pois está em processamento na Receita Federal. Faça a verificação do Voo para atualizar o Status.");
 
-        if (voo.SituacaoRFBId == RFStatusEnvioType.Processed && !voo.Reenviar)
-            throw new BusinessException($"O Voo # {voo.Numero} não pode ser alterado, pois foi submetido a RFB.");
+        //if (voo.SituacaoRFBId == RFStatusEnvioType.Processed && !voo.Reenviar)
+        //    throw new BusinessException($"O Voo # {voo.Numero} não pode ser alterado, pois foi submetido a RFB.");
 
         DateTime dataLimite = DateTime.Today.AddYears(-1);
 
@@ -686,6 +661,7 @@ public class MasterService : IMasterService
             codigoNaturezaCargaId = await _naturezaCargaRepository.GetNaturezaCargaIdByCodigo(input.NaturezaCarga);
 
         var master = _mapper.Map<Master>(input);
+        master.ErrosMaster = new List<ErroMaster>();
 
         master.EmpresaId = userSession.CompanyId;
         master.Environment = userSession.Environment;
@@ -857,6 +833,7 @@ public class FileService
 
             while (!parser.EndOfData)
             {
+                Console.WriteLine(i);
                 fields = parser.ReadFields();
             }
 

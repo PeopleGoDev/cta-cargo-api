@@ -78,6 +78,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(2)");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.Property<string>("UF")
                         .IsRequired()
                         .HasColumnType("varchar(3)");
@@ -89,6 +92,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasIndex("CriadoPeloId");
 
                     b.HasIndex("ModificadoPeloId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("EmpresaId", "Numero", "DataExclusao")
                         .IsUnique();
@@ -142,11 +147,16 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<string>("SerialNumber")
                         .HasColumnType("varchar(100)");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CriadoPeloId");
 
                     b.HasIndex("ModificadoPeloId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("EmpresaId", "SerialNumber", "DataExclusao")
                         .IsUnique();
@@ -210,6 +220,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(2)");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.Property<string>("UF")
                         .IsRequired()
                         .HasColumnType("varchar(3)");
@@ -221,6 +234,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasIndex("CriadoPeloId");
 
                     b.HasIndex("ModificadoPeloId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("EmpresaId", "Numero", "DataExclusao")
                         .IsUnique();
@@ -275,6 +290,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<string>("Subdivisao")
                         .HasColumnType("varchar(60)");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CnpjId");
@@ -282,6 +300,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasIndex("CriadoPeloId");
 
                     b.HasIndex("ModificadoPeloId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("EmpresaId", "Nome", "Endereco", "Cidade", "PaisCodigo", "Postal", "Subdivisao")
                         .IsUnique();
@@ -316,11 +336,16 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("ModifiedDateTimeUtc")
                         .HasColumnType("datetime");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CriadoPeloId");
 
                     b.HasIndex("ModificadoPeloId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("EmpresaId", "Cnpj")
                         .IsUnique();
@@ -375,6 +400,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("ModifiedDateTimeUtc")
                         .HasColumnType("datetime");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.Property<int>("UsuarioId")
                         .HasColumnType("int");
 
@@ -387,6 +415,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasIndex("EmpresaId");
 
                     b.HasIndex("ModificadoPeloId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("UsuarioId");
 
@@ -510,6 +540,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("ModifiedDateTimeUtc")
                         .HasColumnType("datetime");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.Property<string>("TipoFatura")
                         .HasColumnType("varchar(30)");
 
@@ -518,6 +551,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasIndex("CriadoPeloId");
 
                     b.HasIndex("ModificadoPeloId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("EmpresaId", "TipoFatura", "DataExclusao");
 
@@ -569,6 +604,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("ModifiedDateTimeUtc")
                         .HasColumnType("datetime");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("varchar(50)");
@@ -578,6 +616,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasIndex("CriadoPeloId");
 
                     b.HasIndex("ModificadoPeloId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("EmpresaId", "Id", "DataExclusao");
 
@@ -626,6 +666,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<int>("Sequency")
                         .HasColumnType("int");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CriadoPeloId");
@@ -635,6 +678,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasIndex("FileImportId");
 
                     b.HasIndex("ModificadoPeloId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.ToTable("FileImportDetails");
                 });
@@ -683,6 +728,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<string>("CodigoErroAssociacaoRFB")
                         .HasColumnType("varchar(40)");
 
+                    b.Property<string>("CodigoErroDeletionRFB")
+                        .HasColumnType("varchar(40)");
+
                     b.Property<string>("CodigoErroRFB")
                         .HasColumnType("varchar(40)");
 
@@ -720,6 +768,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("DataChecagemAssociacaoRFB")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DataChecagemDeletionRFB")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("DataChecagemRFB")
                         .HasColumnType("datetime2");
 
@@ -738,10 +789,16 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("DataProtocoloAssociacaoRFB")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DataProtocoloDeletionRFB")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("DataProtocoloRFB")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("DescricaoErroAssociacaoRFB")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DescricaoErroDeletionRFB")
                         .HasColumnType("text");
 
                     b.Property<string>("DescricaoErroRFB")
@@ -824,6 +881,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<string>("ProtocoloAssociacaoRFB")
                         .HasColumnType("varchar(50)");
 
+                    b.Property<string>("ProtocoloDeletionRFB")
+                        .HasColumnType("varchar(50)");
+
                     b.Property<string>("ProtocoloRFB")
                         .HasColumnType("varchar(50)");
 
@@ -851,10 +911,16 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<int>("SituacaoAssociacaoRFBId")
                         .HasColumnType("int");
 
+                    b.Property<int>("SituacaoDeletionRFBId")
+                        .HasColumnType("int");
+
                     b.Property<int>("SituacaoRFBId")
                         .HasColumnType("int");
 
                     b.Property<int>("StatusId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SubmetidoPeloId")
                         .HasColumnType("int");
 
                     b.Property<int>("TotalVolumes")
@@ -912,6 +978,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
                     b.HasIndex("ModificadoPeloId");
 
+                    b.HasIndex("SubmetidoPeloId");
+
                     b.HasIndex("MasterNumeroXML", "Numero", "DataExclusao")
                         .IsUnique();
 
@@ -939,7 +1007,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("AutenticacaoSignatariaLocal")
-                        .HasColumnType("varchar(3)");
+                        .HasColumnType("varchar(70)");
 
                     b.Property<string>("AutenticacaoSignatariaNome")
                         .HasColumnType("varchar(60)");
@@ -1052,6 +1120,12 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<string>("ExpedidorSubdivisao")
                         .HasColumnType("varchar(70)");
 
+                    b.Property<string>("FlightAirportOfDestiny")
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<DateTime?>("FlightEstimatedArrival")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IndicadorAwbNaoIata")
                         .HasColumnType("bit");
 
@@ -1093,7 +1167,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasColumnType("varchar(30)");
 
                     b.Property<string>("OutrasInstrucoesManuseio")
-                        .HasColumnType("varchar(150)");
+                        .HasColumnType("varchar(250)");
 
                     b.Property<double>("PesoTotalBruto")
                         .HasColumnType("float");
@@ -1123,6 +1197,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("StatusId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SubmetidoPeloId")
                         .HasColumnType("int");
 
                     b.Property<string>("TotalParcial")
@@ -1200,6 +1277,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasIndex("ModificadoPeloId");
 
                     b.HasIndex("NaturezaCargaId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("VooId", "Numero", "DataExclusao")
                         .IsUnique();
@@ -1302,6 +1381,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<int>("SituacaoDeletionAssociacaoRFBId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.Property<int>("TotalPieceQuantity")
                         .HasColumnType("int");
 
@@ -1315,6 +1397,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasIndex("EmpresaId");
 
                     b.HasIndex("ModificadoPeloId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("DataExclusao", "MasterNumber");
 
@@ -1384,11 +1468,16 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("ModifiedDateTimeUtc")
                         .HasColumnType("datetime");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CriadoPeloId");
 
                     b.HasIndex("ModificadoPeloId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("EmpresaId", "Codigo", "DataExclusao")
                         .IsUnique();
@@ -1468,11 +1557,16 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<string>("SiglaPais")
                         .HasColumnType("varchar(2)");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CriadoPeloId");
 
                     b.HasIndex("ModificadoPeloId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("EmpresaId", "Codigo", "DataExclusao")
                         .IsUnique();
@@ -1531,6 +1625,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<int>("SituacaoRFBId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.Property<string>("TipoArquivo")
                         .IsRequired()
                         .HasColumnType("varchar(10)");
@@ -1545,6 +1642,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasIndex("ModificadoPeloId");
 
                     b.HasIndex("NumeroFatura");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("EmpresaId", "FaturaId");
 
@@ -1598,6 +1697,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<int?>("QuantidadePecas")
                         .HasColumnType("int");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.Property<string>("TotalParcial")
                         .HasColumnType("varchar(1)");
 
@@ -1632,6 +1734,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasIndex("MasterId");
 
                     b.HasIndex("ModificadoPeloId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("VooTrechoId", "MasterNumero", "ULDCaracteristicaCodigo", "ULDId", "ULDIdPrimario", "DataExclusao")
                         .IsUnique();
@@ -1750,6 +1854,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<string>("CodigoErroRFB")
                         .HasColumnType("varchar(40)");
 
+                    b.Property<string>("CountryOrigin")
+                        .HasColumnType("varchar(2)");
+
                     b.Property<DateTime>("CreatedDateTimeUtc")
                         .HasColumnType("datetime");
 
@@ -1805,6 +1912,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(15)");
 
+                    b.Property<int?>("ParentFlightId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("PortoIataDestinoId")
                         .HasColumnType("int");
 
@@ -1821,6 +1931,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("StatusId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SubmetidoPeloId")
                         .HasColumnType("int");
 
                     b.Property<int?>("TotalPacotes")
@@ -1852,9 +1965,13 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
                     b.HasIndex("ModificadoPeloId");
 
+                    b.HasIndex("ParentFlightId");
+
                     b.HasIndex("PortoIataDestinoId");
 
                     b.HasIndex("PortoIataOrigemId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("CiaAereaId", "DataVoo", "Numero", "DataExclusao")
                         .IsUnique();
@@ -1903,6 +2020,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<int?>("PortoIataDestinoId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("SubmetidoPeloId")
+                        .HasColumnType("int");
+
                     b.Property<int>("VooId")
                         .HasColumnType("int");
 
@@ -1915,6 +2035,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasIndex("ModificadoPeloId");
 
                     b.HasIndex("PortoIataDestinoId");
+
+                    b.HasIndex("SubmetidoPeloId");
 
                     b.HasIndex("VooId");
 
@@ -1936,7 +2058,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("DataHoraChegadaReal")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("MasterId")
+                    b.Property<int?>("MasterId")
                         .HasColumnType("int");
 
                     b.Property<string>("MasterNumero")
@@ -1969,7 +2091,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<string>("ULDIdPrimario")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ULDMasterId")
+                    b.Property<int?>("ULDMasterId")
                         .HasColumnType("int");
 
                     b.Property<int>("VooId")
@@ -2010,6 +2132,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CertificadoDigital");
 
                     b.Navigation("Empresa");
@@ -2017,6 +2144,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.CertificadoDigital", b =>
@@ -2038,11 +2167,18 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Empresa");
 
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.CiaAerea", b =>
@@ -2069,6 +2205,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CertificadoDigital");
 
                     b.Navigation("Empresa");
@@ -2076,6 +2217,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.Cliente", b =>
@@ -2103,6 +2246,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CnpjClienteInfo");
 
                     b.Navigation("Empresa");
@@ -2110,6 +2258,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.CnpjCliente", b =>
@@ -2131,11 +2281,18 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Empresa");
 
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.Configura", b =>
@@ -2163,6 +2320,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioInfo")
                         .WithMany()
                         .HasForeignKey("UsuarioId")
@@ -2178,6 +2340,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Navigation("UsuarioInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.ErroMaster", b =>
@@ -2210,11 +2374,18 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Empresa");
 
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.FileImport", b =>
@@ -2236,11 +2407,18 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Empresa");
 
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.FileImportDetail", b =>
@@ -2268,6 +2446,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Empresa");
 
                     b.Navigation("FileImport");
@@ -2275,6 +2458,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.House", b =>
@@ -2316,6 +2501,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("AeroportoDestinoInfo");
 
                     b.Navigation("AeroportoOrigemInfo");
@@ -2329,6 +2519,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.Master", b =>
@@ -2371,6 +2563,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("NaturezaCargaId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Voo", "VooInfo")
                         .WithMany("Masters")
                         .HasForeignKey("VooId")
@@ -2389,6 +2586,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
 
                     b.Navigation("VooInfo");
                 });
@@ -2412,11 +2611,18 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Empresa");
 
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.MasterInstrucaoManuseio", b =>
@@ -2446,11 +2652,18 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Empresa");
 
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.PortoIata", b =>
@@ -2472,11 +2685,18 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Empresa");
 
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.ReceitaFederalTransacao", b =>
@@ -2503,6 +2723,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("NumeroFatura")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Empresa");
 
                     b.Navigation("FaturaInfo");
@@ -2510,6 +2735,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.UldMaster", b =>
@@ -2536,6 +2763,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CtaCargo.CctImportacao.Domain.Entities.VooTrecho", "VooTrecho")
                         .WithMany("ULDs")
                         .HasForeignKey("VooTrechoId")
@@ -2549,6 +2781,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
 
                     b.Navigation("VooTrecho");
                 });
@@ -2594,6 +2828,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("ModificadoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Voo", "ParentFlightInfo")
+                        .WithMany()
+                        .HasForeignKey("ParentFlightId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CtaCargo.CctImportacao.Domain.Entities.PortoIata", "PortoIataDestinoInfo")
                         .WithMany()
                         .HasForeignKey("PortoIataDestinoId")
@@ -2604,9 +2843,16 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("PortoIataOrigemId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CompanhiaAereaInfo");
 
                     b.Navigation("Empresa");
+
+                    b.Navigation("ParentFlightInfo");
 
                     b.Navigation("PortoIataDestinoInfo");
 
@@ -2615,6 +2861,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.VooTrecho", b =>
@@ -2641,6 +2889,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("PortoIataDestinoId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
+                        .WithMany()
+                        .HasForeignKey("SubmetidoPeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Voo", "VooInfo")
                         .WithMany("Trechos")
                         .HasForeignKey("VooId")
@@ -2654,6 +2907,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Navigation("UsuarioCriacaoInfo");
 
                     b.Navigation("UsuarioModificacaoInfo");
+
+                    b.Navigation("UsuarioSubmetidoInfo");
 
                     b.Navigation("VooInfo");
                 });

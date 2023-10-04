@@ -46,5 +46,7 @@ namespace CtaCargo.CctImportacao.Application.Dtos
         public string RemetenteCidade { get; set; }
         public string RemetentePaisCodigo { get; set; }
         public string AgenteDeCargaNumero { get; set; }
+        public int RFBCancelationStatus { get; set; }
+        public string RFBCancelationProtocol { get; set; }
     }
 }

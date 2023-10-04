@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace CtaCargo.CctImportacao.Application.Dtos.Request
+namespace CtaCargo.CctImportacao.Application.Dtos.Request;
+
+public class PortoIataUpdateRequestDto
 {
-    public class PortoIATAUpdateRequestDto
-    {
-        public int PortoIATAId { get; set; }
-        public string Nome { get; set; }
-        public int UsuarioModificadorId { get; set; }
-    }
+    public int PortoIataId { get; set; }
+    public string Nome { get; set; }
+    public string CountryCode { get; set; }
+    
 }

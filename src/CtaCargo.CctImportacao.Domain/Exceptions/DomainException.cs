@@ -15,3 +15,10 @@ public class BusinessException : Exception
     public BusinessException(string mensagem) : base(mensagem) { }
     public BusinessException(string mensagem, Exception innerException) : base(mensagem, innerException) { }
 }
+
+public class BadRequestException : Exception
+{
+    public BadRequestException() { }
+    public BadRequestException(string mensagem) : base(mensagem) { }
+    public BadRequestException(string mensagem, Exception innerException) : base(mensagem, innerException) { }
+}

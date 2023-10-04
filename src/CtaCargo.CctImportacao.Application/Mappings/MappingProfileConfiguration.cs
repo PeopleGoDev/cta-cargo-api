@@ -164,20 +164,20 @@ namespace CtaCargo.CctImportacao.Application.Mappings
             #endregion
 
             #region Porto Iata
-            CreateMap<PortoIata, PortoIATAResponseDto>()
+            CreateMap<PortoIata, PortoIataResponseDto>()
                 .ForMember(dest => dest.PortoId, m => m.MapFrom(a => a.Id))
                 .ForMember(dest => dest.Codigo, m => m.MapFrom(a => a.Codigo))
+                .ForMember(dest => dest.CountryCode, m => m.MapFrom(a => a.SiglaPais))
                 .ForMember(dest => dest.Nome, m => m.MapFrom(a => a.Nome));
 
-            CreateMap<PortoIATAInsertRequestDto, PortoIata>()
+            CreateMap<PortoIataInsertRequestDto, PortoIata>()
                 .ForMember(dest => dest.Codigo, m => m.MapFrom(a => a.Codigo))
                 .ForMember(dest => dest.Nome, m => m.MapFrom(a => a.Nome))
-                .ForMember(dest => dest.CriadoPeloId, m => m.MapFrom(a => a.UsuarioInsercaoId))
-                .ForMember(dest => dest.EmpresaId, m => m.MapFrom(a => a.EmpresaId));
+                .ForMember(dest => dest.SiglaPais, m => m.MapFrom(a => a.CountryCode));
 
-            CreateMap<PortoIATAUpdateRequestDto, PortoIata>()
+            CreateMap<PortoIataUpdateRequestDto, PortoIata>()
                 .ForMember(dest => dest.Nome, m => m.MapFrom(a => a.Nome))
-                .ForMember(dest => dest.ModificadoPeloId, m => m.MapFrom(a => a.UsuarioModificadorId));
+                .ForMember(dest => dest.SiglaPais, m => m.MapFrom(a => a.CountryCode));
             #endregion
 
             #region Natureza Carga
@@ -404,6 +404,8 @@ namespace CtaCargo.CctImportacao.Application.Mappings
                 .ForMember(dest => dest.DataEmissaoXML, m => m.MapFrom(a => a.DataEmissaoXML))
                 .ForMember(dest => dest.MasterNumeroXML, m => m.MapFrom(a => a.MasterNumeroXML))
                 .ForMember(dest => dest.DataProcessamento, m => m.MapFrom(a => a.DataProcessamento))
+                .ForMember(dest => dest.RFBCancelationStatus, m => m.MapFrom(a => a.SituacaoDeletionRFBId))
+                .ForMember(dest => dest.RFBCancelationProtocol, m => m.MapFrom(a => a.ProtocoloDeletionRFB))
                 .ForMember(dest => dest.NCMLista, m => m.MapFrom(a => a.GetNCMLista()));
 
             CreateMap<HouseInsertRequestDto, House>()

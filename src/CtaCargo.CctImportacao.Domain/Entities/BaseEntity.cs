@@ -17,4 +17,7 @@ public class BaseEntity
     public virtual Usuario UsuarioModificacaoInfo { get; set; }
     [Column(TypeName = "datetime")]
     public DateTime? ModifiedDateTimeUtc { get; set; }
+    public int? SubmetidoPeloId { get; set; }
+    [ForeignKey("SubmetidoPeloId")]
+    public virtual Usuario UsuarioSubmetidoInfo { get; set; }
 }
