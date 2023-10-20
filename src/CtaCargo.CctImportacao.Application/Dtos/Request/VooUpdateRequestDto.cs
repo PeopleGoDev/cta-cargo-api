@@ -7,6 +7,7 @@ public class VooUpdateRequestDto
 {
     public int VooId { get; set; }
     public string? Numero { get; set; }
+    public string PrefixoAeronave { get; set; }
     public DateTime? DataVoo { get; set; }
     public DateTime? DataHoraSaidaReal { get; set; }
     public DateTime? DataHoraSaidaPrevista { get; set; }

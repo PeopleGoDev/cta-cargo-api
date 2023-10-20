@@ -43,4 +43,13 @@ public class UldMaster: BaseEntity
     [Column(TypeName = "varchar(30)")]
     public string Environment { get; set; }
     public bool Tranferencia { get; set; }
+    [Column(TypeName = "varchar(3)")]
+    public string PortOfOrign { get; set; }
+    [Column(TypeName = "varchar(3)")]
+    public string PortOfDestiny { get; set; }
+    [Column(TypeName = "varchar(100)")]
+    public string SummaryDescription { get; set; }
+    public decimal? GrossVolumeMeasureValue { get; set; }
+    [Column(TypeName = "varchar(3)")]
+    public string GrossVolumeMeasureUnit { get; set; }
 }

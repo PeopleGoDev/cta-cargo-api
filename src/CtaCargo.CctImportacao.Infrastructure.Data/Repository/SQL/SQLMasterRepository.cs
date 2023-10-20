@@ -196,8 +196,11 @@ public class SQLMasterRepository : IMasterRepository
 
     public async Task<Master> GetMasterByNumber(int companyId, string masterNumber)
     {
+        var oneYearDate = DateTime.UtcNow.AddYears(-1);
+
         var result = await _context.Masters
-            .Where(x => x.EmpresaId == companyId && x.Numero == masterNumber && x.DataExclusao == null)
+            .Where(x => x.EmpresaId == companyId && x.DataExclusao == null
+                    && x.Numero == masterNumber && x.CreatedDateTimeUtc > oneYearDate)
             .Include(x => x.ErrosMaster)
             .OrderByDescending(x => x.Id)
             .FirstOrDefaultAsync();
@@ -217,14 +220,14 @@ public class SQLMasterRepository : IMasterRepository
             .FirstOrDefaultAsync();
     }
 
-    public async Task<int> GetMasterIdByNumberValidate(int ciaId, string numero, DateTime dataLimite)
+    public async Task<int?> GetMasterIdByNumberValidate(int ciaId, string numero, DateTime dataLimite)
     {
         var result = await _context.Masters
             .Where(x => x.CiaAereaId == ciaId && x.Numero == numero && x.CreatedDateTimeUtc >= dataLimite && x.DataExclusao == null)
             .Include(x => x.ErrosMaster)
             .Select(x => x.Id)
             .FirstOrDefaultAsync();
-        return result;
+        return result > 0 ? result : null;
     }
 
     public async Task<bool> SaveChanges()

@@ -249,7 +249,7 @@ namespace CtaCargo.CctImportacao.Application.Mappings
             .ForMember(dest => dest.UsuarioCriacao, m => m.MapFrom(a => a.UsuarioCriacaoInfo.Nome))
             .ForMember(dest => dest.DataCriacao, m => m.MapFrom(a => a.CreatedDateTimeUtc))
             .ForMember(dest => dest.ConsolidadoDireto, m => m.MapFrom(a => a.CodigoConteudo))
-            .ForMember(dest => dest.NaturezaCarga, m => m.MapFrom(a => a.NaturezaCarga))
+            .ForMember(dest => dest.NaturezaCarga, m => m.MapFrom(a => a.GetNaturezaCargaLista()))
             .ForMember(dest => dest.StatusVoo, m => m.MapFrom(a => a.VooInfo.StatusId))
             .ForMember(dest => dest.Reenviar, m => m.MapFrom(a => a.Reenviar))
             .ForMember(dest => dest.Erros, m => m.MapFrom(a => a.ErrosMaster))
@@ -295,7 +295,7 @@ namespace CtaCargo.CctImportacao.Application.Mappings
                 .ForMember(dest => dest.CodigoConteudo, m => m.MapFrom(a => a.ConsolidadoDireto))
                 .ForMember(dest => dest.AeroportoOrigemCodigo, m => m.MapFrom(a => a.AeroportoOrigemCodigo))
                 .ForMember(dest => dest.AeroportoDestinoCodigo, m => m.MapFrom(a => a.AeroportoDestinoCodigo))
-                .ForMember(dest => dest.NaturezaCarga, m => m.MapFrom(a => a.NaturezaCarga))
+                .ForMember(dest => dest.NaturezaCarga, m => m.MapFrom(a => a.GetNaturezaCargaListaString()))
                 .ForMember(dest => dest.Volume, m => m.MapFrom(a => a.Volume))
                 .ForMember(dest => dest.VolumeUN, m => m.MapFrom(a => a.VolumeUN));
 
@@ -335,7 +335,7 @@ namespace CtaCargo.CctImportacao.Application.Mappings
                 .ForMember(dest => dest.CodigoConteudo, m => m.MapFrom(a => a.ConsolidadoDireto))
                 .ForMember(dest => dest.AeroportoOrigemCodigo, m => m.MapFrom(a => a.AeroportoOrigemCodigo))
                 .ForMember(dest => dest.AeroportoDestinoCodigo, m => m.MapFrom(a => a.AeroportoDestinoCodigo))
-                .ForMember(dest => dest.NaturezaCarga, m => m.MapFrom(a => a.NaturezaCarga))
+                .ForMember(dest => dest.NaturezaCarga, m => m.MapFrom(a => a.GetNaturezaCargaListaString()))
                 .ForMember(dest => dest.Volume, m => m.MapFrom(a => a.Volume))
                 .ForMember(dest => dest.VolumeUN, m => m.MapFrom(a => a.VolumeUN));
 
@@ -355,7 +355,10 @@ namespace CtaCargo.CctImportacao.Application.Mappings
                 .ForMember(dest => dest.MasterNumero, m => m.MapFrom(a => a.MasterInfo.Numero))
                 .ForMember(dest => dest.Peso, m => m.MapFrom(a => a.Peso))
                 .ForMember(dest => dest.QuantidadePecas, m => m.MapFrom(a => a.QuantidadePecas))
-                .ForMember(dest => dest.DataCricao, m => m.MapFrom(a => a.CreatedDateTimeUtc));
+                .ForMember(dest => dest.DataCricao, m => m.MapFrom(a => a.CreatedDateTimeUtc))
+                .ForMember(dest => dest.AeroportoOrigem, m => m.MapFrom(a => a.PortOfOrign))
+                .ForMember(dest => dest.AeroportoDestino, m => m.MapFrom(a => a.PortOfDestiny))
+                .ForMember(dest => dest.DescricaoMercadoria, m => m.MapFrom(a => a.SummaryDescription));
 
             CreateMap<UldMasterUpdateRequest, UldMaster>()
                 .ForMember(dest => dest.Id, m => m.MapFrom(a => a.Id))

@@ -286,17 +286,30 @@ public class UldMasterService : IUldMasterService
                 VooTrechoId = trecho.Id,
                 VooId = trecho.VooInfo.Id,
                 Tranferencia = item.Transferencia,
-                TotalParcial = item.TipoDivisao
+                TotalParcial = item.TipoDivisao,
+                SummaryDescription = item.DescricaoMercadoria,
+                PortOfOrign = item.AeroportoOrigem,
+                PortOfDestiny = item.AeroportoDestino
             };
 
             UldMasterEntityValidator validator = new UldMasterEntityValidator();
 
-            var masterId = await GetMasterId(userSession.CompanyId, item.MasterNumero);
+            var master = await GetMasterId(userSession.CompanyId, item.MasterNumero);
 
-            if (masterId == null)
-                throw new BusinessException($"Master {item.MasterNumero} não foi encontrado no voo selecionado!");
-
-            uld.MasterId = masterId;
+            if(master != null)
+            {
+                uld.MasterId = master.Id;
+                if (item.AeroportoOrigem == null)
+                    uld.PortOfOrign = master.AeroportoOrigemCodigo;
+                if (item.AeroportoDestino == null)
+                    uld.PortOfDestiny = master.AeroportoDestinoCodigo;
+                if (item.DescricaoMercadoria == null)
+                    uld.SummaryDescription = master.DescricaoMercadoria;
+            }
+            else
+            {
+                uld.MasterId = null;
+            }
 
             var result = validator.Validate(uld);
 
@@ -307,7 +320,7 @@ public class UldMasterService : IUldMasterService
         }
 
         if (await _uldMasterRepository.CreateUldMasterList(listaModel) == 0)
-            throw new Exception("Não foi possivel inserir ULDs");
+            throw new BusinessException("Não foi possivel inserir ULDs");
 
         var masterResponseDto = _mapper.Map<List<UldMasterResponseDto>>(listaModel);
 
@@ -358,13 +371,29 @@ public class UldMasterService : IUldMasterService
                 uld.ULDId = item.UldId;
             if (item.UldIdPrimario != null)
                 uld.ULDIdPrimario = item.UldIdPrimario;
+            if (item.AeroportoOrigem != null)
+                uld.PortOfOrign = item.AeroportoOrigem;
+            if(item.AeroportoDestino != null)
+                uld.PortOfDestiny = item.AeroportoDestino;
+            if(item.DescricaoMercadoria != null)
+                uld.SummaryDescription = item.DescricaoMercadoria;
 
-            var masterId = await GetMasterId(userSession.CompanyId, item.MasterNumero);
+            var master = await GetMasterId(userSession.CompanyId, item.MasterNumero);
 
-            if (masterId == null)
-                throw new BusinessException($"Master {item.MasterNumero} não foi encontrado no voo selecionado!");
-
-            uld.MasterId = masterId;
+            if (master != null)
+            {
+                uld.MasterId = master.Id;
+                if (item.AeroportoOrigem == null)
+                    uld.PortOfOrign = master.AeroportoOrigemCodigo;
+                if (item.AeroportoDestino == null)
+                    uld.PortOfDestiny = master.AeroportoDestinoCodigo;
+                if (item.DescricaoMercadoria == null)
+                    uld.SummaryDescription = master.DescricaoMercadoria;
+            }
+            else
+            {
+                uld.MasterId = null;
+            }
 
             UldMasterEntityValidator validator = new UldMasterEntityValidator();
 
@@ -515,14 +544,9 @@ public class UldMasterService : IUldMasterService
         }
 
     }
-    private async Task<int?> GetMasterId(int companyId, string masterNumero)
-    {
-        var result = await _masterRepository.GetMasterByNumber(companyId, masterNumero);
-        if (result == null)
-            return null;
-
-        return result.Id;
-    }
+    private async Task<Master?> GetMasterId(int companyId, string masterNumero) =>
+        await _masterRepository.GetMasterByNumber(companyId, masterNumero);
+ 
     private async Task AtualizarValidacaoMaster(int companyId, List<UldMaster> uldMasters)
     {
         var grupo = uldMasters.GroupBy(x => new { x.VooId, x.MasterNumero });

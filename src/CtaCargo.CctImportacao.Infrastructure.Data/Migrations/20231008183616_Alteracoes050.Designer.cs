@@ -4,6 +4,7 @@ using CtaCargo.CctImportacao.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231008183616_Alteracoes050")]
+    partial class Alteracoes050
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1676,12 +1678,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<string>("Environment")
                         .HasColumnType("varchar(30)");
 
-                    b.Property<string>("GrossVolumeMeasureUnit")
-                        .HasColumnType("varchar(3)");
-
-                    b.Property<decimal?>("GrossVolumeMeasureValue")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<string>("InputMode")
                         .HasColumnType("varchar(30)");
 
@@ -1703,20 +1699,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<string>("PesoUN")
                         .HasColumnType("varchar(3)");
 
-                    b.Property<string>("PortOfDestiny")
-                        .HasColumnType("varchar(3)");
-
-                    b.Property<string>("PortOfOrign")
-                        .HasColumnType("varchar(3)");
-
                     b.Property<int?>("QuantidadePecas")
                         .HasColumnType("int");
 
                     b.Property<int?>("SubmetidoPeloId")
                         .HasColumnType("int");
-
-                    b.Property<string>("SummaryDescription")
-                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("TotalParcial")
                         .HasColumnType("varchar(1)");
@@ -1938,9 +1925,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
                     b.Property<int?>("PortoIataOrigemId")
                         .HasColumnType("int");
-
-                    b.Property<string>("PrefixoAeronave")
-                        .HasColumnType("varchar(35)");
 
                     b.Property<string>("ProtocoloRFB")
                         .HasColumnType("varchar(50)");

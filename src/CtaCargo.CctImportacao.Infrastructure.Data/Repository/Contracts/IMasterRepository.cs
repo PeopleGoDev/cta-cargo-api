@@ -23,7 +23,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
         Task<Master> GetMasterIdByNumber(int companyId, int? vooId, string masterNumber);
         Task<Master> GetMasterByNumber(int companyId, string masterNumber);
         Task<SituacaoRFBQuery> GetMasterRFBStatus(int masterId);
-        Task<int> GetMasterIdByNumberValidate(int ciaId, string numero, DateTime dataLimite);
+        Task<int?> GetMasterIdByNumberValidate(int ciaId, string numero, DateTime dataLimite);
         Task<bool> SaveChanges();
         void ClearChangeTracker();
         void UpdateMaster(Master master);

@@ -108,12 +108,12 @@ public class ReceitaFederalController : Controller
     [Route("CancelarAssociacaoHouseMaster")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<string>))]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> CancelarAssociacaoHousesMaster(int associationId)
+    public async Task<IActionResult> CancelarAssociacaoHousesMaster(int? associationId)
     {
         if (associationId == null) return BadRequest();
         if (associationId <= 0) return BadRequest();
 
-        return Ok(await _submeterRFB.SubmeterAssociation(HttpContext.GetUserSession(), associationId));
+        return Ok(await _submeterRFB.SubmeterAssociation(HttpContext.GetUserSession(), associationId.Value));
     }
 
     [HttpGet]

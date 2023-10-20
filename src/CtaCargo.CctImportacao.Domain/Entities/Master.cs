@@ -193,8 +193,15 @@ public class Master : BaseEntity
     public string AeroportoOrigemCodigo { get; set; }
     [Column(TypeName = "varchar(3)")]
     public string AeroportoDestinoCodigo { get; set; }
-    [Column(TypeName = "varchar(3)")]
+    [Column(TypeName = "varchar(120)")]
     public string NaturezaCarga { get; set; }
+    public string[] GetNaturezaCargaLista()
+    {
+        if (string.IsNullOrEmpty(NaturezaCarga))
+            return new string[0];
+
+            return NaturezaCarga.Split(",");
+    }
     public int? NaturezaCargaId { get; set; }
     [ForeignKey("NaturezaCargaId")]
     public virtual NaturezaCarga NaturezaCargaInfo { get; set; }
@@ -214,5 +221,6 @@ public class Master : BaseEntity
     [Column(TypeName = "varchar(3)")]
     public string FlightAirportOfDestiny { get;set; }
     public DateTime? FlightEstimatedArrival { get; set; }
+    [Column(TypeName = "varchar(15)")]
     public string StatusCodeRFB { get; set; }
 }

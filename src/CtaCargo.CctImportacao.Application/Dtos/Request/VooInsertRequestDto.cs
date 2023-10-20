@@ -6,6 +6,7 @@ namespace CtaCargo.CctImportacao.Application.Dtos.Request;
 public class VooInsertRequestDto
 {
     public string Numero { get; set; }
+    public string PrefixoAeronave { get; set; }
     public DateTime DataVoo { get; set; }
     public DateTime? DataHoraSaidaReal { get; set; }
     public DateTime? DataHoraSaidaPrevista { get; set; }

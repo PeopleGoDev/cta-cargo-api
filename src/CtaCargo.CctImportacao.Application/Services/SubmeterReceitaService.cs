@@ -1527,6 +1527,8 @@ public class SubmeterReceitaService : ISubmeterReceitaService
             Protocol = master.ProtocoloRFB,
             Status = response.StatusCode
         };
+        master.StatusCodeRFB = response.StatusCode;
+
         switch (response.StatusCode)
         {
             case ("Received"):
@@ -1535,8 +1537,6 @@ public class SubmeterReceitaService : ISubmeterReceitaService
                 master.DescricaoErroRFB = null;
                 master.ProtocoloRFB = response.Reason;
                 master.DataProtocoloRFB = response.IssueDateTime;
-                _masterRepository.UpdateMaster(master);
-                await _vooRepository.SaveChanges();
                 break;
             case "Rejected":
                 master.SituacaoRFBId = Master.RFStatusEnvioType.Rejected;
@@ -1544,8 +1544,6 @@ public class SubmeterReceitaService : ISubmeterReceitaService
                 master.DataProtocoloRFB = response.IssueDateTime;
                 resp.Status = response.StatusCode;
                 _validadorMaster.InserirErrosMaster(master);
-                _masterRepository.UpdateMaster(master);
-                await _vooRepository.SaveChanges();
                 break;
             case "Processed":
                 master.SituacaoRFBId = Master.RFStatusEnvioType.Processed;
@@ -1553,12 +1551,12 @@ public class SubmeterReceitaService : ISubmeterReceitaService
                 master.CodigoErroRFB = null;
                 master.DescricaoErroRFB = null;
                 master.DataProtocoloRFB = response.IssueDateTime;
-                _masterRepository.UpdateMaster(master);
-                await _vooRepository.SaveChanges();
                 break;
             default:
                 break;
         }
+        _masterRepository.UpdateMaster(master);
+        await _vooRepository.SaveChanges();
         return resp;
     }
     private async Task<FileUploadResponse> ProcessarRetornoEnvioMasterExclusion(ReceitaRetornoProtocol response, Master master)

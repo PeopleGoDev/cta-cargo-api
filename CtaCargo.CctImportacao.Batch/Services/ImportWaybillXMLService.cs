@@ -147,6 +147,10 @@ public class ImportWaybillXMLService
             master.AeroportoDestinoCodigo = portoDestinoCode;
             master.AeroportoOrigemId = await GetPortoIataIdByCode(_empresaId, portoOrigemCode, portoOrigemNome);
             master.AeroportoDestinoId = await GetPortoIataIdByCode(_empresaId, portoDestinoCode, portoDestinoNome);
+            if(masterXML.MasterConsignment?.HandlingSPHInstructions != null)
+            {
+                master.NaturezaCarga = string.Join(",",masterXML.MasterConsignment?.HandlingSPHInstructions.Select(x => x.DescriptionCode.Value));
+            }
             master.OutrasInstrucoesManuseio = masterXML.MasterConsignment?.HandlingOSIInstructions?[0].Description?.Value;
             master.CodigoManuseioProdutoAlgandega = masterXML.MasterConsignment?.AssociatedConsignmentCustomsProcedure?.GoodsStatusCode?.Value;
             master.MoedaAplicadaOrigem = masterXML.MasterConsignment?.ApplicableOriginCurrencyExchange?.SourceCurrencyCode?.Value.ToString();
@@ -189,17 +193,17 @@ public class ImportWaybillXMLService
                     {
                         if (customsNote.Content.Value.StartsWith("CNPJ"))
                         {
-                            master.ConsignatarioCNPJ = Regex.Replace(customsNote.Content.Value, "[^0-9]", "");
+                            master.ConsignatarioCNPJ = Regex.Replace(customsNote.Content.Value, "[^0-9]", "").Substring(0, 14);
                             break;
                         }
                         else if (customsNote.Content.Value.StartsWith("CPF"))
                         {
-                            master.ConsignatarioCNPJ = Regex.Replace(customsNote.Content.Value, "[^0-9]", "");
+                            master.ConsignatarioCNPJ = Regex.Replace(customsNote.Content.Value, "[^0-9]", "").Substring(0, 14);
                             break;
                         }
                         else if (customsNote.Content.Value.StartsWith("PASSPORT"))
                         {
-                            master.ConsignatarioCNPJ = $"CC{customsNote.Content.Value.Replace("PASSPORT", "")}";
+                            master.ConsignatarioCNPJ = $"CC{customsNote.Content.Value.Replace("PASSPORT", "").Substring(0, 12)}";
                             break;
                         }
                     }
@@ -208,8 +212,9 @@ public class ImportWaybillXMLService
 
             _validadorMaster.InserirErrosMaster(master);
             _masterRepository.CreateMaster(_empresaId, master);
-            return await _masterRepository.SaveChanges();
-
+            var result = await _masterRepository.SaveChanges();
+            await UpdateUld(master);
+            return result;
         }
         else
         {
@@ -267,16 +272,18 @@ public class ImportWaybillXMLService
                 master.EmissorCidade = masterXML.MasterConsignment?.FreightForwarderParty?.FreightForwarderAddress?.CityName?.Value;
                 master.EmissorPaisCodigo = masterXML.MasterConsignment?.FreightForwarderParty?.FreightForwarderAddress?.CountryID?.Value.ToString();
                 master.EmissorCargoAgenteLocalizacao = masterXML.MasterConsignment?.FreightForwarderParty?.CargoAgentID?.Value;
-
                 string portoOrigemCode = masterXML.MasterConsignment?.OriginLocation?.ID?.Value;
                 string portoOrigemNome = masterXML.MasterConsignment?.OriginLocation?.Name?.Value;
                 string portoDestinoCode = masterXML.MasterConsignment?.FinalDestinationLocation?.ID?.Value;
                 string portoDestinoNome = masterXML.MasterConsignment?.FinalDestinationLocation?.Name?.Value;
-
                 master.AeroportoOrigemCodigo = portoOrigemCode;
                 master.AeroportoDestinoCodigo = portoDestinoCode;
                 master.AeroportoOrigemId = await GetPortoIataIdByCode(_empresaId, portoOrigemCode, portoOrigemNome);
                 master.AeroportoDestinoId = await GetPortoIataIdByCode(_empresaId, portoDestinoCode, portoDestinoNome);
+                if (masterXML.MasterConsignment?.HandlingSPHInstructions != null)
+                {
+                    master.NaturezaCarga = string.Join(",", masterXML.MasterConsignment?.HandlingSPHInstructions.Select(x => x.DescriptionCode.Value));
+                }
                 master.OutrasInstrucoesManuseio = masterXML.MasterConsignment?.HandlingOSIInstructions?[0].Description?.Value;
                 master.CodigoManuseioProdutoAlgandega = masterXML.MasterConsignment?.AssociatedConsignmentCustomsProcedure?.GoodsStatusCode?.Value;
                 master.MoedaAplicadaOrigem = masterXML.MasterConsignment?.ApplicableOriginCurrencyExchange?.SourceCurrencyCode?.Value.ToString();
@@ -314,15 +321,15 @@ public class ImportWaybillXMLService
                         {
                             if (customsNote.Content.Value.StartsWith("CNPJ"))
                             {
-                                master.ConsignatarioCNPJ = Regex.Replace(customsNote.Content.Value, "[^0-9]", "");
+                                master.ConsignatarioCNPJ = Regex.Replace(customsNote.Content.Value, "[^0-9]", "").Substring(0,14);
                                 break;
                             } else if (customsNote.Content.Value.StartsWith("CPF"))
                             {
-                                master.ConsignatarioCNPJ = Regex.Replace(customsNote.Content.Value, "[^0-9]", "");
+                                master.ConsignatarioCNPJ = Regex.Replace(customsNote.Content.Value, "[^0-9]", "").Substring(0,14);
                                 break;
                             } else if (customsNote.Content.Value.StartsWith("PASSPORT"))
                             {
-                                master.ConsignatarioCNPJ = $"CC{customsNote.Content.Value.Replace("PASSPORT","")}";
+                                master.ConsignatarioCNPJ = $"CC{customsNote.Content.Value.Replace("PASSPORT","").Substring(0,12)}";
                                 break;
                             }
                         }
@@ -330,37 +337,35 @@ public class ImportWaybillXMLService
                 }
                 _validadorMaster.InserirErrosMaster(master);
                 _masterRepository.UpdateMaster(master);
-                await _masterRepository.SaveChanges();
-                return true;
+                var result = await _masterRepository.SaveChanges();
+                await UpdateUld(master);
+                return result;
             }
         }
         // sem efeito
         return true;
     }
-    private bool ValidaMaster(Master master)
-    {
-        return true;
-    }
+    private bool ValidaMaster(Master master) => true;
+
     private async Task<int> GetPortoIataIdByCode(int empresaId, string code, string portoNome)
     {
         PortoIata porto = _portoIATARepository.GetPortoIATAByCode(empresaId, code);
 
-        if (porto == null)
-        {
-            PortoIata novoPorto = new PortoIata()
-            {
-                CreatedDateTimeUtc = DateTime.UtcNow,
-                CriadoPeloId = _usuarioId,
-                EmpresaId = _empresaId,
-                Codigo = code.ToUpper().Trim(),
-                Nome = portoNome != null ? portoNome.ToUpper().Trim() : code
-            };
-            _portoIATARepository.CreatePortoIATA(novoPorto);
-            await _portoIATARepository.SaveChanges();
-            return (int)novoPorto.Id;
+        if (porto != null)
+            return porto.Id;
 
-        }
-        return (int)porto.Id;
+        PortoIata novoPorto = new PortoIata()
+        {
+            CreatedDateTimeUtc = DateTime.UtcNow,
+            CriadoPeloId = _usuarioId,
+            EmpresaId = _empresaId,
+            Codigo = code.ToUpper().Trim(),
+            Nome = portoNome ?? code.ToUpper().Trim()
+        };
+        _portoIATARepository.CreatePortoIATA(novoPorto);
+        await _portoIATARepository.SaveChanges();
+        return novoPorto.Id;
+
     }
 
     private async Task<Voo> GetFlightId(string airportOfDestiny, DateTime? estimateArrival, string masterNumber)
@@ -377,5 +382,19 @@ public class ImportWaybillXMLService
                 return segment.VooInfo;
         }
         return null;
+    }
+
+    private async Task UpdateUld(Master master)
+    {
+        var uldList = await _uldMasterRepository.GetUldByMasterNumberForUpload(_empresaId, master.Numero);
+        if(uldList != null && uldList.Count > 0)
+        {
+            foreach(var uld in uldList)
+            {
+                uld.MasterId = master.Id;
+                _uldMasterRepository.UpdateUldMaster(uld);
+            }
+            _uldMasterRepository.SaveChanges();
+        }
     }
 }

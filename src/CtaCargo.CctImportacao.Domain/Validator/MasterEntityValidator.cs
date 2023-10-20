@@ -16,9 +16,9 @@ public class MasterEntityValidator : AbstractValidator<Master>
 		RuleFor(x => x.AeroportoDestinoId)
 			.NotNull()
 			.WithMessage("Porto de Destino inválido ou não informado.");
-		RuleFor(x => new { x.NaturezaCarga, x.NaturezaCargaId })
-			.Must(obj => ChecarNaturezaOperacao(obj.NaturezaCarga, obj.NaturezaCargaId))
-			.WithMessage("Natureza da Operação inválida.");
+		//RuleFor(x => new { x.NaturezaCarga, x.NaturezaCargaId })
+		//	.Must(obj => ChecarNaturezaOperacao(obj.NaturezaCarga, obj.NaturezaCargaId))
+		//	.WithMessage("Natureza da Operação inválida.");
 		RuleFor(x => x.ConsignatarioNome)
 				.NotEmpty()
 			.WithMessage("Nome do Consignatário não informado.")

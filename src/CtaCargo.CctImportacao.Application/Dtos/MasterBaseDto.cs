@@ -50,7 +50,17 @@ public class MasterBaseDto
     }
     public string ConsolidadoDireto { get; set; }
     public string TotalParcial { get; set; }
-    public string NaturezaCarga { get; set; }
+    public string[] NaturezaCarga { get; set; }
+    public string GetNaturezaCargaListaString()
+    {
+        if (NaturezaCarga == null)
+            return null;
+
+        if (NaturezaCarga.Length == 0)
+            return null;
+
+        return String.Join(",", NaturezaCarga);
+    }
     public double? Volume { get; set; }
     public string VolumeUN { get; set; }
     public string AssinaturaTransportadorNome { get; set; }

@@ -11,15 +11,19 @@ public class ImportFlightXMLService
     private int _usuarioId;
     private int _ciaaereaId;
     private readonly IVooRepository _vooRepository;
+    private readonly IMasterRepository _masterRepository;
     private readonly IPortoIATARepository _portoIATARepository;
+    private readonly IUldMasterRepository _uldMasterRepository;
     private readonly ILogger _logger;
 
     public ImportFlightXMLService(IVooRepository vooRepository,
-        IPortoIATARepository portoIATARepository, ILoggerFactory loggerFactory)
+        IPortoIATARepository portoIATARepository, ILoggerFactory loggerFactory, IMasterRepository masterRepository, IUldMasterRepository uldMasterRepository)
     {
         _vooRepository = vooRepository;
         _portoIATARepository = portoIATARepository;
         _logger = loggerFactory.CreateLogger<ImportFunction>();
+        _masterRepository = masterRepository;
+        _uldMasterRepository = uldMasterRepository;
     }
 
     public int EmpresaId { get { return _empresaId; } set { _empresaId = value; } }
@@ -118,6 +122,7 @@ public class ImportFlightXMLService
         voo.DataHoraChegadaReal = dataChegadaReal;
         voo.AeroportoOrigemCodigo = portoOrigemCode;
         voo.AeroportoDestinoCodigo = portoDestinoCode;
+        voo.PrefixoAeronave = arquivoVooXML.LogisticsTransportMovement?.UsedLogisticsTransportMeans?.Name?.Value;
         voo.PortoIataOrigemId = await GetPortoIataIdByCode(portoOrigemCode, portoOrigemNome);
         voo.PortoIataDestinoId = await GetPortoIataIdByCode(portoDestinoCode, portoDestinoNome);
         
@@ -190,6 +195,8 @@ public class ImportFlightXMLService
                             {
                                 var masterNumber = master.TransportContractDocument.ID.Value.Replace("-", "");
 
+                                var masterId = await _masterRepository.GetMasterIdByNumberValidate(_empresaId, masterNumber, DateTime.Now.AddYears(-1));
+
                                 var uld = trecho.ULDs.FirstOrDefault(x => x.MasterNumero == masterNumber &&
                                             x.ULDCaracteristicaCodigo == chacteristicCode &&
                                             x.ULDId == uldId &&
@@ -212,8 +219,18 @@ public class ImportFlightXMLService
                                 uld.TotalParcial = master.TransportSplitDescription.Value;
                                 uld.PesoUN = master.GrossWeightMeasure.unitCode.ToString();
                                 uld.VooId = voo.Id;
+                                uld.MasterId = masterId;
+                                uld.PortOfOrign = master.OriginLocation?.ID?.Value;
+                                uld.PortOfDestiny = master.FinalDestinationLocation?.ID?.Value;
+                                uld.SummaryDescription = master.SummaryDescription?.Value;
+                                if (master.GrossVolumeMeasure != null)
+                                {
+                                    uld.GrossVolumeMeasureValue = master.GrossVolumeMeasure?.Value;
+                                    var hasWeightUnitCode = master.GrossVolumeMeasure?.unitCodeSpecified ?? false;
+                                    uld.GrossVolumeMeasureUnit = hasWeightUnitCode ? master.GrossVolumeMeasure?.unitCode.ToString() : null;
+                                }
 
-                                if(uld.Id == 0)
+                                if (uld.Id == 0)
                                     trecho.ULDs.Add(uld);
                             }
                         }
@@ -235,6 +252,18 @@ public class ImportFlightXMLService
         if (!await _vooRepository.SaveChanges())
             throw new Exception("Erro desconhecido. Não foi possível importar o arquivo de voo.");
 
+        // Update all uld
+        foreach(var trecho in voo.Trechos)
+        {
+            foreach(var uld in trecho.ULDs)
+            {
+                uld.VooId = voo.Id;
+                _uldMasterRepository.UpdateUldMaster(uld);
+            }
+        }
+
+        _uldMasterRepository.SaveChanges();
+
         return true;
     }
     private bool ValidaVoo(Voo voo)
@@ -245,20 +274,21 @@ public class ImportFlightXMLService
     {
         PortoIata porto = _portoIATARepository.GetPortoIATAByCode(_empresaId, code);
 
-        if (porto == null && code != null)
+        if (porto != null)
+            return porto.Id;
+
+        PortoIata novoPorto = new PortoIata()
         {
-            PortoIata novoPorto = new PortoIata()
-            {
-                CreatedDateTimeUtc = DateTime.UtcNow,
-                CriadoPeloId = _usuarioId,
-                EmpresaId = _empresaId,
-                Codigo = code.ToUpper().Trim(),
-                Nome = portoNome ?? code
-            };
-            _portoIATARepository.CreatePortoIATA(novoPorto);
-            await _portoIATARepository.SaveChanges();
-            return (int)novoPorto.Id;
-        }
-        return (int)porto.Id;
+            CreatedDateTimeUtc = DateTime.UtcNow,
+            CriadoPeloId = _usuarioId,
+            EmpresaId = _empresaId,
+            Codigo = code.ToUpper().Trim(),
+            Nome = portoNome ?? code
+        };
+        _portoIATARepository.CreatePortoIATA(novoPorto);
+        await _portoIATARepository.SaveChanges();
+        return novoPorto.Id;
+
+        return porto.Id;
     }
 }

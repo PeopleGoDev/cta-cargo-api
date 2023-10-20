@@ -14,11 +14,13 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
         void DeleteUldMasterList(List<UldMaster> ulds, int userId);
         Task<List<UldMaster>> GetUldMasterByMasterId(int uldMasterId);
         Task<UldMaster> GetUldMasterByMasterNumber(int ciaId, string masterNumber);
+        Task<List<UldMaster>> GetUldListByMasterNumberVooId(int ciaId, string masterNumber, int vooId);
         Task<List<UldMaster>> GetUldMasterByLinha(int vooId, string linha);
         Task<List<UldMasterNumeroQuery>> GetUldMasterByVooId(int vooId);
         Task<List<UldMasterNumeroQuery>> GetUldMasterByTrechoId(int trechoId);
         Task<List<UldMaster>> GetUldMasterByTag(UldMasterDeleteByTagInput input);
         Task<List<MasterNumeroUldSumario>> GetUldMasterSumarioByVooId(int vooId);
+        Task<List<UldMaster>> GetUldByMasterNumberForUpload(int ciaId, string masterNumber);
         int SaveChanges();
     }
 }

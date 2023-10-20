@@ -27,6 +27,7 @@ public class VooResponseDto
     public bool Reenviar { get; set; }
     public string ParentFlightNumber { get; set; }
     public string CountryOrigin { get; set; }
+    public string PrefixoAeronave { get; set; }
     public List<VooTrechoResponse> Trechos { get; set; }
 
     public static implicit operator VooResponseDto(Voo voo)
@@ -51,17 +52,31 @@ public class VooResponseDto
             UsuarioCriacao = voo.UsuarioCriacaoInfo?.Nome,
             VooId = voo.Id,
             ParentFlightNumber = voo.ParentFlightInfo?.Numero,
+            CountryOrigin = voo.CountryOrigin,
+            PrefixoAeronave = voo.PrefixoAeronave,
             Trechos = (from c in voo.Trechos
-                       select new VooTrechoResponse(c.Id, c.AeroportoDestinoCodigo, c.DataHoraChegadaEstimada, c.DataHoraSaidaEstimada,
-                       c.PortoIataDestinoInfo?.SiglaPais))
+                       select new VooTrechoResponse
+                       {
+                           Id = c.Id,
+                           AeroportoDestinoCodigo = c.AeroportoDestinoCodigo,
+                           DataHoraChegadaEstimada = c.DataHoraChegadaEstimada,
+                           DataHoraSaidaEstimada = c.DataHoraSaidaEstimada,
+                           PaisDestinoCodigo = c.PortoIataDestinoInfo?.SiglaPais
+                       })
                        .ToList()
         };
     }
 }
 
-public class VooUploadResponse: VooResponseDto
+public class VooUploadResponse : VooResponseDto
+{ }
+
+public class VooTrechoResponse
 {
+    public int Id { get; set; }
+    public string AeroportoDestinoCodigo { get; set; }
+    public DateTime? DataHoraChegadaEstimada { get; set; }
+    public DateTime? DataHoraSaidaEstimada { get; set; }
+    public string PaisDestinoCodigo { get; set; }
     public List<UldMasterNumeroQuery> ULDs { get; set; }
 }
-
-public record VooTrechoResponse (int Id, string AeroportoDestinoCodigo, DateTime? DataHoraChegadaEstimada = null, DateTime? DataHoraSaidaEstimada = null, string? PaisDestinoCodigo = null);

@@ -75,4 +75,6 @@ public class Voo : BaseEntity
     public virtual Voo ParentFlightInfo { get; set; }
     [Column(TypeName = "varchar(2)")]
     public string CountryOrigin { get; set; }
+    [Column(TypeName = "varchar(35)")]
+    public string PrefixoAeronave { get; set; }
 }

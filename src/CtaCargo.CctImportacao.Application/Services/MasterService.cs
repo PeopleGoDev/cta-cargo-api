@@ -298,12 +298,15 @@ public class MasterService : IMasterService
     }
     public async Task<ApiResponse<MasterResponseDto>> InserirMaster(UserSession userSession, MasterInsertRequestDto input)
     {
+        if(input.VooId == 0 && input.NumeroVooXML.Trim().Length != 6)
+            throw new BusinessException("Número do voo deve conter apenas 6 caracteres!");
+
         Voo voo;
 
         if (input.VooId > 0)
+
             voo = await _vooRepository.GetVooByIdSimple(userSession.CompanyId, input.VooId);
-        else if (input.NumeroVooXML.Trim().Length != 6)
-            throw new BusinessException("Número do voo deve conter apenas 6 caracteres!");
+
         else
         {
             DateTime dataVoo = new DateTime(input.DataVoo.Year,
@@ -311,7 +314,7 @@ public class MasterService : IMasterService
                 input.DataVoo.Day,
                 0, 0, 0, 0);
 
-            voo = _vooRepository.GetVooIdByDataVooNumero(userSession.CompanyId, dataVoo, input.NumeroVooXML);
+            voo = _vooRepository.GetVooIdByDataVooNumero(userSession.CompanyId, dataVoo, input.NumeroVooXML.Trim());
         }
 
         return await ProcessInsertMaster(userSession, input, voo);
@@ -338,10 +341,6 @@ public class MasterService : IMasterService
 
         var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoOrigemCodigo);
         var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoDestinoCodigo);
-        int? codigoNaturezaCargaId = 0;
-
-        if (input.NaturezaCarga != null && input.NaturezaCarga.Length == 3)
-            codigoNaturezaCargaId = await _naturezaCargaRepository.GetNaturezaCargaIdByCodigo(input.NaturezaCarga);
 
         _mapper.Map(input, master);
 
@@ -360,17 +359,27 @@ public class MasterService : IMasterService
         if (codigoDestinoId > 0)
             master.AeroportoDestinoId = codigoDestinoId;
 
-        master.NaturezaCargaId = null;
-        if (codigoNaturezaCargaId > 0)
-            master.NaturezaCargaId = codigoNaturezaCargaId;
-
         master.AutenticacaoSignatariaLocal = input.AeroportoOrigemCodigo;
+
+        var ulds = await _uldMasterRepository.GetUldListByMasterNumberVooId(userSession.CompanyId, input.Numero, voo.Id);
 
         _validadorMaster.InserirErrosMaster(master);
         _masterRepository.UpdateMaster(master);
 
+        foreach (var uld in ulds)
+        {
+            uld.SummaryDescription = master.DescricaoMercadoria;
+            uld.PortOfOrign = master.AeroportoOrigemCodigo;
+            uld.PortOfDestiny = master.AeroportoDestinoCodigo;
+            if (uld.MasterId == null)
+                uld.MasterId = master.Id;
+            _uldMasterRepository.UpdateUldMaster(uld);
+        }
+
         if (await _masterRepository.SaveChanges())
         {
+            master.ErrosMaster = master.ErrosMaster.Where(x => x.DataExclusao == null).ToList();
+
             var MasterResponseDto = _mapper.Map<MasterResponseDto>(master);
             return
                 new ApiResponse<MasterResponseDto>
@@ -379,23 +388,10 @@ public class MasterService : IMasterService
                     Sucesso = true,
                     Notificacoes = null
                 };
-        }
-        else
-        {
-            return
-                new ApiResponse<MasterResponseDto>
-                {
-                    Dados = null,
-                    Sucesso = false,
-                    Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível atualizar Master: Erro Desconhecido!"
-                            }
-                    }
-                };
-        }
+        };
+
+        throw new BusinessException("Não foi possível atualizar Master: Erro Desconhecido!");
+
     }
     public async Task<ApiResponse<IEnumerable<MasterResponseDto>>> AtualizarReenviarMaster(UserSession userSession, AtualizarMasterReenviarRequest input)
     {
@@ -505,8 +501,6 @@ public class MasterService : IMasterService
                 if (master.SituacaoRFBId == RFStatusEnvioType.Processed)
                     throw new Exception("Master processado na Receita Federal. Submeta o master para 'Exclusion' na Receita Federal e então prossiga com a exclusão.");
 
-                var uldsMaster = await _uldMasterRepository.GetUldMasterByMasterId(master.Id);
-                _uldMasterRepository.DeleteUldMasterList(uldsMaster, userSession.UserId);
                 _masterRepository.DeleteMaster(userSession.CompanyId, master);
             }
 
@@ -638,27 +632,17 @@ public class MasterService : IMasterService
         if (voo == null)
             throw new BusinessException($"Voo # {input.NumeroVooXML} não foi encontrado na data do voo {input.DataVoo.ToString("dd/MM/yyyy")}.");
 
-        //if (voo.SituacaoRFBId == RFStatusEnvioType.Received)
-        //    throw new BusinessException($"O Voo # {voo.Numero} não pode ser alterado, pois está em processamento na Receita Federal. Faça a verificação do Voo para atualizar o Status.");
-
-        //if (voo.SituacaoRFBId == RFStatusEnvioType.Processed && !voo.Reenviar)
-        //    throw new BusinessException($"O Voo # {voo.Numero} não pode ser alterado, pois foi submetido a RFB.");
-
         DateTime dataLimite = DateTime.Today.AddYears(-1);
 
-        int masterId = await _masterRepository.GetMasterIdByNumberValidate(voo.CiaAereaId, input.Numero, dataLimite);
+        int? masterId = await _masterRepository.GetMasterIdByNumberValidate(voo.CiaAereaId, input.Numero, dataLimite);
 
         if (masterId > 0)
             throw new BusinessException($"Já existe um master no número {input.Numero} dentro dos últimos 365 dias!");
 
+        var ulds = await _uldMasterRepository.GetUldListByMasterNumberVooId(userSession.CompanyId, input.Numero, voo.Id);
+
         var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoOrigemCodigo);
-
         var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoDestinoCodigo);
-
-        int? codigoNaturezaCargaId = 0;
-
-        if (input.NaturezaCarga != null && input.NaturezaCarga.Length == 3)
-            codigoNaturezaCargaId = await _naturezaCargaRepository.GetNaturezaCargaIdByCodigo(input.NaturezaCarga);
 
         var master = _mapper.Map<Master>(input);
         master.ErrosMaster = new List<ErroMaster>();
@@ -683,9 +667,6 @@ public class MasterService : IMasterService
 
         master.NaturezaCargaId = null;
 
-        if (codigoNaturezaCargaId > 0)
-            master.NaturezaCargaId = codigoNaturezaCargaId;
-
         _validadorMaster.InserirErrosMaster(master);
 
         master.AutenticacaoSignatariaNome = string.IsNullOrEmpty(input.AssinaturaTransportadorNome) ? voo.CompanhiaAereaInfo.Nome : input.AssinaturaTransportadorNome;
@@ -694,8 +675,21 @@ public class MasterService : IMasterService
 
         _masterRepository.CreateMaster(userSession.CompanyId, master);
 
+
+
         if (await _masterRepository.SaveChanges())
         {
+            foreach (var uld in ulds)
+            {
+                uld.SummaryDescription = master.DescricaoMercadoria;
+                uld.PortOfOrign = master.AeroportoOrigemCodigo;
+                uld.PortOfDestiny = master.AeroportoDestinoCodigo;
+                if (uld.MasterId == null)
+                    uld.MasterId = master.Id;
+                _uldMasterRepository.UpdateUldMaster(uld);
+            }
+            _uldMasterRepository.SaveChanges();
+
             var MasterResponseDto = _mapper.Map<MasterResponseDto>(master);
 
             return
@@ -706,22 +700,8 @@ public class MasterService : IMasterService
                     Notificacoes = null
                 };
         }
-        else
-        {
-            return
-                new ApiResponse<MasterResponseDto>
-                {
-                    Dados = null,
-                    Sucesso = false,
-                    Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não Foi possível adicionar o Master: Erro Desconhecido!"
-                            }
-                    }
-                };
-        }
+
+        throw new BusinessException("Não Foi possível adicionar o Master: Erro Desconhecido!");
 
     }
     private ApiResponse<MasterResponseDto> ErrorHandling(Exception exception)

@@ -5,13 +5,14 @@ using System.IO;
 using System.Xml.Serialization;
 using Waybill = CtaCargo.CctImportacao.Domain.Model.Iata.WaybillManifest;
 using Flight = CtaCargo.CctImportacao.Domain.Model.Iata.FlightManifest;
-using HouseWaybill = CtaCargo.CctImportacao.Domain.Model.Iata.HouseManifest;
-using HouseManifest = CtaCargo.CctImportacao.Domain.Model.Iata.HouseMasterManifest;
+using HouseMasterManifest = CtaCargo.CctImportacao.Domain.Model.Iata.HouseMasterManifest;
+using HouseManifest = CtaCargo.CctImportacao.Domain.Model.Iata.HouseManifest;
 using System.Linq;
 using System.Xml;
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Domain.Model.Iata.HouseManifest;
+using CtaCargo.CctImportacao.Domain.Model.Iata.WaybillManifest;
 
 namespace CtaCargo.CctImportacao.Application.Support;
 
@@ -82,6 +83,13 @@ public class MotorIata : IMotorIata
             logmov.Mode = new Flight.TextType { Value = "AIR TRANSPORT" };
             logmov.ID = new Flight.IDType { Value = voo.Numero };
             logmov.SequenceNumeric = 1;
+            if(voo.PrefixoAeronave != null)
+            {
+                logmov.UsedLogisticsTransportMeans = new Flight.LogisticsTransportMeansType
+                {
+                    Name = new Flight.TextType { Value = voo.PrefixoAeronave }
+                };
+            };
 
             double totalWeightGross = voo.Masters.Sum(x => x.PesoTotalBruto);
             int totalPecas = voo.Masters.Sum(x => x.TotalPecas);
@@ -196,7 +204,9 @@ public class MotorIata : IMotorIata
 
                             Flight.MasterConsignmentType masterC = new Flight.MasterConsignmentType();
 
-                            Enum.TryParse(uldMaster.MasterInfo.PesoTotalBrutoUN, out Flight.MeasurementUnitCommonCodeContentType pesoTotalUN);
+                            Enum.TryParse(uldMaster.PesoUN, out Flight.MeasurementUnitCommonCodeContentType pesoTotalUN);
+
+                            var isNonIataAwb = IsAwbNonIata(uldMaster.MasterNumero);
 
                             masterC.GrossWeightMeasure = new Flight.MeasureType
                             {
@@ -207,28 +217,28 @@ public class MotorIata : IMotorIata
 
                             masterC.PackageQuantity = new Flight.QuantityType { Value = 1 };
                             masterC.TotalPieceQuantity = new Flight.QuantityType { Value = Convert.ToDecimal(uldMaster.QuantidadePecas) };
-                            masterC.SummaryDescription = new Flight.TextType { Value = uldMaster.MasterInfo.DescricaoMercadoria };
+                            masterC.SummaryDescription = new Flight.TextType { Value = uldMaster.SummaryDescription };
                             masterC.TransportSplitDescription = new Flight.TextType { Value = uldMaster.TotalParcial };
                             masterC.TransportContractDocument = new Flight.TransportContractDocumentType();
 
                             masterC.TransportContractDocument.ID = new Flight.IDType
                             {
-                                Value = uldMaster.MasterInfo.IndicadorAwbNaoIata ? uldMaster.MasterInfo.Numero : uldMaster.MasterInfo.Numero.Insert(3, "-")
+                                Value = isNonIataAwb ? uldMaster.MasterNumero : uldMaster.MasterNumero.Insert(3, "-")
                             };
 
                             masterC.OriginLocation = new Flight.OriginLocationType
                             {
-                                ID = new Flight.IDType { Value = uldMaster.MasterInfo.AeroportoOrigemInfo.Codigo },
-                                Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoOrigemInfo.Nome }
+                                ID = new Flight.IDType { Value = uldMaster.PortOfOrign },
+                                // Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoOrigemInfo.Nome }
                             };
 
                             masterC.FinalDestinationLocation = new Flight.FinalDestinationLocationType
                             {
-                                ID = new Flight.IDType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Codigo },
-                                Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Nome }
+                                ID = new Flight.IDType { Value = uldMaster.PortOfDestiny },
+                                // Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Nome }
                             };
 
-                            if (uldMaster.MasterInfo.IndicadorAwbNaoIata)
+                            if (isNonIataAwb)
                             {
                                 masterC.IncludedCustomsNote = new Flight.CustomsNoteType[1];
                                 masterC.IncludedCustomsNote[0] = new Flight.CustomsNoteType
@@ -262,7 +272,9 @@ public class MotorIata : IMotorIata
                     {
                         Flight.MasterConsignmentType masterC = new Flight.MasterConsignmentType();
 
-                        Enum.TryParse(uldMaster.MasterInfo.PesoTotalBrutoUN, out Flight.MeasurementUnitCommonCodeContentType pesoTotalUN);
+                        Enum.TryParse(uldMaster.PesoUN, out Flight.MeasurementUnitCommonCodeContentType pesoTotalUN);
+
+                        var isNonIataAwb = IsAwbNonIata(uldMaster.MasterNumero);
 
                         masterC.GrossWeightMeasure = new Flight.MeasureType
                         {
@@ -273,26 +285,26 @@ public class MotorIata : IMotorIata
 
                         masterC.PackageQuantity = new Flight.QuantityType { Value = 1 };
                         masterC.TotalPieceQuantity = new Flight.QuantityType { Value = Convert.ToDecimal(uldMaster.QuantidadePecas) };
-                        masterC.SummaryDescription = new Flight.TextType { Value = uldMaster.MasterInfo.DescricaoMercadoria };
+                        masterC.SummaryDescription = new Flight.TextType { Value = uldMaster.SummaryDescription };
                         masterC.TransportSplitDescription = new Flight.TextType { Value = "T" };
                         masterC.TransportContractDocument = new Flight.TransportContractDocumentType
                         {
-                            ID = new Flight.IDType { Value = uldMaster.MasterInfo.IndicadorAwbNaoIata ? uldMaster.MasterInfo.Numero : uldMaster.MasterInfo.Numero.Insert(3, "-") }
+                            ID = new Flight.IDType { Value = isNonIataAwb ? uldMaster.MasterNumero : uldMaster.MasterNumero.Insert(3, "-") }
                         };
 
                         masterC.OriginLocation = new Flight.OriginLocationType
                         {
-                            ID = new Flight.IDType { Value = uldMaster.MasterInfo.AeroportoOrigemInfo.Codigo },
-                            Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoOrigemInfo.Nome }
+                            ID = new Flight.IDType { Value = uldMaster.PortOfOrign },
+                            // Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoOrigemInfo.Nome }
                         };
 
                         masterC.FinalDestinationLocation = new Flight.FinalDestinationLocationType
                         {
-                            ID = new Flight.IDType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Codigo },
-                            Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Nome }
+                            ID = new Flight.IDType { Value = uldMaster.PortOfDestiny },
+                            // Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Nome }
                         };
 
-                        if (uldMaster.MasterInfo.IndicadorAwbNaoIata)
+                        if (isNonIataAwb)
                         {
                             masterC.IncludedCustomsNote = new Flight.CustomsNoteType[1];
                             masterC.IncludedCustomsNote[0] = new Flight.CustomsNoteType
@@ -548,6 +560,23 @@ public class MotorIata : IMotorIata
         };
         #endregion
 
+        #region MasterConsigment > HandlingSPHInstructions
+        if(master.NaturezaCarga != null)
+        {
+            var naturezaCargas = master.NaturezaCarga.Split(",");
+            List<Waybill.SPHInstructionsType> instructions = new List<Waybill.SPHInstructionsType>();
+
+            foreach(var nat in naturezaCargas)
+            {
+                instructions.Add(new Waybill.SPHInstructionsType
+                {
+                    DescriptionCode = new Waybill.CodeType { Value = nat }
+                });
+            }
+            masterConsigment.HandlingSPHInstructions = instructions.ToArray();
+        }
+        #endregion
+
         #region MasterConsigment - IncludedCustomsNote
         string tipoDoc = "";
 
@@ -770,86 +799,86 @@ public class MotorIata : IMotorIata
     {
         HouseWaybillType manhouse = new HouseWaybillType();
 
-        Enum.TryParse(house.PesoTotalBrutoUN, out MeasurementUnitCommonCodeContentType pesoTotalUN);
-        Enum.TryParse(house.ValorFretePPUN, out ISO3AlphaCurrencyCodeContentType valorPPUN);
-        Enum.TryParse(house.ValorFreteFCUN, out ISO3AlphaCurrencyCodeContentType valorFCUN);
-        Enum.TryParse(house.VolumeUN, out MeasurementUnitCommonCodeContentType volumeUN);
+        Enum.TryParse(house.PesoTotalBrutoUN, out HouseManifest.MeasurementUnitCommonCodeContentType pesoTotalUN);
+        Enum.TryParse(house.ValorFretePPUN, out HouseManifest.ISO3AlphaCurrencyCodeContentType valorPPUN);
+        Enum.TryParse(house.ValorFreteFCUN, out HouseManifest.ISO3AlphaCurrencyCodeContentType valorFCUN);
+        Enum.TryParse(house.VolumeUN, out HouseManifest.MeasurementUnitCommonCodeContentType volumeUN);
 
         #region MessageHeaderDocument
         if (house.XmlIssueDate == null)
             house.XmlIssueDate = DateTime.UtcNow;
 
-        manhouse.MessageHeaderDocument = new MessageHeaderDocumentType
+        manhouse.MessageHeaderDocument = new HouseManifest.MessageHeaderDocumentType
         {
-            ID = new IDType { Value = $"{ house.Numero }_{ house.DataEmissaoXML.Value.ToString("ddMMyyyhhmmss") }" },
-            Name = new TextType { Value = "House Waybill" },
-            TypeCode = new DocumentCodeType { Value = DocumentNameCodeContentType.Item703 },
+            ID = new HouseManifest.IDType { Value = $"{ house.Numero }_{ house.DataEmissaoXML.Value.ToString("ddMMyyyhhmmss") }" },
+            Name = new HouseManifest.TextType { Value = "House Waybill" },
+            TypeCode = new HouseManifest.DocumentCodeType { Value = HouseManifest.DocumentNameCodeContentType.Item703 },
             IssueDateTime = house.XmlIssueDate.Value.AddHours(-3),
-            PurposeCode = new CodeType { Value = purposeCode.ToString() },
-            VersionID = new IDType { Value = "3.00" },
-            SenderParty = new SenderPartyType[2],
-            RecipientParty = new RecipientPartyType[1],
+            PurposeCode = new HouseManifest.CodeType { Value = purposeCode.ToString() },
+            VersionID = new HouseManifest.IDType { Value = "3.00" },
+            SenderParty = new HouseManifest.SenderPartyType[2],
+            RecipientParty = new HouseManifest.RecipientPartyType[1],
         };
-        manhouse.MessageHeaderDocument.SenderParty[0] = new SenderPartyType
+        manhouse.MessageHeaderDocument.SenderParty[0] = new HouseManifest.SenderPartyType
         {
-            PrimaryID = new IDType { schemeID = "C", Value = "HDQTTKE" }
+            PrimaryID = new HouseManifest.IDType { schemeID = "C", Value = "HDQTTKE" }
         };
-        manhouse.MessageHeaderDocument.SenderParty[1] = new SenderPartyType
+        manhouse.MessageHeaderDocument.SenderParty[1] = new HouseManifest.SenderPartyType
         {
-            PrimaryID = new IDType { schemeID = "P", Value = "HDQTTKE" }
+            PrimaryID = new HouseManifest.IDType { schemeID = "P", Value = "HDQTTKE" }
         };
-        manhouse.MessageHeaderDocument.RecipientParty[0] = new RecipientPartyType
+        manhouse.MessageHeaderDocument.RecipientParty[0] = new HouseManifest.RecipientPartyType
         {
-            PrimaryID = new IDType { schemeID = "C", Value = "BRCUSTOMS" }
+            PrimaryID = new HouseManifest.IDType { schemeID = "C", Value = "BRCUSTOMS" }
         };
         #endregion
 
         #region BusinessHeaderDocument
-        manhouse.BusinessHeaderDocument = new BusinessHeaderDocumentType
+        manhouse.BusinessHeaderDocument = new HouseManifest.BusinessHeaderDocumentType
         {
-            ID = new IDType { Value = house.Numero },
-            IncludedHeaderNote = new HeaderNoteType[1],
-            SignatoryConsignorAuthentication = new ConsignorAuthenticationType
+            ID = new HouseManifest.IDType { Value = house.Numero },
+            IncludedHeaderNote = new HouseManifest.HeaderNoteType[1],
+            SignatoryConsignorAuthentication = new HouseManifest.ConsignorAuthenticationType
             {
-                Signatory = new TextType { Value = house.SignatarioNome }
+                Signatory = new HouseManifest.TextType { Value = house.SignatarioNome }
             },
-            SignatoryCarrierAuthentication = new CarrierAuthenticationType
+            SignatoryCarrierAuthentication = new HouseManifest.CarrierAuthenticationType
             {
                 ActualDateTime = house.DataEmissaoXML.Value,
-                Signatory = new TextType { Value = "180020" },
-                IssueAuthenticationLocation = new AuthenticationLocationType
+                Signatory = new HouseManifest.TextType { Value = "180020" },
+                IssueAuthenticationLocation = new HouseManifest.AuthenticationLocationType
                 {
-                    Name = new TextType { Value = house.AeroportoOrigemInfo.Codigo }
+                    Name = new HouseManifest.TextType { Value = house.AeroportoOrigemInfo.Codigo }
                 }
             }
         };
-        manhouse.BusinessHeaderDocument.IncludedHeaderNote[0] = new HeaderNoteType
+        manhouse.BusinessHeaderDocument.IncludedHeaderNote[0] = new HouseManifest.HeaderNoteType
         {
-            ContentCode = new CodeType { Value = "A" },
-            Content = new TextType { Value = "As Agreed" }
+            ContentCode = new HouseManifest.CodeType { Value = "A" },
+            Content = new HouseManifest.TextType { Value = "As Agreed" }
         };
-        manhouse.BusinessHeaderDocument.SignatoryConsignorAuthentication = new ConsignorAuthenticationType
+        manhouse.BusinessHeaderDocument.SignatoryConsignorAuthentication = new HouseManifest.ConsignorAuthenticationType
         {
-            Signatory = new TextType { Value = "SIGNATURE" }
+            Signatory = new HouseManifest.TextType { Value = "SIGNATURE" }
         };
         #endregion
 
         #region MasterConsigment
-        manhouse.MasterConsignment = new MasterConsignmentType
+        manhouse.MasterConsignment = new HouseManifest.MasterConsignmentType
         {
-            TotalPieceQuantity = new QuantityType { Value = house.TotalVolumes },
+            TotalPieceQuantity = new HouseManifest.QuantityType { Value = house.TotalVolumes },
             TransportContractDocument = new TransportContractDocumentType
             {
-                ID = new IDType { Value = house.MasterNumeroXML }
+                ID = new HouseManifest.IDType { Value = house.MasterNumeroXML }
             },
-            OriginLocation = new OriginLocationType {
-                ID = new IDType { Value = house.AeroportoOrigemInfo.Codigo },
-                Name = new TextType { Value = house.AeroportoOrigemInfo.Nome }
+            OriginLocation = new HouseManifest.OriginLocationType {
+                ID = new HouseManifest.IDType { Value = house.AeroportoOrigemInfo.Codigo },
+                Name = new HouseManifest.TextType { Value = house.AeroportoOrigemInfo.Nome }
             },
-            FinalDestinationLocation = new FinalDestinationLocationType
+            FinalDestinationLocation = new HouseManifest.FinalDestinationLocationType
             {
-                ID = new IDType { Value = house.AeroportoDestinoInfo.Codigo  },
-                Name = new TextType {  Value = house.AeroportoDestinoInfo.Nome }
+                ID = new HouseManifest.IDType { Value = house.AeroportoDestinoInfo.Codigo  },
+                Name = new HouseManifest.TextType {  Value = house.AeroportoDestinoInfo.Nome }
             }
         };
 
@@ -858,126 +887,126 @@ public class MotorIata : IMotorIata
         {
             //InsuranceValueAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
             TotalChargePrepaidIndicatorFlag = house.ValorFreteFC == 0 ? true : false,
-            ValuationTotalChargeAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
-            TaxTotalChargeAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
-            WeightTotalChargeAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
+            ValuationTotalChargeAmount = new HouseManifest.AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
+            TaxTotalChargeAmount = new HouseManifest.AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
+            WeightTotalChargeAmount = new HouseManifest.AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
             TotalDisbursementPrepaidIndicator = false,
-            AgentTotalDisbursementAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0},
-            CarrierTotalDisbursementAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
-            TotalPrepaidChargeAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = house.ValorFretePP },
-            TotalCollectChargeAmount = new AmountType { currencyID = valorFCUN, currencyIDSpecified = true, Value = house.ValorFreteFC },
-            IncludedTareGrossWeightMeasure = new MeasureType { unitCode = pesoTotalUN, unitCodeSpecified = true, Value = Convert.ToDecimal(house.PesoTotalBruto) },
+            AgentTotalDisbursementAmount = new HouseManifest.AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0},
+            CarrierTotalDisbursementAmount = new HouseManifest.AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
+            TotalPrepaidChargeAmount = new HouseManifest.AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = house.ValorFretePP },
+            TotalCollectChargeAmount = new HouseManifest.AmountType { currencyID = valorFCUN, currencyIDSpecified = true, Value = house.ValorFreteFC },
+            IncludedTareGrossWeightMeasure = new HouseManifest.MeasureType { unitCode = pesoTotalUN, unitCodeSpecified = true, Value = Convert.ToDecimal(house.PesoTotalBruto) },
             NilCarriageValueIndicator = false,
             NilCustomsValueIndicator = false,
             NilInsuranceValueIndicator = false,
             NilCarriageValueIndicatorSpecified = true,
             NilCustomsValueIndicatorSpecified = true,
             NilInsuranceValueIndicatorSpecified = true, 
-            ConsignmentItemQuantity = new QuantityType { Value = house.TotalVolumes },
-            PackageQuantity = new QuantityType { Value = house.TotalVolumes },
-            TotalPieceQuantity = new QuantityType { Value = house.TotalVolumes },
-            SummaryDescription = new TextType { Value = house.DescricaoMercadoria },
-            FreightRateTypeCode = new CodeType { Value = "RATE" },
-            FreightForwarderParty = house.AgenteDeCargaNome != null ? new FreightForwarderPartyType
+            ConsignmentItemQuantity = new HouseManifest.QuantityType { Value = house.TotalVolumes },
+            PackageQuantity = new HouseManifest.QuantityType { Value = house.TotalVolumes },
+            TotalPieceQuantity = new HouseManifest.QuantityType { Value = house.TotalVolumes },
+            SummaryDescription = new HouseManifest.TextType { Value = house.DescricaoMercadoria },
+            FreightRateTypeCode = new HouseManifest.CodeType { Value = "RATE" },
+            FreightForwarderParty = house.AgenteDeCargaNome != null ? new HouseManifest.FreightForwarderPartyType
             {
-                Name = new TextType { Value = house.AgenteDeCargaInfo.Nome },
-                PostalStructuredAddress = new StructuredAddressType
+                Name = new HouseManifest.TextType { Value = house.AgenteDeCargaInfo.Nome },
+                PostalStructuredAddress = new HouseManifest.StructuredAddressType
                 {
-                    PostcodeCode = new CodeType { Value = house.AgenteDeCargaInfo.Complemento },
-                    StreetName = new TextType { Value = house.AgenteDeCargaInfo.Endereco },
-                    CityName = new TextType { Value = house.AgenteDeCargaInfo.Cidade },
-                    CountryID = new CountryIDType
+                    PostcodeCode = new HouseManifest.CodeType { Value = house.AgenteDeCargaInfo.Complemento },
+                    StreetName = new HouseManifest.TextType { Value = house.AgenteDeCargaInfo.Endereco },
+                    CityName = new HouseManifest.TextType { Value = house.AgenteDeCargaInfo.Cidade },
+                    CountryID = new HouseManifest.CountryIDType
                     {
-                        Value = (ISOTwoletterCountryCodeIdentifierContentType)
-                        Enum.Parse(typeof(ISOTwoletterCountryCodeIdentifierContentType), house.AgenteDeCargaInfo.Pais)
+                        Value = (HouseManifest.ISOTwoletterCountryCodeIdentifierContentType)
+                        Enum.Parse(typeof(HouseManifest.ISOTwoletterCountryCodeIdentifierContentType), house.AgenteDeCargaInfo.Pais)
                     }
                 }
             }: null,
-            ConsignorParty = new ConsignorPartyType
+            ConsignorParty = new HouseManifest.ConsignorPartyType
             {
-                Name = new TextType { Value = house.ExpedidorNome },
-                PostalStructuredAddress = new StructuredAddressType
+                Name = new HouseManifest.TextType { Value = house.ExpedidorNome },
+                PostalStructuredAddress = new HouseManifest.StructuredAddressType
                 {
-                    PostcodeCode = new CodeType { Value = house.ExpedidorPostal },
-                    StreetName = new TextType {  Value = house.ExpedidorEndereco },
-                    CityName = new TextType { Value = house.ExpedidorCidade },
-                    CountryID = new CountryIDType {  
-                        Value = (ISOTwoletterCountryCodeIdentifierContentType) 
-                        Enum.Parse(typeof(ISOTwoletterCountryCodeIdentifierContentType), house.ExpedidorPaisCodigo) }
+                    PostcodeCode = new HouseManifest.CodeType { Value = house.ExpedidorPostal },
+                    StreetName = new HouseManifest.TextType {  Value = house.ExpedidorEndereco },
+                    CityName = new HouseManifest.TextType { Value = house.ExpedidorCidade },
+                    CountryID = new HouseManifest.CountryIDType {  
+                        Value = (HouseManifest.ISOTwoletterCountryCodeIdentifierContentType) 
+                        Enum.Parse(typeof(HouseManifest.ISOTwoletterCountryCodeIdentifierContentType), house.ExpedidorPaisCodigo) }
                 }
             },
-            ConsigneeParty = new ConsigneePartyType
+            ConsigneeParty = new HouseManifest.ConsigneePartyType
             {
-                Name = new TextType { Value = house.ConsignatarioNome },
-                PostalStructuredAddress = new StructuredAddressType
+                Name = new HouseManifest.TextType { Value = house.ConsignatarioNome },
+                PostalStructuredAddress = new HouseManifest.StructuredAddressType
                 {
-                    PostcodeCode = new CodeType { Value = house.ConsignatarioPostal },
-                    StreetName = new TextType { Value = house.ConsignatarioEndereco },
-                    CityName = new TextType {  Value = house.ConsignatarioCidade },
-                    CountryID = new CountryIDType
+                    PostcodeCode = new HouseManifest.CodeType { Value = house.ConsignatarioPostal },
+                    StreetName = new HouseManifest.TextType { Value = house.ConsignatarioEndereco },
+                    CityName = new HouseManifest.TextType {  Value = house.ConsignatarioCidade },
+                    CountryID = new HouseManifest.CountryIDType
                     {
-                        Value = (ISOTwoletterCountryCodeIdentifierContentType)
-                        Enum.Parse(typeof(ISOTwoletterCountryCodeIdentifierContentType), house.ConsignatarioPaisCodigo)
+                        Value = (HouseManifest.ISOTwoletterCountryCodeIdentifierContentType)
+                        Enum.Parse(typeof(HouseManifest.ISOTwoletterCountryCodeIdentifierContentType), house.ConsignatarioPaisCodigo)
                     }
                 }
             },
-            OriginLocation = new OriginLocationType
+            OriginLocation = new HouseManifest.OriginLocationType
             {
-                ID = new IDType { Value = house.AeroportoOrigemInfo.Codigo },
-                Name = new TextType {  Value = house.AeroportoOrigemInfo.Nome }
+                ID = new HouseManifest.IDType { Value = house.AeroportoOrigemInfo.Codigo },
+                Name = new HouseManifest.TextType {  Value = house.AeroportoOrigemInfo.Nome }
             },
-            FinalDestinationLocation = new FinalDestinationLocationType
+            FinalDestinationLocation = new HouseManifest.FinalDestinationLocationType
             {
-                ID = new IDType { Value = house.AeroportoDestinoInfo.Codigo },
-                Name = new TextType { Value = house.AeroportoDestinoInfo.Nome }
+                ID = new HouseManifest.IDType { Value = house.AeroportoDestinoInfo.Codigo },
+                Name = new HouseManifest.TextType { Value = house.AeroportoDestinoInfo.Nome }
             },
-            HandlingOSIInstructions =  new OSIInstructionsType[1],
-            IncludedHouseConsignmentItem = new HouseConsignmentItemType[1],
+            HandlingOSIInstructions =  new HouseManifest.OSIInstructionsType[1],
+            IncludedHouseConsignmentItem = new HouseManifest.HouseConsignmentItemType[1],
             TotalDisbursementPrepaidIndicatorSpecified = true
             //SpecifiedLogisticsTransportMovement = new HouseManifest.LogisticsTransportMovementType[1]
         };
         if (house.Volume != null)
-            manhouse.MasterConsignment.IncludedHouseConsignment.GrossVolumeMeasure = new MeasureType
+            manhouse.MasterConsignment.IncludedHouseConsignment.GrossVolumeMeasure = new HouseManifest.MeasureType
             {
                 unitCode = volumeUN,
                 unitCodeSpecified = house.VolumeUN != null,
                 Value = Convert.ToDecimal(house.Volume)
             };
 
-        manhouse.MasterConsignment.IncludedHouseConsignment.HandlingOSIInstructions[0] = new OSIInstructionsType
+        manhouse.MasterConsignment.IncludedHouseConsignment.HandlingOSIInstructions[0] = new HouseManifest.OSIInstructionsType
         {
-            Description = new TextType { Value = house.DescricaoMercadoria }
+            Description = new HouseManifest.TextType { Value = house.DescricaoMercadoria }
         };
         manhouse.MasterConsignment.IncludedHouseConsignment.IncludedHouseConsignmentItem[0] = new HouseConsignmentItemType
         {
             SequenceNumeric = 1,
-            GrossWeightMeasure = new MeasureType
+            GrossWeightMeasure = new HouseManifest.MeasureType
             {
                 Value = Convert.ToDecimal(house.PesoTotalBruto),
-                unitCode = (MeasurementUnitCommonCodeContentType)
-                Enum.Parse(typeof(MeasurementUnitCommonCodeContentType), house.PesoTotalBrutoUN),
+                unitCode = (HouseManifest.MeasurementUnitCommonCodeContentType)
+                Enum.Parse(typeof(HouseManifest.MeasurementUnitCommonCodeContentType), house.PesoTotalBrutoUN),
                 unitCodeSpecified = true
             },
-            TotalChargeAmount = new AmountType
+            TotalChargeAmount = new HouseManifest.AmountType
             {
                 Value = house.ValorFretePP + house.ValorFreteFC,
                 currencyIDSpecified = true,
-                currencyID = (ISO3AlphaCurrencyCodeContentType)
-                    Enum.Parse(typeof(ISO3AlphaCurrencyCodeContentType), house.ValorFretePPUN)
+                currencyID = (HouseManifest.ISO3AlphaCurrencyCodeContentType)
+                    Enum.Parse(typeof(HouseManifest.ISO3AlphaCurrencyCodeContentType), house.ValorFretePPUN)
             },
-            PieceQuantity = new QuantityType { Value = house.TotalVolumes },
-            Information = new TextType { Value = "NDA" },
-            NatureIdentificationTransportCargo = new TransportCargoType
+            PieceQuantity = new HouseManifest.QuantityType { Value = house.TotalVolumes },
+            Information = new HouseManifest.TextType { Value = "NDA" },
+            NatureIdentificationTransportCargo = new HouseManifest.TransportCargoType
             {
-                Identification = new TextType { Value = house.DescricaoMercadoria }
+                Identification = new HouseManifest.TextType { Value = house.DescricaoMercadoria }
             },
-            ApplicableFreightRateServiceCharge = new FreightRateServiceChargeType[1]
+            ApplicableFreightRateServiceCharge = new HouseManifest.FreightRateServiceChargeType[1]
         };
         if(house.NCMLista != null)
         {
             var ncmArray = house.NCMLista.Split(",");
             var ncmArrayObject = from c in ncmArray
-                                 select new CodeType
+                                 select new HouseManifest.CodeType
                                  {
                                      Value = c.Replace(".","")
                                  };
@@ -986,20 +1015,20 @@ public class MotorIata : IMotorIata
                 ncmArrayObject.ToArray();
         }
         manhouse.MasterConsignment.IncludedHouseConsignment.IncludedHouseConsignmentItem[0].ApplicableFreightRateServiceCharge[0]
-            = new FreightRateServiceChargeType
+            = new HouseManifest.FreightRateServiceChargeType
             {
-                ChargeableWeightMeasure = new MeasureType
+                ChargeableWeightMeasure = new HouseManifest.MeasureType
                 {
                     Value = Convert.ToDecimal(house.PesoTotalBruto),
-                    unitCode = (MeasurementUnitCommonCodeContentType)
-                        Enum.Parse(typeof(MeasurementUnitCommonCodeContentType), house.PesoTotalBrutoUN),
+                    unitCode = (HouseManifest.MeasurementUnitCommonCodeContentType)
+                        Enum.Parse(typeof(HouseManifest.MeasurementUnitCommonCodeContentType), house.PesoTotalBrutoUN),
                     unitCodeSpecified = true
                 },
                 AppliedRate = (house.ValorFretePP + house.ValorFreteFC),
-                AppliedAmount = new AmountType { currencyID = valorPPUN , Value = (house.ValorFretePP + house.ValorFreteFC) }
+                AppliedAmount = new HouseManifest.AmountType { currencyID = valorPPUN , Value = (house.ValorFretePP + house.ValorFreteFC) }
             };
 
-        var customsNoteType = new List<CustomsNoteType>();
+        var customsNoteType = new List<HouseManifest.CustomsNoteType>();
 
         if (house.ConsignatarioCNPJ != null && house.ConsignatarioCNPJ.Length > 0)
         {
@@ -1014,24 +1043,24 @@ public class MotorIata : IMotorIata
 
             if (tipoDoc.Length > 0)
             {
-                customsNoteType.Add(new CustomsNoteType
+                customsNoteType.Add(new HouseManifest.CustomsNoteType
                 {
-                    CountryID = new CountryIDType() { Value = ISOTwoletterCountryCodeIdentifierContentType.BR },
-                    SubjectCode = new CodeType() { Value = "CNE" },
-                    ContentCode = new CodeType() { Value = "T" },
-                    Content = new TextType() { Value = tipoDoc }
+                    CountryID = new HouseManifest.CountryIDType() { Value = HouseManifest.ISOTwoletterCountryCodeIdentifierContentType.BR },
+                    SubjectCode = new HouseManifest.CodeType() { Value = "CNE" },
+                    ContentCode = new HouseManifest.CodeType() { Value = "T" },
+                    Content = new HouseManifest.TextType() { Value = tipoDoc }
                 });
             };
         };
 
         if (house.CodigoRecintoAduaneiro != null && house.CodigoRecintoAduaneiro.Length == 7)
         {
-            customsNoteType.Add(new CustomsNoteType
+            customsNoteType.Add(new HouseManifest.CustomsNoteType
             {
-                CountryID = new CountryIDType { Value = ISOTwoletterCountryCodeIdentifierContentType.BR },
-                SubjectCode = new CodeType { Value = "CCL" },
-                ContentCode = new CodeType { Value = "M" },
-                Content = new TextType { Value = $"CUSTOMSWAREHOUSE{house.CodigoRecintoAduaneiro.ToString()}" }
+                CountryID = new HouseManifest.CountryIDType { Value = HouseManifest.ISOTwoletterCountryCodeIdentifierContentType.BR },
+                SubjectCode = new HouseManifest.CodeType { Value = "CCL" },
+                ContentCode = new HouseManifest.CodeType { Value = "M" },
+                Content = new HouseManifest.TextType { Value = $"CUSTOMSWAREHOUSE{house.CodigoRecintoAduaneiro.ToString()}" }
             });
         };
 
@@ -1065,74 +1094,74 @@ public class MotorIata : IMotorIata
 
     public string GenMasterHouseManifest(SubmeterRFBMasterHouseItemRequest masterInfo, List<House> houses, IataXmlPurposeCode purposeCode, DateTime issueDate)
     {
-        var portOrigin = new HouseManifest.OriginLocationType { ID = new HouseManifest.IDType { Value = masterInfo.OriginLocation } };
-        var portDestiny = new HouseManifest.FinalDestinationLocationType { ID = new HouseManifest.IDType { Value = masterInfo.DestinationLocation } };
-        Enum.TryParse(masterInfo.TotalWeightUnit, out HouseManifest.MeasurementUnitCommonCodeContentType totalWeightUN);
-        HouseManifest.HouseManifestType manhouse = new HouseManifest.HouseManifestType();
+        var portOrigin = new HouseMasterManifest.OriginLocationType { ID = new HouseMasterManifest.IDType { Value = masterInfo.OriginLocation } };
+        var portDestiny = new HouseMasterManifest.FinalDestinationLocationType { ID = new HouseMasterManifest.IDType { Value = masterInfo.DestinationLocation } };
+        Enum.TryParse(masterInfo.TotalWeightUnit, out HouseMasterManifest.MeasurementUnitCommonCodeContentType totalWeightUN);
+        HouseMasterManifest.HouseManifestType manhouse = new HouseMasterManifest.HouseManifestType();
 
         #region MessageHeaderDocument
-        manhouse.MessageHeaderDocument = new HouseManifest.MessageHeaderDocumentType();
-        manhouse.MessageHeaderDocument.ID = new HouseManifest.IDType { Value = $"{ masterInfo.MasterNumber }" };
-        manhouse.MessageHeaderDocument.Name = new HouseManifest.TextType { Value = "Cargo Manifest" };
+        manhouse.MessageHeaderDocument = new HouseMasterManifest.MessageHeaderDocumentType();
+        manhouse.MessageHeaderDocument.ID = new HouseMasterManifest.IDType { Value = $"{ masterInfo.MasterNumber }" };
+        manhouse.MessageHeaderDocument.Name = new HouseMasterManifest.TextType { Value = "Cargo Manifest" };
         manhouse.MessageHeaderDocument.IssueDateTime = issueDate;
-        manhouse.MessageHeaderDocument.TypeCode = new HouseManifest.DocumentCodeType { Value = HouseManifest.DocumentNameCodeContentType.Item785 };
-        manhouse.MessageHeaderDocument.PurposeCode = new HouseManifest.CodeType { Value = purposeCode.ToString() };
-        manhouse.MessageHeaderDocument.VersionID = new HouseManifest.IDType { Value = "2.00" };
-        manhouse.MessageHeaderDocument.SenderParty = new HouseManifest.SenderPartyType[2];
-        manhouse.MessageHeaderDocument.RecipientParty = new HouseManifest.RecipientPartyType[1];
-        manhouse.MessageHeaderDocument.SenderParty[0] = new HouseManifest.SenderPartyType
+        manhouse.MessageHeaderDocument.TypeCode = new HouseMasterManifest.DocumentCodeType { Value = HouseMasterManifest.DocumentNameCodeContentType.Item785 };
+        manhouse.MessageHeaderDocument.PurposeCode = new HouseMasterManifest.CodeType { Value = purposeCode.ToString() };
+        manhouse.MessageHeaderDocument.VersionID = new HouseMasterManifest.IDType { Value = "2.00" };
+        manhouse.MessageHeaderDocument.SenderParty = new HouseMasterManifest.SenderPartyType[2];
+        manhouse.MessageHeaderDocument.RecipientParty = new HouseMasterManifest.RecipientPartyType[1];
+        manhouse.MessageHeaderDocument.SenderParty[0] = new HouseMasterManifest.SenderPartyType
         {
-            PrimaryID = new HouseManifest.IDType { schemeID = "C", Value = "HDQTTKE" }
+            PrimaryID = new HouseMasterManifest.IDType { schemeID = "C", Value = "HDQTTKE" }
         };
-        manhouse.MessageHeaderDocument.SenderParty[1] = new HouseManifest.SenderPartyType
+        manhouse.MessageHeaderDocument.SenderParty[1] = new HouseMasterManifest.SenderPartyType
         {
-            PrimaryID = new HouseManifest.IDType { schemeID = "P", Value = "HDQTTKE" }
+            PrimaryID = new HouseMasterManifest.IDType { schemeID = "P", Value = "HDQTTKE" }
         };
-        manhouse.MessageHeaderDocument.RecipientParty[0] = new HouseManifest.RecipientPartyType
+        manhouse.MessageHeaderDocument.RecipientParty[0] = new HouseMasterManifest.RecipientPartyType
         {
-            PrimaryID = new HouseManifest.IDType { schemeID = "C", Value = "BRCUSTOMS" }
+            PrimaryID = new HouseMasterManifest.IDType { schemeID = "C", Value = "BRCUSTOMS" }
         };
         #endregion
 
         #region BusinessHeaderDocument
-        manhouse.BusinessHeaderDocument = new HouseManifest.BusinessHeaderDocumentType { ID = new HouseManifest.IDType { Value = masterInfo.MasterNumber } };
+        manhouse.BusinessHeaderDocument = new HouseMasterManifest.BusinessHeaderDocumentType { ID = new HouseMasterManifest.IDType { Value = masterInfo.MasterNumber } };
         #endregion
 
         #region MasterHeaderDocument
-        manhouse.MasterConsignment = new HouseManifest.MasterConsignmentType
+        manhouse.MasterConsignment = new HouseMasterManifest.MasterConsignmentType
         {
-            IncludedTareGrossWeightMeasure = new HouseManifest.MeasureType
+            IncludedTareGrossWeightMeasure = new HouseMasterManifest.MeasureType
             {
                 unitCode = totalWeightUN,
                 Value = Convert.ToDecimal(masterInfo.TotalWeight)
             },
-            //ConsignmentItemQuantity = new HouseManifest.QuantityType { Value = masterInfo.TotalPiece },
-            //PackageQuantity = new HouseManifest.QuantityType { Value = masterInfo.TotalPiece },
-            TotalPieceQuantity = new HouseManifest.QuantityType { Value = masterInfo.TotalPiece },
-            TransportContractDocument = new HouseManifest.TransportContractDocumentType { ID = new HouseManifest.IDType { Value = masterInfo.MasterNumber.Insert(3, "-") } },
+            //ConsignmentItemQuantity = new HouseMasterManifest.QuantityType { Value = masterInfo.TotalPiece },
+            //PackageQuantity = new HouseMasterManifest.QuantityType { Value = masterInfo.TotalPiece },
+            TotalPieceQuantity = new HouseMasterManifest.QuantityType { Value = masterInfo.TotalPiece },
+            TransportContractDocument = new HouseMasterManifest.TransportContractDocumentType { ID = new HouseMasterManifest.IDType { Value = masterInfo.MasterNumber.Insert(3, "-") } },
             OriginLocation = portOrigin,
             FinalDestinationLocation = portDestiny,
         };
 
-        List<HouseManifest.HouseConsignmentType> includedHouseCOnsigmentType = new List<HouseManifest.HouseConsignmentType>();
+        List<HouseMasterManifest.HouseConsignmentType> includedHouseCOnsigmentType = new List<HouseMasterManifest.HouseConsignmentType>();
 
         houses.ForEach(house =>
         {
-            var portOrigin = new HouseManifest.OriginLocationType { ID = new HouseManifest.IDType { Value = house.AeroportoOrigemCodigo } };
-            var portDestiny = new HouseManifest.FinalDestinationLocationType { ID = new HouseManifest.IDType { Value = house.AeroportoDestinoCodigo } };
-            Enum.TryParse(house.PesoTotalBrutoUN, out HouseManifest.MeasurementUnitCommonCodeContentType pesoTotalUN);
-            includedHouseCOnsigmentType.Add(new HouseManifest.HouseConsignmentType
+            var portOrigin = new HouseMasterManifest.OriginLocationType { ID = new HouseMasterManifest.IDType { Value = house.AeroportoOrigemCodigo } };
+            var portDestiny = new HouseMasterManifest.FinalDestinationLocationType { ID = new HouseMasterManifest.IDType { Value = house.AeroportoDestinoCodigo } };
+            Enum.TryParse(house.PesoTotalBrutoUN, out HouseMasterManifest.MeasurementUnitCommonCodeContentType pesoTotalUN);
+            includedHouseCOnsigmentType.Add(new HouseMasterManifest.HouseConsignmentType
             {
                 SequenceNumeric = 1,
-                GrossWeightMeasure = new HouseManifest.MeasureType
+                GrossWeightMeasure = new HouseMasterManifest.MeasureType
                 {
                     unitCode = pesoTotalUN,
                     Value = Convert.ToDecimal(house.PesoTotalBruto)
                 },
-                PackageQuantity = new HouseManifest.QuantityType { Value = house.TotalVolumes },
-                TotalPieceQuantity = new HouseManifest.QuantityType { Value = house.TotalVolumes },
-                SummaryDescription = new HouseManifest.TextType { Value = house.DescricaoMercadoria },
-                TransportContractDocument = new HouseManifest.TransportContractDocumentType { ID = new HouseManifest.IDType { Value = house.Numero } },
+                PackageQuantity = new HouseMasterManifest.QuantityType { Value = house.TotalVolumes },
+                TotalPieceQuantity = new HouseMasterManifest.QuantityType { Value = house.TotalVolumes },
+                SummaryDescription = new HouseMasterManifest.TextType { Value = house.DescricaoMercadoria },
+                TransportContractDocument = new HouseMasterManifest.TransportContractDocumentType { ID = new HouseMasterManifest.IDType { Value = house.Numero } },
                 OriginLocation = portOrigin,
                 FinalDestinationLocation = portDestiny
             });
@@ -1146,7 +1175,7 @@ public class MotorIata : IMotorIata
         ns.Add("", "iata:datamodel:3");
         ns.Add("ns2", "iata:waybill:1");
         ns.Add("q1", "iata:housewaybill:1");
-        return SerializeFromStream<HouseManifest.HouseManifestType>(manhouse, ns);
+        return SerializeFromStream<HouseMasterManifest.HouseManifestType>(manhouse, ns);
     }
 
     private string SerializeFromStream<T>(T tr, XmlSerializerNamespaces ns)
@@ -1164,4 +1193,19 @@ public class MotorIata : IMotorIata
         }
     }
 
+    private bool IsAwbNonIata(string e)
+    {
+        if (e.Length != 11)
+            return true;
+
+        if (!long.TryParse(e, out _))
+            return true;
+
+        var digitos7 = Convert.ToInt32(e.Substring(3, 7));
+        var digito = Convert.ToInt32(e.Substring(10, 1));
+        var digitoesperado = digitos7 % 7;
+        if (digito == digitoesperado)
+            return false;
+        return true;
+    }
 }

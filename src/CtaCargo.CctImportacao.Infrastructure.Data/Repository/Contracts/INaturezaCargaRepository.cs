@@ -2,16 +2,18 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
+namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
+
+public interface INaturezaCargaRepository
 {
-    public interface INaturezaCargaRepository
-    {
-        void CreateNaturezaCarga(NaturezaCarga narurezaCarga);
-        void DeleteNaturezaCarga(NaturezaCarga narurezaCarga);
-        Task<IEnumerable<NaturezaCarga>> GetAllNaturezaCarga(int empresaId);
-        Task<NaturezaCarga> GetNaturezaCargaById(int id);
-        Task<int?> GetNaturezaCargaIdByCodigo(string codigo);
-        Task<bool> SaveChanges();
-        void UpdateNaturezaCarga(NaturezaCarga naturezaCarga);
-    }
+    void CreateNaturezaCarga(NaturezaCarga narurezaCarga);
+    void DeleteNaturezaCarga(NaturezaCarga narurezaCarga);
+    Task<IEnumerable<NaturezaCarga>> GetAllNaturezaCarga(int empresaId);
+    Task<NaturezaCarga> GetNaturezaCargaById(int id);
+    Task<int?> GetNaturezaCargaIdByCodigo(string codigo);
+    IEnumerable<NaturezaCarga> GetTopSpecialInstruction(string like, int top);
+    IEnumerable<NaturezaCarga> GetTopSpecialInstructionByCode(string code, int top);
+    IEnumerable<NaturezaCarga> GetSpecialInstructionByCodeList(string[] codes);
+    Task<bool> SaveChanges();
+    void UpdateNaturezaCarga(NaturezaCarga naturezaCarga);
 }

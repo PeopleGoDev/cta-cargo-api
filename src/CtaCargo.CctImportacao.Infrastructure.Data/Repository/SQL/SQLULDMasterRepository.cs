@@ -82,6 +82,24 @@ public class SQLUldMasterRepository : IUldMasterRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<List<UldMaster>> GetUldListByMasterNumberVooId(int ciaId, string masterNumber, int vooId)
+    {
+        return await _context.ULDMasters.Where(x => x.EmpresaId == ciaId &&
+            x.VooId == vooId &&
+            x.MasterNumero == masterNumber &&
+            x.DataExclusao == null)
+            .ToListAsync();
+    }
+
+    public async Task<List<UldMaster>> GetUldByMasterNumberForUpload(int ciaId, string masterNumber)
+    {
+        return await _context.ULDMasters.Where(x => x.EmpresaId == ciaId &&
+            x.MasterNumero == masterNumber &&
+            x.DataExclusao == null &&
+            x.MasterId == null)
+            .ToListAsync();
+    }
+
     public async Task<List<UldMaster>> GetUldMasterByLinha(int vooId, string linha)
     {
         string uldchar = linha.Substring(0, 3);
@@ -144,7 +162,10 @@ public class SQLUldMasterRepository : IUldMasterRepository
                 UsuarioCriacao = c.UsuarioCriacaoInfo.Nome,
                 TotalParcial = c.TotalParcial,
                 Transferencia = c.Tranferencia,
-                MasterId = c.MasterId
+                MasterId = c.MasterId,
+                AeroportoOrigem = c.PortOfOrign,
+                AeroportoDestino = c.PortOfDestiny,
+                DescricaoMercadoria = c.SummaryDescription
             }).ToListAsync();
 
         var result1 = result

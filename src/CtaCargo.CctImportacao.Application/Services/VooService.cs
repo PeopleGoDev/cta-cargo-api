@@ -38,24 +38,10 @@ public class VooService : IVooService
     }
     public async Task<ApiResponse<VooResponseDto>> VooPorId(int vooId, UserSession userSessionInfo)
     {
-
         var voo = await _vooRepository.GetVooById(vooId);
+        
         if (voo == null)
-        {
-            return
-                new ApiResponse<VooResponseDto>
-                {
-                    Dados = null,
-                    Sucesso = false,
-                    Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Voo não encontrado !"
-                            }
-                    }
-                };
-        }
+            throw new BusinessException("Voo não encontrado!");
 
         return new ApiResponse<VooResponseDto>
         {
@@ -69,23 +55,10 @@ public class VooService : IVooService
 
         var lista = _vooRepository.GetTrechoByVooId(vooId).ToList();
         if (lista == null)
-        {
-            return
-                new ApiResponse<IEnumerable<VooTrechoResponse>>
-                {
-                    Dados = null,
-                    Sucesso = false,
-                    Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Trecho não encontrado !"
-                            }
-                    }
-                };
-        }
+            throw new BusinessException("Trecho não encontrado");
+
         var dto = (from c in lista
-                   select new VooTrechoResponse(c.Id, c.AeroportoDestinoCodigo));
+                   select new VooTrechoResponse { Id = c.Id, AeroportoDestinoCodigo = c.AeroportoDestinoCodigo });
         return
                 new ApiResponse<IEnumerable<VooTrechoResponse>>
                 {
@@ -119,16 +92,20 @@ public class VooService : IVooService
             StatusId = (int)voo.StatusId,
             UsuarioCriacao = voo.UsuarioCriacaoInfo?.Nome,
             VooId = voo.Id,
-            Trechos = voo.Trechos.Select(x => new VooTrechoResponse(x.Id, x.AeroportoDestinoCodigo,
-                x.DataHoraChegadaEstimada,
-                x.DataHoraSaidaEstimada)
-            ).ToList(),
-            ULDs = new List<UldMasterNumeroQuery>()
+            Trechos = voo.Trechos.Select(x => new VooTrechoResponse
+            {
+                Id = x.Id,
+                AeroportoDestinoCodigo = x.AeroportoDestinoCodigo,
+                DataHoraChegadaEstimada = x.DataHoraChegadaEstimada,
+                DataHoraSaidaEstimada = x.DataHoraSaidaEstimada,
+                ULDs = new List<UldMasterNumeroQuery>()
+            }).ToList()
         };
 
-        foreach (var trecho in voo.Trechos)
+        foreach (var trechoResp in response.Trechos)
         {
-
+            var trecho = voo.Trechos.Where(x => x.Id == trechoResp.Id).First();
+            
             var result = trecho.ULDs.Where(x => x.DataExclusao == null)
                 .Select(c => new UldMasterNumeroQueryChildren
                 {
@@ -142,7 +119,10 @@ public class VooService : IVooService
                     UldId = c.ULDId,
                     UldIdPrimario = c.ULDIdPrimario,
                     UsuarioCriacao = c.UsuarioCriacaoInfo?.Nome,
-                    TotalParcial = c.TotalParcial
+                    TotalParcial = c.TotalParcial,
+                    AeroportoOrigem = c.PortOfOrign,
+                    AeroportoDestino = c.PortOfDestiny,
+                    DescricaoMercadoria = c.SummaryDescription
                 }).ToList();
 
             var result1 = result
@@ -155,7 +135,8 @@ public class VooService : IVooService
                     ULDs = s.ToList()
                 }).ToList();
 
-            response.ULDs.AddRange(result1);
+
+            trechoResp.ULDs.AddRange(result1);
         }
 
         return new ApiResponse<VooUploadResponse>
@@ -242,7 +223,7 @@ public class VooService : IVooService
                        Numero = c.Numero,
                        SituacaoVoo = (Dtos.Enum.RecordStatus)c.SituacaoVoo,
                        VooId = c.VooId,
-                       Trechos = (from t in c.Trechos select new VooTrechoResponse(t.id, t.portoDestino))
+                       Trechos = (from t in c.Trechos select new VooTrechoResponse { Id = t.id, AeroportoDestinoCodigo = t.portoDestino })
                    });
 
         return new ApiResponse<IEnumerable<VooListaResponseDto>>
@@ -288,6 +269,7 @@ public class VooService : IVooService
         voo.DataHoraSaidaReal = input.DataHoraSaidaReal;
         voo.DataHoraSaidaEstimada = input.DataHoraSaidaPrevista;
         voo.CountryOrigin = codigoOrigem != null ? codigoOrigem.SiglaPais : null;
+        voo.PrefixoAeronave = input.PrefixoAeronave;
         voo.PortoIataOrigemId = codigoOrigem !=  null ? codigoOrigem.Id : null;
         voo.PortoIataDestinoId = codigoDestino != null ? codigoDestino.Id : null;
         voo.DataEmissaoXML = DateTime.UtcNow;
@@ -339,7 +321,7 @@ public class VooService : IVooService
             throw new BusinessException("Voo não encontrado");
 
         if (input.Trechos == null || input.Trechos.Count == 0)
-            throw new BusinessException($"É necessário ao menos um aeroporto de chegada!");
+            throw new BusinessException($"É necessário ao menos um aeroporto de chegada");
 
         var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.Trechos.LastOrDefault().AeroportoDestinoCodigo);
 
@@ -362,6 +344,9 @@ public class VooService : IVooService
             voo.DataHoraSaidaEstimada = input.DataHoraSaidaPrevista;
 
         voo.PortoIataDestinoId = codigoDestinoId > 0 ? codigoDestinoId  : null;
+        
+        if(input.PrefixoAeronave != null)
+            voo.PrefixoAeronave = input.PrefixoAeronave;
 
         VooEntityValidator validator = new VooEntityValidator();
 
