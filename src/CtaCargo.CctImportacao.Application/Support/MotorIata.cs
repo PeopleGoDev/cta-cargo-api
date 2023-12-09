@@ -12,7 +12,7 @@ using System.Xml;
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Domain.Model.Iata.HouseManifest;
-using CtaCargo.CctImportacao.Domain.Model.Iata.WaybillManifest;
+using CtaCargo.CctImportacao.Domain.Exceptions;
 
 namespace CtaCargo.CctImportacao.Application.Support;
 
@@ -34,7 +34,7 @@ public class MotorIata : IMotorIata
         return "";
     }
 
-    public string GenFlightManifest(Voo voo, int? trechoId = null, DateTime? actualDateTime = null)
+    public string GenFlightManifest(Voo voo, int? trechoId = null, DateTime? actualDateTime = null, bool isScheduled = false)
     {
         try
         {
@@ -104,15 +104,23 @@ public class MotorIata : IMotorIata
             logmov.TotalPieceQuantity = new Flight.QuantityType { Value = totalPecas };
             logmov.DepartureEvent = new Flight.DepartureEventType();
 
-            if (voo.DataHoraSaidaReal != null)
-            {
-                logmov.DepartureEvent.DepartureOccurrenceDateTime = (DateTime)voo.DataHoraSaidaReal;
-                logmov.DepartureEvent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "A" };
-            }
-            else
+            if (isScheduled)
             {
                 logmov.DepartureEvent.DepartureOccurrenceDateTime = (DateTime)voo.DataHoraSaidaEstimada;
                 logmov.DepartureEvent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "S" };
+            }
+            else
+            {
+                if (voo.DataHoraSaidaReal != null)
+                {
+                    logmov.DepartureEvent.DepartureOccurrenceDateTime = (DateTime)voo.DataHoraSaidaReal;
+                    logmov.DepartureEvent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "A" };
+                }
+                else
+                {
+                    logmov.DepartureEvent.DepartureOccurrenceDateTime = (DateTime)voo.DataHoraSaidaEstimada;
+                    logmov.DepartureEvent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "S" };
+                }
             }
 
             logmov.DepartureEvent.OccurrenceDepartureLocation = new Flight.DepartureLocationType();
@@ -132,7 +140,7 @@ public class MotorIata : IMotorIata
                     arrevent.ArrivalOccurrenceDateTime = trecho.DataHoraChegadaEstimada.Value;
                     arrevent.ArrivalDateTimeTypeCode = new Flight.CodeType { Value = "S" };
                     arrevent.ArrivalOccurrenceDateTimeSpecified = true;
-                };
+                }
                 if (trechoId == trecho.Id && actualDateTime != null)
                 {
                     arrevent.DepartureOccurrenceDateTime = actualDateTime;
@@ -146,7 +154,7 @@ public class MotorIata : IMotorIata
                         arrevent.DepartureOccurrenceDateTime = trecho.DataHoraSaidaEstimada;
                         arrevent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "S" };
                         arrevent.DepartureOccurrenceDateTimeSpecified = true;
-                    };
+                    }
                 }
                 arrevent.OccurrenceArrivalLocation = new Flight.ArrivalLocationType();
                 arrevent.OccurrenceArrivalLocation.ID = new Flight.IDType { Value = trecho.PortoIataDestinoInfo.Codigo };
@@ -160,13 +168,11 @@ public class MotorIata : IMotorIata
 
                 if (uldsMaster.Count() > 0)
                 {
-
                     var grupos = uldsMaster.GroupBy(r => (r.ULDCaracteristicaCodigo, r.ULDId, r.ULDIdPrimario))
                         .Select(g => (g.Key.ULDCaracteristicaCodigo, g.Key.ULDId, g.Key.ULDIdPrimario, Pecas: g.Sum(x => x.QuantidadePecas), Peso: g.Sum(x => x.Peso)));
 
                     foreach (var item in grupos)
                     {
-
                         var ulds = uldsMaster.Where(x => x.ULDCaracteristicaCodigo == item.ULDCaracteristicaCodigo &&
                                             x.ULDId == item.ULDId &&
                                             x.ULDIdPrimario == item.ULDIdPrimario).ToList();
@@ -201,7 +207,6 @@ public class MotorIata : IMotorIata
 
                         foreach (UldMaster uldMaster in ulds)
                         {
-
                             Flight.MasterConsignmentType masterC = new Flight.MasterConsignmentType();
 
                             Enum.TryParse(uldMaster.PesoUN, out Flight.MeasurementUnitCommonCodeContentType pesoTotalUN);
@@ -261,7 +266,6 @@ public class MotorIata : IMotorIata
 
                 if (blk.Count() > 0)
                 {
-
                     Flight.TransportCargoType transpuld = new Flight.TransportCargoType();
 
                     transpuld.TypeCode = new Flight.CodeType { Value = "BLK" };
@@ -286,7 +290,7 @@ public class MotorIata : IMotorIata
                         masterC.PackageQuantity = new Flight.QuantityType { Value = 1 };
                         masterC.TotalPieceQuantity = new Flight.QuantityType { Value = Convert.ToDecimal(uldMaster.QuantidadePecas) };
                         masterC.SummaryDescription = new Flight.TextType { Value = uldMaster.SummaryDescription };
-                        masterC.TransportSplitDescription = new Flight.TextType { Value = "T" };
+                        masterC.TransportSplitDescription = new Flight.TextType { Value = uldMaster.TotalParcial };
                         masterC.TransportContractDocument = new Flight.TransportContractDocumentType
                         {
                             ID = new Flight.IDType { Value = isNonIataAwb ? uldMaster.MasterNumero : uldMaster.MasterNumero.Insert(3, "-") }
@@ -347,7 +351,7 @@ public class MotorIata : IMotorIata
         }
         catch (Exception ex)
         {
-            throw new Exception($"Não foi possivel gerar o arquivo XML do voo ({ex.Message}).");
+            throw new BusinessException($"Não foi possivel gerar o arquivo XML do voo ({ex.Message}).");
         }
     }
 
@@ -461,7 +465,8 @@ public class MotorIata : IMotorIata
                 PostcodeCode = new Waybill.CodeType { Value = master.ExpedidorPostal },
                 StreetName = new Waybill.TextType { Value = master.ExpedidorEndereco },
                 CityName = new Waybill.TextType { Value = master.ExpedidorCidade },
-                CountryID = new Waybill.CountryIDType { Value = codigoPaisExpedidor }
+                CountryID = new Waybill.CountryIDType { Value = codigoPaisExpedidor },
+                PostOfficeBox = new Waybill.TextType { Value = master.ExpedidorPostal }
             }
         };
         #endregion
@@ -476,7 +481,8 @@ public class MotorIata : IMotorIata
                 PostcodeCode = new Waybill.CodeType { Value = master.ConsignatarioPostal },
                 StreetName = new Waybill.TextType { Value = master.ConsignatarioEndereco },
                 CityName = new Waybill.TextType { Value = master.ConsignatarioCidade },
-                CountryID = new Waybill.CountryIDType { Value = codigoPaisConsignatario }
+                CountryID = new Waybill.CountryIDType { Value = codigoPaisConsignatario },
+                PostOfficeBox = new Waybill.TextType { Value = master.ConsignatarioPostal }
             }
         };
         #endregion
@@ -930,6 +936,7 @@ public class MotorIata : IMotorIata
                     PostcodeCode = new HouseManifest.CodeType { Value = house.ExpedidorPostal },
                     StreetName = new HouseManifest.TextType {  Value = house.ExpedidorEndereco },
                     CityName = new HouseManifest.TextType { Value = house.ExpedidorCidade },
+                    PostOfficeBox = new HouseManifest.TextType { Value = house.ExpedidorPostal },
                     CountryID = new HouseManifest.CountryIDType {  
                         Value = (HouseManifest.ISOTwoletterCountryCodeIdentifierContentType) 
                         Enum.Parse(typeof(HouseManifest.ISOTwoletterCountryCodeIdentifierContentType), house.ExpedidorPaisCodigo) }
@@ -943,6 +950,7 @@ public class MotorIata : IMotorIata
                     PostcodeCode = new HouseManifest.CodeType { Value = house.ConsignatarioPostal },
                     StreetName = new HouseManifest.TextType { Value = house.ConsignatarioEndereco },
                     CityName = new HouseManifest.TextType {  Value = house.ConsignatarioCidade },
+                    PostOfficeBox = new HouseManifest.TextType { Value = house.ConsignatarioPostal },
                     CountryID = new HouseManifest.CountryIDType
                     {
                         Value = (HouseManifest.ISOTwoletterCountryCodeIdentifierContentType)
@@ -965,6 +973,7 @@ public class MotorIata : IMotorIata
             TotalDisbursementPrepaidIndicatorSpecified = true
             //SpecifiedLogisticsTransportMovement = new HouseManifest.LogisticsTransportMovementType[1]
         };
+        
         if (house.Volume != null)
             manhouse.MasterConsignment.IncludedHouseConsignment.GrossVolumeMeasure = new HouseManifest.MeasureType
             {
@@ -1014,6 +1023,25 @@ public class MotorIata : IMotorIata
             manhouse.MasterConsignment.IncludedHouseConsignment.IncludedHouseConsignmentItem[0].TypeCode =
                 ncmArrayObject.ToArray();
         }
+
+        #region MasterConsigment > HandlingSPHInstructions
+        if (!string.IsNullOrEmpty(house.NaturezaCargaLista))
+        {
+            var naturezaCargas = house.NaturezaCargaLista.Split(",");
+            List<HouseManifest.SPHInstructionsType> instructions = new List<HouseManifest.SPHInstructionsType>();
+
+            foreach (var nat in naturezaCargas)
+            {
+                instructions.Add(new HouseManifest.SPHInstructionsType
+                {
+                    DescriptionCode = new HouseManifest.CodeType { Value = nat }
+                });
+            }
+            if(instructions.Count > 0)
+                manhouse.MasterConsignment.IncludedHouseConsignment.HandlingSPHInstructions = instructions.ToArray();
+        }
+        #endregion
+
         manhouse.MasterConsignment.IncludedHouseConsignment.IncludedHouseConsignmentItem[0].ApplicableFreightRateServiceCharge[0]
             = new HouseManifest.FreightRateServiceChargeType
             {

@@ -85,8 +85,8 @@ public class Startup
         services.AddScoped<ICiaAereaRepository, SQLCiaAereaRepository>();
         services.AddScoped<IVooRepository, SQLVooRepository>();
         services.AddScoped<IPortoIATARepository, SQLPortoIATARepository>();
-        services.AddScoped<IMasterRepository, SQLMasterRepository>();
-        services.AddScoped<IHouseRepository, SQLHouseRepository>();
+        services.AddScoped<IMasterRepository, SqlMasterRepository>();
+        services.AddScoped<IHouseRepository, SqlHouseRepository>();
         services.AddScoped<ICertificadoDigitalRepository, SQLCertificadoDigitalRepository>();
         services.AddScoped<IUldMasterRepository, SQLUldMasterRepository>();
         services.AddScoped<IErroMasterRepository, SQLErroMasterRepository>();

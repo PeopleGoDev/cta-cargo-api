@@ -312,7 +312,7 @@ public class MasterService : IMasterService
             DateTime dataVoo = new DateTime(input.DataVoo.Year,
                 input.DataVoo.Month,
                 input.DataVoo.Day,
-                0, 0, 0, 0);
+                0, 0, 0, 0, DateTimeKind.Unspecified);
 
             voo = _vooRepository.GetVooIdByDataVooNumero(userSession.CompanyId, dataVoo, input.NumeroVooXML.Trim());
         }
@@ -324,9 +324,16 @@ public class MasterService : IMasterService
         DateTime dataVoo = new DateTime(input.DataVoo.Year,
             input.DataVoo.Month,
             input.DataVoo.Day,
-            0, 0, 0, 0);
+            0, 0, 0, 0, DateTimeKind.Unspecified);
 
-        Voo voo = _vooRepository.GetVooIdByDataVooNumero(userSession.CompanyId, dataVoo, input.NumeroVooXML);
+        Voo voo;
+
+        if (input.VooId > 0)
+            voo = await _vooRepository.GetVooByIdSimple(userSession.CompanyId, input.VooId);
+        else
+        {
+            voo = _vooRepository.GetVooIdByDataVooNumero(userSession.CompanyId, dataVoo, input.NumeroVooXML);
+        }
 
         if (voo == null)
             throw new BusinessException($"Voo # {input.NumeroVooXML} não foi encontrado na data do voo {input.DataVoo.ToString("dd/MM/yyyy")}.");

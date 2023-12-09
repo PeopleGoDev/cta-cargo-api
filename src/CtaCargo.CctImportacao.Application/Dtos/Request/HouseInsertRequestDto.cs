@@ -1,9 +1,8 @@
 ﻿using System;
 
-namespace CtaCargo.CctImportacao.Application.Dtos.Request
+namespace CtaCargo.CctImportacao.Application.Dtos.Request;
+
+public class HouseInsertRequestDto: HouseBaseDto
 {
-    public class HouseInsertRequestDto: HouseBaseDto
-    {
-        public DateTime DataProcessamento { get; set; }
-    }
+    public DateTime DataProcessamento { get; set; }
 }

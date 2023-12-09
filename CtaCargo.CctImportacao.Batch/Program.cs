@@ -15,7 +15,7 @@ var host = new HostBuilder()
         services.AddScoped<IConfiguraRepository, SQLConfiguraRepository>();
         services.AddScoped<IVooRepository, SQLVooRepository>();
         services.AddScoped<IPortoIATARepository, SQLPortoIATARepository>();
-        services.AddScoped<IMasterRepository, SQLMasterRepository>();
+        services.AddScoped<IMasterRepository, SqlMasterRepository>();
         services.AddScoped<IUldMasterRepository, SQLUldMasterRepository>();
         services.AddScoped<ImportFlightXMLService>();
         services.AddScoped<ImportWaybillXMLService>();

@@ -113,6 +113,9 @@ public class SQLVooRepository : IVooRepository
                 SituacaoRFB = x.SituacaoRFBId,
                 ProtocoloRFB = x.ProtocoloRFB,
                 Reenviar = x.Reenviar,
+                ScheduleProtocolRFB = x.ProtocoloScheduleRFB,
+                ScheduleSituationRFB = x.ScheduleSituationRFB,
+                GhostFlight = x.GhostFlight
             })
             .FirstOrDefaultAsync();
     }
@@ -145,10 +148,12 @@ public class SQLVooRepository : IVooRepository
             {
                 VooId = x.Id,
                 Numero = x.Numero,
+                FlightType = x.FlightType,
                 SituacaoVoo = x.StatusId,
                 CiaAereaNome = x.CompanhiaAereaInfo.Nome,
                 CertificadoValidade = x.CompanhiaAereaInfo.CertificadoDigital?.DataVencimento,
-                Trechos = (from t in x.Trechos select new VooTrechoQuery (t.Id, t.AeroportoDestinoCodigo))
+                GhostFlight = x.GhostFlight,
+                Trechos = (from t in x.Trechos select new VooTrechoQuery(t.Id, t.AeroportoDestinoCodigo))
             });
     }
 

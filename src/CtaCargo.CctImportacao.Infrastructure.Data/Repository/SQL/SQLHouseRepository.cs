@@ -10,11 +10,11 @@ using System.Threading.Tasks;
 
 namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL;
 
-public class SQLHouseRepository : IHouseRepository
+public class SqlHouseRepository : IHouseRepository
 {
     private readonly ApplicationDbContext _context;
 
-    public SQLHouseRepository(ApplicationDbContext context)
+    public SqlHouseRepository(ApplicationDbContext context)
     {
         _context = context;
     }
@@ -103,6 +103,13 @@ public class SQLHouseRepository : IHouseRepository
             .Where(x => masters.Contains(x.MasterNumeroXML) &&  x.DataExclusao == null);
     }
 
+    public async Task<int?> GetHouseIdByNumberValidate(int ciaId, string numero, DateTime dataLimite)
+    {
+        return await _context.Houses
+            .Where(x => x.EmpresaId == ciaId && x.Numero == numero && x.CreatedDateTimeUtc >= dataLimite && x.DataExclusao == null)
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync();
+    }
     public async Task<bool> SaveChanges()
     {
         return (await _context.SaveChangesAsync() >= 0);

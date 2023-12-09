@@ -92,7 +92,7 @@ public class ApplicationDbContext : DbContext
             .HasPrincipalKey(e => e.Id);
 
         modelBuilder.Entity<Voo>()
-            .HasIndex(u => new { u.CiaAereaId, u.DataVoo, u.Numero, u.DataExclusao })
+            .HasIndex(u => new { u.CiaAereaId, u.DataVoo, u.Numero, u.FlightType, u.DataExclusao })
             .IsUnique()
             .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 

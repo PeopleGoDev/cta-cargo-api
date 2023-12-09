@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CtaCargo.CctImportacao.Domain.Entities;
+using System;
 using System.Collections.Generic;
 
 namespace CtaCargo.CctImportacao.Application.Dtos.Request;
@@ -6,6 +7,7 @@ namespace CtaCargo.CctImportacao.Application.Dtos.Request;
 public class VooInsertRequestDto
 {
     public string Numero { get; set; }
+    public VooType FlightType { get; set; }
     public string PrefixoAeronave { get; set; }
     public DateTime DataVoo { get; set; }
     public DateTime? DataHoraSaidaReal { get; set; }

@@ -10,11 +10,11 @@ using System.Threading.Tasks;
 
 namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL;
 
-public class SQLMasterRepository : IMasterRepository
+public class SqlMasterRepository : IMasterRepository
 {
     private readonly ApplicationDbContext _context;
 
-    public SQLMasterRepository(ApplicationDbContext context)
+    public SqlMasterRepository(ApplicationDbContext context)
     {
         _context = context;
     }
@@ -224,7 +224,6 @@ public class SQLMasterRepository : IMasterRepository
     {
         var result = await _context.Masters
             .Where(x => x.CiaAereaId == ciaId && x.Numero == numero && x.CreatedDateTimeUtc >= dataLimite && x.DataExclusao == null)
-            .Include(x => x.ErrosMaster)
             .Select(x => x.Id)
             .FirstOrDefaultAsync();
         return result > 0 ? result : null;

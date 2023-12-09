@@ -409,7 +409,8 @@ namespace CtaCargo.CctImportacao.Application.Mappings
                 .ForMember(dest => dest.DataProcessamento, m => m.MapFrom(a => a.DataProcessamento))
                 .ForMember(dest => dest.RFBCancelationStatus, m => m.MapFrom(a => a.SituacaoDeletionRFBId))
                 .ForMember(dest => dest.RFBCancelationProtocol, m => m.MapFrom(a => a.ProtocoloDeletionRFB))
-                .ForMember(dest => dest.NCMLista, m => m.MapFrom(a => a.GetNCMLista()));
+                .ForMember(dest => dest.NCMLista, m => m.MapFrom(a => a.NcmArray()))
+                .ForMember(dest => dest.NaturezaCarga , m => m.MapFrom(a => a.NaturezaCargaArray()));
 
             CreateMap<HouseInsertRequestDto, House>()
                 .ForMember(dest => dest.Numero, m => m.MapFrom(a => a.Numero))
@@ -442,7 +443,8 @@ namespace CtaCargo.CctImportacao.Application.Mappings
                 .ForMember(dest => dest.AeroportoOrigemCodigo, m => m.MapFrom(a => a.AeroportoOrigem))
                 .ForMember(dest => dest.AeroportoDestinoCodigo, m => m.MapFrom(a => a.AeroportoDestino))
                 .ForMember(dest => dest.DataProcessamento, m => m.MapFrom(a => a.DataProcessamento))
-                .ForMember(dest => dest.NCMLista, m => m.MapFrom(a => a.GetNCMListaString()));
+                .ForMember(dest => dest.NCMLista, m => m.MapFrom(a => a.GetNCMListaString()))
+                .ForMember(dest => dest.NaturezaCargaLista, m => m.MapFrom(a => a.GetNaturezaCargaString()));
 
             CreateMap<HouseUpdateRequestDto, House>()
                 .ForMember(dest => dest.Id, m => m.MapFrom(a => a.HouseId))
@@ -475,7 +477,8 @@ namespace CtaCargo.CctImportacao.Application.Mappings
                 .ForMember(dest => dest.NumeroAgenteDeCarga, m => m.MapFrom(a => a.AgenteDeCargaNumero))
                 .ForMember(dest => dest.AeroportoOrigemCodigo, m => m.MapFrom(a => a.AeroportoOrigem))
                 .ForMember(dest => dest.AeroportoDestinoCodigo, m => m.MapFrom(a => a.AeroportoDestino))
-                .ForMember(dest => dest.NCMLista, m => m.MapFrom(a => a.GetNCMListaString()));
+                .ForMember(dest => dest.NCMLista, m => m.MapFrom(a => a.GetNCMListaString()))
+                .ForMember(dest => dest.NaturezaCargaLista, m => m.MapFrom(a => a.GetNaturezaCargaString()));
 
             CreateMap<HouseMasterQuery, HouseMasterResponseDto>();
             #endregion

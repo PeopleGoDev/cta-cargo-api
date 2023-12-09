@@ -1,5 +1,6 @@
 ﻿using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Model.Iata.FlightManifest;
+using CtaCargo.CctImportacao.Domain.Validator;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.Extensions.Logging;
 
@@ -73,7 +74,6 @@ public class ImportFlightXMLService
         decimal? pacotesTotal = arquivoVooXML.LogisticsTransportMovement?.TotalPackageQuantity?.Value;
         string? portoOrigemCode = arquivoVooXML.LogisticsTransportMovement?.DepartureEvent?.OccurrenceDepartureLocation?.ID?.Value;
         string? portoOrigemNome = arquivoVooXML.LogisticsTransportMovement?.DepartureEvent?.OccurrenceDepartureLocation?.Name?.Value;
-        string? portoOrigemTipo = arquivoVooXML.LogisticsTransportMovement?.DepartureEvent?.OccurrenceDepartureLocation?.TypeCode?.Value;
         string? portoDestinoCode = null;
         string? portoDestinoNome = null;
         string? portoDestinoTipo = null;
@@ -135,8 +135,6 @@ public class ImportFlightXMLService
 
         voo.TotalVolumeBruto = volumeTotal == null ? null : Decimal.ToDouble(volumeTotal.Value);
 
-        bool temVolumeUN = arquivoVooXML.LogisticsTransportMovement?.TotalGrossVolumeMeasure?.unitCodeSpecified ?? false;
-
         voo.TotalVolumeBrutoUnidade = hasWeightUnit ?
             arquivoVooXML.LogisticsTransportMovement?.TotalGrossVolumeMeasure?.unitCode.ToString() : null;
 
@@ -161,7 +159,7 @@ public class ImportFlightXMLService
                 if (arrivalEvent.ArrivalDateTimeTypeCode != null)
                 {
                     trecho.DataHoraChegadaEstimada = arrivalEvent.ArrivalDateTimeTypeCode?.Value == "S" ? arrivalEvent.ArrivalOccurrenceDateTime : null;
-                };
+                }
                 if (arrivalEvent.DepartureDateTimeTypeCode != null)
                 {
                     trecho.DataHoraSaidaEstimada = arrivalEvent.DepartureDateTimeTypeCode?.Value == "S" ? arrivalEvent.DepartureOccurrenceDateTime : null;
@@ -243,6 +241,10 @@ public class ImportFlightXMLService
                     _vooRepository.UpdateTrecho(trecho);
             }
         }
+
+        VooEntityValidator validator = new VooEntityValidator();
+        var result = validator.Validate(voo);
+        voo.StatusId = result.IsValid ? 1 : 0;
 
         if (voo.Id == 0)
             _vooRepository.CreateVoo(voo);

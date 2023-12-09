@@ -17,6 +17,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
         Task<House> GetHouseByIdForExclusionUpload(int ciaId, int houseId);
         string[] GetMastersByParam(QueryJunction<House> param);
         IEnumerable<House> GetHouseByMasterList(string[] masters);
+        Task<int?> GetHouseIdByNumberValidate(int ciaId, string numero, DateTime dataLimite);
         Task<bool> SaveChanges();
         void UpdateHouse(House house);
     }

@@ -124,16 +124,12 @@ public class House : BaseEntity
     public DateTime? DataChecagemRFB { get; set; }
     [Column(TypeName = "varchar(max)")]
     public string NCMLista { get; set; }
-    public string[] GetNCMLista()
+    public string[] NcmArray()
     {
         if (string.IsNullOrEmpty(NCMLista))
-        {
             return new string[0];
-        }
-        else
-        {
-            return NCMLista.Split(",");
-        }
+
+        return NCMLista.Split(",");
     }
     [Column(TypeName = "varchar(50)")]
     public string ProtocoloRFB { get; set; }
@@ -183,4 +179,13 @@ public class House : BaseEntity
     public int SituacaoDeletionRFBId { get; set; } // “Received” , “Rejected”, “Processed”
     public DateTime? DataProtocoloDeletionRFB { get; set; }
     public DateTime? DataChecagemDeletionRFB { get; set; }
+    [Column(TypeName = "varchar(120)")]
+    public string NaturezaCargaLista { get; set; }
+    public string[] NaturezaCargaArray()
+    {
+        if (string.IsNullOrEmpty(NaturezaCargaLista))
+            return new string[0];
+
+        return NaturezaCargaLista.Split(",");
+    }
 }

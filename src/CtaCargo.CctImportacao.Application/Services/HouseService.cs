@@ -14,8 +14,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Threading;
-using System.Net.Http.Headers;
 
 namespace CtaCargo.CctImportacao.Application.Services;
 
@@ -24,7 +22,6 @@ public class HouseService : IHouseService
     public const int SqlServerViolationOfUniqueIndex = 2601;
     public const int SqlServerViolationOfUniqueConstraint = 2627;
     private readonly IHouseRepository _houseRepository;
-    private readonly IMasterRepository _masterRepository;
     private readonly IAgenteDeCargaRepository _agenteDeCargaRepository;
     private readonly IPortoIATARepository _portoIATARepository;
     private readonly IMapper _mapper;
@@ -32,7 +29,6 @@ public class HouseService : IHouseService
 
     public HouseService(IMapper mapper,
         IHouseRepository houseRepository,
-        IMasterRepository masterRepository,
         IPortoIATARepository portoIATARepository,
         IAgenteDeCargaRepository agenteDeCargaRepository,
         IMasterHouseAssociacaoRepository masterHouseAssociacaoRepository)
@@ -40,7 +36,6 @@ public class HouseService : IHouseService
         _houseRepository = houseRepository;
         _portoIATARepository = portoIATARepository;
         _mapper = mapper;
-        _masterRepository = masterRepository;
         _agenteDeCargaRepository = agenteDeCargaRepository;
         _masterHouseAssociacaoRepository = masterHouseAssociacaoRepository;
     }
@@ -159,27 +154,33 @@ public class HouseService : IHouseService
 
         return response;
     }
-    public async Task<ApiResponse<HouseResponseDto>> InserirHouse(UserSession userSession, HouseInsertRequestDto input, string inputMode = "Manual")
+    public async Task<ApiResponse<HouseResponseDto>> InserirHouse(UserSession userSession, HouseInsertRequestDto houseRequest, string inputMode = "Manual")
     {
+        var limiteDate = DateTime.Now.AddYears(-1);
 
-        input.DataProcessamento = new DateTime(
-                input.DataProcessamento.Year,
-                input.DataProcessamento.Month,
-                input.DataProcessamento.Day,
-                0, 0, 0, 0);
+        var houseId = await _houseRepository.GetHouseIdByNumberValidate(userSession.CompanyId, houseRequest.Numero, limiteDate);
 
-        var house = _mapper.Map<House>(input);
+        if (houseId > 0)
+            throw new BusinessException($"Já existe um House número {houseRequest.Numero} dentro dos últimos 365 dias!");
+
+        houseRequest.DataProcessamento = new DateTime(
+                houseRequest.DataProcessamento.Year,
+                houseRequest.DataProcessamento.Month,
+                houseRequest.DataProcessamento.Day,
+                0, 0, 0,DateTimeKind.Unspecified);
+
+        var house = _mapper.Map<House>(houseRequest);
 
         house.CreatedDateTimeUtc = DateTime.UtcNow;
 
         HouseEntityValidator validator = new HouseEntityValidator();
 
-        var agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaByIataCode(userSession.CompanyId, input.AgenteDeCargaNumero);
+        var agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaByIataCode(userSession.CompanyId, houseRequest.AgenteDeCargaNumero);
         if (agenteDeCarga == null)
             throw new BusinessException("Agente de carga não cadastrado!");
 
-        var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoOrigem);
-        var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoDestino);
+        var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(houseRequest.AeroportoOrigem);
+        var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(houseRequest.AeroportoDestino);
 
         house.AeroportoOrigemId = null;
         house.AeroportoDestinoId = null;

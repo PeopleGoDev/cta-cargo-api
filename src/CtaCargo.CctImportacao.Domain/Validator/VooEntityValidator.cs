@@ -17,8 +17,6 @@ public class VooEntityValidator: AbstractValidator<Voo>
             .WithMessage("Ao menos um trecho é obrigatórrio")
             .NotEmpty()
             .WithMessage("Ao menos um trecho é obrigatórrio");
-        //RuleFor(x => x.DataHoraSaidaReal)
-        //    .NotNull().WithMessage("Data e hora real de saida do vôo é obrigatória.");
         RuleFor(x => x.DataEmissaoXML)
             .NotNull().WithMessage("Data de emissão do voo nula, altere o voo para a correção.");
     }

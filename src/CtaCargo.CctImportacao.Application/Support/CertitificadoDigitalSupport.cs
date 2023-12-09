@@ -29,108 +29,147 @@ public class CertitificadoDigitalSupport : ICertitificadoDigitalSupport
         _downloadArquivoCertificado = downloadArquivoCertificado;
     }
 
+    public async Task<CctCertificate> GetCertificateForAirCompany(int usuarioId, int airCompanyId)
+    {
+        bool hasUserExpired = false;
+        bool hasCompanyExpired = false;
+
+        var certificate = await GetCertificateUsuarioAsync(usuarioId);
+        if(certificate != null && certificate.NotAfter > DateTime.Now)
+            return new CctCertificate(CctCertificate.CertificateOriginType.User, certificate, false, null);
+
+        if (certificate != null)
+            hasUserExpired = true;
+
+        certificate = await GetCertificateCiaAereaAsync(airCompanyId);
+        if (certificate != null && certificate.NotAfter > DateTime.Now)
+            return new CctCertificate(CctCertificate.CertificateOriginType.Company, certificate, false, null);
+
+        if (certificate != null)
+            hasCompanyExpired = true;
+
+        if (hasUserExpired)
+            return new CctCertificate(CctCertificate.CertificateOriginType.User, null, true, "Certificado do usuário expirado!");
+
+        if(hasCompanyExpired)
+            return new CctCertificate(CctCertificate.CertificateOriginType.User, null, true, "Certificado da companhia aérea expirado!");
+
+        return new CctCertificate(CctCertificate.CertificateOriginType.Unknown, null, true, "Não há certificados disponivel para Usuario/Companhia Aérea");
+    }
+
+    public async Task<CctCertificate> GetCertificateForFreightFowarder(int usuarioId, int freightForwarderId)
+    {
+        bool hasUserExpired = false;
+        bool hasCompanyExpired = false;
+
+        var certificate = await GetCertificateUsuarioAsync(usuarioId);
+        if (certificate != null && certificate.NotAfter > DateTime.Now)
+            return new CctCertificate(CctCertificate.CertificateOriginType.User, certificate, false, null);
+
+        if (certificate != null)
+            hasUserExpired = true;
+
+        certificate = await GetCertificateAgenteDeCargaAsync(freightForwarderId);
+        if (certificate != null && certificate.NotAfter > DateTime.Now)
+            return new CctCertificate(CctCertificate.CertificateOriginType.Company, certificate, false, null);
+
+        if (certificate != null)
+            hasCompanyExpired = true;
+
+        if (hasUserExpired)
+            return new CctCertificate(CctCertificate.CertificateOriginType.User, null, true, "Certificado do usuário expirado!");
+
+        if (hasCompanyExpired)
+            return new CctCertificate(CctCertificate.CertificateOriginType.User, null, true, "Certificado do agente de carga expirado!");
+
+        return null;
+    }
+
     public async Task<X509Certificate2> GetCertificateCiaAereaAsync(int ciaAereaId)
     {
         CiaAerea ciaAerea = await _ciaAereaRepository.GetCiaAereaById(ciaAereaId);
-        if (ciaAerea != null)
-        {
-            if (ciaAerea.CertificadoDigital != null)
-            {
-                string file = ciaAerea.CertificadoDigital.Arquivo;
-                string password = ciaAerea.CertificadoDigital.Senha;
 
-                try
-                {
-                    byte[] arquivoMemoria = _downloadArquivoCertificado.GetCertificateStream(file);
-                    if (arquivoMemoria != null)
-                    {
-                        X509Certificate2 x509 = new X509Certificate2(arquivoMemoria, password);
-                        if(x509.NotAfter < DateTime.Now)
-                        {
-                            throw new Exception($"Certificado Digital Expirado {x509.NotAfter.ToString("dd/MM/yyy hh:mm:ss")}");
-                        }
-                        return x509;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception($"Erro certificado digital: { ex.Message }.");
-                }
-            }
-            throw new Exception("Companhia Aerea não possui certificado digital.");
-        }
-        throw new Exception("Companhia Aerea não selecionada pelo voo.");
+        if (ciaAerea?.CertificadoDigital is null)
+            return null;
+
+        string file = ciaAerea.CertificadoDigital.Arquivo;
+        string password = ciaAerea.CertificadoDigital.Senha;
+
+        byte[] arquivoMemoria = _downloadArquivoCertificado.GetCertificateStream(file);
+
+        if (arquivoMemoria is null)
+            return null;
+
+        X509Certificate2 x509 = new X509Certificate2(arquivoMemoria, password);
+
+        return x509;
     }
 
     public async Task<X509Certificate2> GetCertificateAgenteDeCargaAsync(int agenteDeCargaId)
     {
         AgenteDeCarga agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaById(agenteDeCargaId);
 
-        if (agenteDeCarga == null)
-            throw new Exception($"Agente de carga não encontrado: {agenteDeCargaId.ToString()}");
-
-        if (agenteDeCarga.CertificadoDigital == null)
-            throw new Exception("Agente de carga não possui certificado digital.");
+        if (agenteDeCarga?.CertificadoDigital is null)
+            return null;
 
         string file = agenteDeCarga.CertificadoDigital.Arquivo;
         string password = agenteDeCarga.CertificadoDigital.Senha;
 
-        try
-        {
-            byte[] arquivoMemoria = _downloadArquivoCertificado.GetCertificateStream(file);
+        byte[] arquivoMemoria = _downloadArquivoCertificado.GetCertificateStream(file);
 
-            if (arquivoMemoria == null)
-                throw new Exception($"Não foi possível baixar o arquivo do certificado digitial: {file}.");
+        if (arquivoMemoria == null)
+            return null;
 
-            X509Certificate2 x509 = new X509Certificate2(arquivoMemoria, password);
-            if (DateTime.Now > x509.NotAfter)
-                throw new Exception($"Certificado digital expirado em: {x509.NotAfter.ToString()}.");
-            return x509;
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"Erro certificado digital: {ex.Message}.");
-        }
+        X509Certificate2 x509 = new X509Certificate2(arquivoMemoria, password);
+
+        return x509;
     }
 
     public async Task<X509Certificate2> GetCertificateUsuarioAsync(int usuarioId, bool optionalError = true)
     {
-        try
-        {
-            Usuario usuario = await _usuarioRepository.GetUsuarioById(usuarioId);
+        Usuario usuario = await _usuarioRepository.GetUsuarioById(usuarioId);
 
-            if (usuario == null)
-                throw new BusinessException("Usuario não existente ou desativado.");
+        if (usuario?.CertificadoId is null)
+            return null;
 
-            if (usuario.CertificadoId == null)
-                throw new BusinessException("Usuario não possui certificado digital.");
+        CertificadoDigital certificado = await _certificadoDigitalRepository.GetCertificadoDigitalById((int)usuario.CertificadoId);
 
-            CertificadoDigital certificado = await _certificadoDigitalRepository.GetCertificadoDigitalById((int)usuario.CertificadoId);
-            if (certificado == null)
-                throw new BusinessException("Certificado Digital não encontrado.");
+        if (certificado == null)
+            return null;
 
-            string file = certificado.Arquivo;
-            string password = certificado.Senha;
+        string file = certificado.Arquivo;
+        string password = certificado.Senha;
 
-            byte[] arquivoMemoria = _downloadArquivoCertificado.GetCertificateStream(file);
-            if (arquivoMemoria != null)
-            {
-                X509Certificate2 x509 = new X509Certificate2(arquivoMemoria, password);
-                return x509;
-            }
-            throw new Exception("Certificado Digital Invalido!");
-        }
-        catch (BusinessException ex)
-        {
-            if (optionalError)
-                return null;
-            throw ex;
-        }
-        catch (Exception ex)
-        {
-            if (optionalError)
-                return null;
-            throw ex;
-        }
+        byte[] arquivoMemoria = _downloadArquivoCertificado.GetCertificateStream(file);
+
+        if (arquivoMemoria is null)
+            return null;
+
+        X509Certificate2 x509 = new X509Certificate2(arquivoMemoria, password);
+        return x509;
+
     }
+}
+
+public class CctCertificate
+{
+    public enum CertificateOriginType
+    {
+        Unknown = 0,
+        User =1,
+        Company = 2,
+    }
+
+    public CctCertificate(CertificateOriginType origin, X509Certificate2 certificate, bool hasError, string error)
+    {
+        Origin = origin;
+        Certificate = certificate;
+        HasError = hasError;
+        Error = error;
+    }
+
+    public CertificateOriginType Origin { get; }
+    public X509Certificate2 Certificate { get;}
+    public bool HasError { get;}
+    public string Error { get;}
 }

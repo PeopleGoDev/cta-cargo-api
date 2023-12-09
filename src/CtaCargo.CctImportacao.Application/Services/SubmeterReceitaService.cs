@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Azure;
 using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
@@ -63,6 +62,12 @@ public class SubmeterReceitaService : ISubmeterReceitaService
     {
         var situacaoRFBvoo = await _vooRepository.GetVooRFBStatus(input.FlightId.Value);
 
+        if (situacaoRFBvoo == null)
+            throw new BusinessException("Voo não encontrado!");
+
+        if (situacaoRFBvoo.GhostFlight)
+            throw new BusinessException("Upload do voo não permitido. Voo fictício!");
+
         switch (situacaoRFBvoo.SituacaoRFB)
         {
             case Master.RFStatusEnvioType.Received:
@@ -86,7 +91,28 @@ public class SubmeterReceitaService : ISubmeterReceitaService
                 throw new BusinessException("Erro na execução da tarefa: Status do vôo não identicado!");
         }
     }
+    public async Task<ApiResponse<string>> SubmitFlightSchedule(UserSession userSession, FlightUploadRequest input)
+    {
+        var situacaoRFBvoo = await _vooRepository.GetVooRFBStatus(input.FlightId.Value);
 
+        switch (situacaoRFBvoo.ScheduleSituationRFB)
+        {
+            case Master.RFStatusEnvioType.Received:
+                return await CheckScheduleFlightProtocol(userSession, input);
+
+            case Master.RFStatusEnvioType.Processed:
+                if (situacaoRFBvoo.Reenviar)
+                    return await SubmitScheduleFlightInternal(userSession, input, true);
+
+                throw new BusinessException("Voo já foi submetido!");
+            case Master.RFStatusEnvioType.NoSubmitted:
+            case Master.RFStatusEnvioType.Rejected:
+                return await SubmitScheduleFlightInternal(userSession, input);
+
+            default:
+                throw new BusinessException("Erro na execução da tarefa: Status do vôo não identicado!");
+        }
+    }
     public async Task<ApiResponse<string>> SubmeterVooTrecho(UserSession userSession, FlightUploadRequest input)
     {
         if (input.FlightId == null)
@@ -143,12 +169,10 @@ public class SubmeterReceitaService : ISubmeterReceitaService
             throw new BusinessException("Operação não permitida!");
         }
     }
-
     public async Task<ApiResponse<IEnumerable<FileUploadResponse>>> SubmeterVooMaster(UserSession userSession, FlightUploadRequest input)
     {
         return await EnviarMastersAutomatico(userSession, input);
     }
-
     public async Task<ApiResponse<IEnumerable<FileUploadResponse>>> SubmeterMasterSelecionado(UserSession userSession, FlightUploadRequest input)
     {
 
@@ -305,28 +329,9 @@ public class SubmeterReceitaService : ISubmeterReceitaService
     }
     public async Task<ApiResponse<string>> SubmeterHousesAgentesDeCarga(SubmeterRFBHouseRequest input)
     {
-        try
-        {
-            return await EnviarHousesAutomatico(input.DataProcessamento, input.AgenteDeCargaId);
-        }
-        catch(Exception ex)
-        {
-            return new ApiResponse<string>()
-            {
-                Sucesso = false,
-                Dados = null,
-                Notificacoes = new List<Notificacao>()
-                {
-                    new Notificacao()
-                    {
-                        Codigo = "9999",
-                        Mensagem = $"Erro na execução da tarefa: { ex.Message }!"
-                    }
-                }
-            };
-        }
+        return await EnviarHousesAutomatico(input.DataProcessamento, input.AgenteDeCargaId);
     }
-    public async Task<ApiResponse<string>> SubmeterAssociacaoHousesMaster(UserSession userSession, 
+    public async Task<ApiResponse<string>> SubmeterAssociacaoHousesMaster(UserSession userSession,
         SubmeterRFBMasterHouseRequest input)
     {
         var masterNumbers = input.Masters.Select(x => x.MasterNumber).ToArray();
@@ -336,41 +341,26 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         param.Add(x => x.AgenteDeCargaId == input.FreightFowarderId);
         param.Add(x => x.DataExclusao == null);
 
-        try
+        var houses = _houseRepository.GetHouseForUploading(param);
+
+        if (houses == null)
+            throw new BusinessException("Não há houses a serem enviados !");
+
+        if (houses.Count == 0)
+            throw new BusinessException("Nenhum house selecionado !");
+
+        X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateAgenteDeCargaAsync(input.FreightFowarderId);
+
+        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado, "AGECARGA");
+
+        await SubmeterAssociacaoHouseMasterList(userSession, input.Masters, houses, certificado, token);
+
+        return new ApiResponse<string>()
         {
-            var houses = _houseRepository.GetHouseForUploading(param);
-
-            if (houses == null)
-                throw new Exception("Não há houses a serem enviados !");
-
-            if (houses.Count() == 0)
-                throw new Exception("Nenhum house selecionado !");
-
-            X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateAgenteDeCargaAsync(input.FreightFowarderId);
-
-            TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado, "AGECARGA");
-
-            await SubmeterAssociacaoHouseMasterList(userSession, input.Masters, houses, certificado, token);
-
-            return new ApiResponse<string>()
-            {
-                Sucesso = true,
-                Dados = "Dados submetidos com sucesso!",
-                Notificacoes = null
-            };
-        }
-        catch (Exception ex)
-        {
-            var notificacoes = new List<Notificacao>();
-            notificacoes.Add(new Notificacao { Codigo = "9999", Mensagem = ex.Message });
-
-            return new ApiResponse<string>()
-            {
-                Sucesso = false,
-                Dados = $"Erro ao submeter arquivo: {ex.Message}",
-                Notificacoes = notificacoes
-            };
-        }
+            Sucesso = true,
+            Dados = "Dados submetidos com sucesso!",
+            Notificacoes = null
+        };
     }
     public async Task<ApiResponse<string>> SubmeterAssociation(UserSession userSession, int associationId)
     {
@@ -470,7 +460,42 @@ public class SubmeterReceitaService : ISubmeterReceitaService
     {
         Voo voo = await _vooRepository.GetVooWithULDById(userSession.CompanyId, input.FlightId.Value);
 
-        if (voo == null)
+        if (voo is null)
+            throw new BusinessException("Voo não encontrado !");
+
+        VooEntityValidator validator = new VooEntityValidator();
+
+        var resultValidator = validator.Validate(voo);
+
+        if (!resultValidator.IsValid)
+            return GeraErrorValidator(resultValidator);
+
+        if (reenviar || voo.ScheduleSituationRFB == RFStatusEnvioType.Processed)
+            voo.DataEmissaoXML = voo.DataEmissaoXML.Value.AddMinutes(1);
+
+        voo.Reenviar = false;
+
+        int ciaId = voo.CiaAereaId;
+
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
+
+        if (certificate.HasError)
+            throw new BusinessException(certificate.Error);
+
+        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
+
+        string xml = _motorIata.GenFlightManifest(voo);
+
+        var response = _uploadReceitaFederal.SubmitFlight(voo.CompanhiaAereaInfo.CNPJ, xml, token, certificate.Certificate);
+
+        return await ProcessarRetornoEnvioArquivoVoo(response, voo);
+        
+    }
+    private async Task<ApiResponse<string>> SubmitScheduleFlightInternal(UserSession userSession, FlightUploadRequest input, bool reenviar = false)
+    {
+        Voo voo = await _vooRepository.GetVooWithULDById(userSession.CompanyId, input.FlightId.Value);
+
+        if (voo is null)
             throw new BusinessException("Voo não encontrado !");
 
         VooEntityValidator validator = new VooEntityValidator();
@@ -488,22 +513,19 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         int ciaId = voo.CiaAereaId;
 
-        X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateCiaAereaAsync(ciaId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
 
-        if (certificado == null)
-            certificado = await _certificadoDigitalSupport.GetCertificateUsuarioAsync(userSession.UserId);
+        if (certificate.HasError)
+            throw new BusinessException(certificate.Error);
 
-        if (certificado == null)
-            throw new Exception("Certificado digital da companhia aérea/usuário não cadastrado !");
+        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado);
+        string xml = _motorIata.GenFlightManifest(voo,null,null,true);
 
-        string xml = _motorIata.GenFlightManifest(voo);
+        var response = _uploadReceitaFederal.SubmitFlight(voo.CompanhiaAereaInfo.CNPJ, xml, token, certificate.Certificate);
 
-        var response = _uploadReceitaFederal.SubmitFlight(voo.CompanhiaAereaInfo.CNPJ, xml, token, certificado);
+        return await ProcessScheduleFlight(response, voo);
 
-        return await ProcessarRetornoEnvioArquivoVoo(response, voo);
-        
     }
     private async Task<ApiResponse<string>> VerificarVooEntregue(UserSession userSession, FlightUploadRequest input)
     {
@@ -511,21 +533,17 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         int ciaId = voo.CiaAereaId;
 
-        X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateCiaAereaAsync(ciaId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
 
-        if (certificado == null)
-            certificado = await _certificadoDigitalSupport.GetCertificateUsuarioAsync(userSession.UserId);
+        if (certificate.HasError)
+            throw new BusinessException(certificate.Error);
 
-        if (certificado == null)
-            throw new Exception("Certificado digital da companhia aérea/usuário não cadastrado !");
-
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado);
+        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
         var res = _uploadReceitaFederal.CheckFileProtocol(voo.ProtocoloRFB, token);
 
         if (await ProcessaRetornoChecagemArquivoVoo(res, voo))
         {
-
             return new ApiResponse<string>()
             {
                 Sucesso = true,
@@ -533,6 +551,39 @@ public class SubmeterReceitaService : ISubmeterReceitaService
                 Notificacoes = null
             };
         }
+
+        var notifications = new List<Notificacao>();
+        notifications.Add(new Notificacao { Codigo = "99XE", Mensagem = "Não foi possível verificar voo !" });
+
+        return new ApiResponse<string>()
+        {
+            Sucesso = false,
+            Dados = "Não foi possível verificar voo !",
+            Notificacoes = notifications
+        };
+    }
+    private async Task<ApiResponse<string>> CheckScheduleFlightProtocol(UserSession userSession, FlightUploadRequest input)
+    {
+        var voo = await _vooRepository.GetVooById(input.FlightId.Value);
+
+        int ciaId = voo.CiaAereaId;
+
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
+
+        if (certificate.HasError)
+            throw new BusinessException(certificate.Error);
+
+        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
+
+        var res = _uploadReceitaFederal.CheckFileProtocol(voo.ProtocoloScheduleRFB, token);
+
+        if (await ProcessCheckScheduleFlight(res, voo))
+            return new ApiResponse<string>()
+            {
+                Sucesso = true,
+                Dados = "Enviado com sucesso !",
+                Notificacoes = null
+            };
 
         var notifications = new List<Notificacao>();
         notifications.Add(new Notificacao { Codigo = "99XE", Mensagem = "Não foi possível verificar voo !" });
@@ -754,7 +805,10 @@ public class SubmeterReceitaService : ISubmeterReceitaService
     #region Upload House
     private async Task<ApiResponse<string>> EnviarHousesAutomatico(DateTime dataProcessamento, int agenteDeCargaId)
     {
-        var processDate = new DateTime(dataProcessamento.Year, dataProcessamento.Month, dataProcessamento.Day, 0, 0, 0, 0);
+        var processDate = 
+            new DateTime(dataProcessamento.Year, 
+            dataProcessamento.Month, 
+            dataProcessamento.Day, 0, 0, 0, 0, DateTimeKind.Unspecified);
         QueryJunction<House> param = new QueryJunction<House>();
         param.Add(x => x.DataProcessamento == processDate);
         param.Add(x => x.AgenteDeCargaId == agenteDeCargaId);
@@ -763,15 +817,15 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         var houses = _houseRepository.GetHouseForUploading(param);
 
         if (houses == null)
-            throw new Exception("Não foi possivel selecionar Houses para o upload!");
+            throw new BusinessException("Não foi possivel selecionar Houses para o upload!");
 
-        if (houses.Count() == 0)
-            throw new Exception("Nenhum house selecionado !");
+        if (houses.Count == 0)
+            throw new BusinessException("Nenhum house selecionado !");
 
         X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateAgenteDeCargaAsync(agenteDeCargaId);
 
         if (certificado == null)
-            throw new Exception("Certificado digital do agente de carga não cadastrado !");
+            throw new BusinessException("Certificado digital do agente de carga não cadastrado !");
 
         TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado, "AGECARGA");
 
@@ -1393,33 +1447,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         return apiResponseError;
     }
-    private async Task<bool> ProcessaRetornoChecagemArquivoVoo(ProtocoloReceitaCheckFile response, Voo voo)
-    {
-        switch (response.status)
-        {
-            case "Rejected":
-                voo.SituacaoRFBId = RFStatusEnvioType.Rejected;
-                if (response.errorList.Length > 0)
-                {
-                    voo.CodigoErroRFB = response.errorList[0].code;
-                    voo.DescricaoErroRFB = response.errorList[0].description;
-                    voo.DataChecagemRFB = response.dateTime;
-                }
-                _vooRepository.UpdateVoo(voo);
-                await _vooRepository.SaveChanges();
-                return false;
-            case "Processed":
-                voo.SituacaoRFBId = RFStatusEnvioType.Processed;
-                voo.DataChecagemRFB = response.dateTime;
-                _vooRepository.UpdateVoo(voo);
-                await _vooRepository.SaveChanges();
-                return true;
-            case "Received":
-                return false;
-            default:
-                return false;
-        }
-    }
+
     private async Task<FileUploadResponse> ProcessaRetornoChecagemArquivoMaster(ProtocoloReceitaCheckFile response, Master master)
     {
         FileUploadResponse resp = new FileUploadResponse
@@ -1464,6 +1492,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         return resp;
     }
 
+    #region Verificação Arquivo Voo
     private async Task<ApiResponse<string>> ProcessarRetornoEnvioArquivoVoo(ReceitaRetornoProtocol response, Voo voo)
     {
         switch (response.StatusCode)
@@ -1519,6 +1548,114 @@ public class SubmeterReceitaService : ISubmeterReceitaService
                 };
         }
     }
+    private async Task<ApiResponse<string>> ProcessScheduleFlight(ReceitaRetornoProtocol response, Voo voo)
+    {
+        switch (response.StatusCode)
+        {
+            case ("Received"):
+                voo.ScheduleSituationRFB = RFStatusEnvioType.Received;
+                voo.ScheduleErrorCodeRFB = null;
+                voo.ScheduleErrorDescriptionRFB = null;
+                voo.ProtocoloScheduleRFB = response.Reason;
+                voo.ScheduleProtocolTimeRFB = response.IssueDateTime;
+                _vooRepository.UpdateVoo(voo);
+                await _vooRepository.SaveChanges();
+                return new ApiResponse<string>()
+                {
+                    Sucesso = true,
+                    Dados = "Dados Recebidos pela Receita Federal com Sucesso! Submeta o voo novamente para verificar o status de processamento",
+                    Notificacoes = null
+                };
+            case "Rejected":
+                voo.ScheduleSituationRFB = RFStatusEnvioType.Rejected;
+                voo.ScheduleErrorDescriptionRFB = response.Reason;
+                voo.ScheduleProtocolTimeRFB = response.IssueDateTime;
+                _vooRepository.UpdateVoo(voo);
+                await _vooRepository.SaveChanges();
+                return new ApiResponse<string>()
+                {
+                    Sucesso = false,
+                    Dados = $"Erro ao submeter voo: ${response.Reason}",
+                    Notificacoes = null
+                };
+            case "Processed":
+                voo.ScheduleSituationRFB = RFStatusEnvioType.Processed;
+                voo.ScheduleErrorCodeRFB = null;
+                voo.ScheduleErrorDescriptionRFB = null;
+                voo.ScheduleProtocolTimeRFB = response.IssueDateTime;
+                _vooRepository.UpdateVoo(voo);
+                await _vooRepository.SaveChanges();
+                return new ApiResponse<string>()
+                {
+                    Sucesso = true,
+                    Dados = "Voo processamento pela Receita Federal com sucesso!",
+                    Notificacoes = null
+                };
+            default:
+                return new ApiResponse<string>()
+                {
+                    Sucesso = false,
+                    Dados = $"Não foi possível identifcar o status da requisição: ${response?.Reason}",
+                    Notificacoes = null
+                };
+        }
+    }
+    private async Task<bool> ProcessaRetornoChecagemArquivoVoo(ProtocoloReceitaCheckFile response, Voo voo)
+    {
+        switch (response.status)
+        {
+            case "Rejected":
+                voo.SituacaoRFBId = RFStatusEnvioType.Rejected;
+                if (response.errorList.Length > 0)
+                {
+                    voo.CodigoErroRFB = response.errorList[0].code;
+                    voo.DescricaoErroRFB = response.errorList[0].description;
+                    voo.DataChecagemRFB = response.dateTime;
+                }
+                _vooRepository.UpdateVoo(voo);
+                await _vooRepository.SaveChanges();
+                return false;
+            case "Processed":
+                voo.SituacaoRFBId = RFStatusEnvioType.Processed;
+                voo.DataChecagemRFB = response.dateTime;
+                _vooRepository.UpdateVoo(voo);
+                await _vooRepository.SaveChanges();
+                return true;
+            case "Received":
+                return false;
+            default:
+                return false;
+        }
+    }
+    private async Task<bool> ProcessCheckScheduleFlight(ProtocoloReceitaCheckFile response, Voo voo)
+    {
+        switch (response.status)
+        {
+            case "Rejected":
+                voo.ScheduleSituationRFB = RFStatusEnvioType.Rejected;
+                if (response.errorList.Length > 0)
+                {
+                    voo.ScheduleErrorCodeRFB = response.errorList[0].code;
+                    voo.ScheduleErrorDescriptionRFB = response.errorList[0].description;
+                    voo.ScheduleCheckTimeRFB = response.dateTime;
+                }
+                _vooRepository.UpdateVoo(voo);
+                await _vooRepository.SaveChanges();
+                return false;
+            case "Processed":
+                voo.ScheduleSituationRFB = RFStatusEnvioType.Processed;
+                voo.ScheduleCheckTimeRFB = response.dateTime;
+                _vooRepository.UpdateVoo(voo);
+                await _vooRepository.SaveChanges();
+                return true;
+            case "Received":
+                return false;
+            default:
+                return false;
+        }
+    }
+    #endregion
+
     private async Task<FileUploadResponse> ProcessarRetornoEnvioArquivoMaster(ReceitaRetornoProtocol response, Master master)
     {
         FileUploadResponse resp = new FileUploadResponse

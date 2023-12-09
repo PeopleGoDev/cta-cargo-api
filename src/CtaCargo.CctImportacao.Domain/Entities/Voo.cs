@@ -5,6 +5,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 using static CtaCargo.CctImportacao.Domain.Entities.Master;
 
 namespace CtaCargo.CctImportacao.Domain.Entities;
+
+public enum VooType : int
+{
+    Inbound = 0,
+    Outbound = 1
+}
+
 public class Voo : BaseEntity
 {
     [Key]
@@ -77,4 +84,19 @@ public class Voo : BaseEntity
     public string CountryOrigin { get; set; }
     [Column(TypeName = "varchar(35)")]
     public string PrefixoAeronave { get; set; }
+
+    public RFStatusEnvioType ScheduleSituationRFB { get; set; }
+    [Column(TypeName = "varchar(50)")]
+    public string ProtocoloScheduleRFB { get; set; }
+    [Column(TypeName = "varchar(40)")]
+    public string ScheduleErrorCodeRFB { get; set; }
+    [Column(TypeName = "varchar(250)")]
+    public string ScheduleErrorDescriptionRFB { get; set; }
+
+    public VooType FlightType { get; set; } = VooType.Inbound;
+    [Column(TypeName = "datetime")]
+    public DateTime? ScheduleProtocolTimeRFB { get; set; }
+    [Column(TypeName = "datetime")]
+    public DateTime? ScheduleCheckTimeRFB { get; set; }
+    public bool GhostFlight { get; set; }
 }

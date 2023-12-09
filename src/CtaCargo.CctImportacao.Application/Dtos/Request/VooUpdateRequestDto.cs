@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CtaCargo.CctImportacao.Domain.Entities;
+using System;
 using System.Collections.Generic;
 
 namespace CtaCargo.CctImportacao.Application.Dtos.Request;

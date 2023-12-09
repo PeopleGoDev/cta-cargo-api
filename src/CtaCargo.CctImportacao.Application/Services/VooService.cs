@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using CtaCargo.CctImportacao.Application.Dtos;
+﻿using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
@@ -8,7 +7,6 @@ using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Exceptions;
 using CtaCargo.CctImportacao.Infrastructure.Data;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
-using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,16 +23,14 @@ public class VooService : IVooService
     private readonly IVooRepository _vooRepository;
     private readonly ICiaAereaRepository _ciaAereaRepository;
     private readonly IPortoIATARepository _portoIATARepository;
-    private readonly IUldMasterRepository _uldMasterRepository;
-    private readonly IMapper _mapper;
 
-    public VooService(IVooRepository vooRepository, IMapper mapper, ICiaAereaRepository ciaAereaRepository, IPortoIATARepository portoIATARepository, IUldMasterRepository uldMasterRepository)
+    public VooService(IVooRepository vooRepository, 
+        ICiaAereaRepository ciaAereaRepository, 
+        IPortoIATARepository portoIATARepository)
     {
         _ciaAereaRepository = ciaAereaRepository;
         _vooRepository = vooRepository;
         _portoIATARepository = portoIATARepository;
-        _mapper = mapper;
-        _uldMasterRepository = uldMasterRepository;
     }
     public async Task<ApiResponse<VooResponseDto>> VooPorId(int vooId, UserSession userSessionInfo)
     {
@@ -74,37 +70,12 @@ public class VooService : IVooService
         if (voo == null)
             throw new BusinessException("Voo não encontrado!");
 
-        var response = new VooUploadResponse
-        {
-            AeroportoDestinoCodigo = voo.AeroportoDestinoCodigo,
-            AeroportoOrigemCodigo = voo.AeroportoOrigemCodigo,
-            DataCriacao = voo.CreatedDateTimeUtc,
-            DataHoraChegadaEstimada = voo.DataHoraChegadaEstimada,
-            DataHoraSaidaReal = voo.DataHoraSaidaReal,
-            DataProtocoloRFB = voo.DataProtocoloRFB,
-            DataVoo = voo.DataVoo,
-            ErroCodigoRFB = voo.CodigoErroRFB,
-            ErroDescricaoRFB = voo.DescricaoErroRFB,
-            Numero = voo.Numero,
-            ProtocoloRFB = voo.ProtocoloRFB,
-            Reenviar = voo.Reenviar,
-            SituacaoRFBId = (int)voo.SituacaoRFBId,
-            StatusId = (int)voo.StatusId,
-            UsuarioCriacao = voo.UsuarioCriacaoInfo?.Nome,
-            VooId = voo.Id,
-            Trechos = voo.Trechos.Select(x => new VooTrechoResponse
-            {
-                Id = x.Id,
-                AeroportoDestinoCodigo = x.AeroportoDestinoCodigo,
-                DataHoraChegadaEstimada = x.DataHoraChegadaEstimada,
-                DataHoraSaidaEstimada = x.DataHoraSaidaEstimada,
-                ULDs = new List<UldMasterNumeroQuery>()
-            }).ToList()
-        };
+        VooUploadResponse response = voo;
 
         foreach (var trechoResp in response.Trechos)
         {
-            var trecho = voo.Trechos.Where(x => x.Id == trechoResp.Id).First();
+            var trecho = voo.Trechos.First(x => x.Id == trechoResp.Id);
+            trechoResp.ULDs = new List<UldMasterNumeroQuery>();
             
             var result = trecho.ULDs.Where(x => x.DataExclusao == null)
                 .Select(c => new UldMasterNumeroQueryChildren
@@ -149,7 +120,7 @@ public class VooService : IVooService
     public async Task<ApiResponse<IEnumerable<VooResponseDto>>> ListarVoos(VooListarInputDto input, UserSession userSessionInfo)
     {
         if (input.DataInicial == null || input.DataFinal == null)
-            throw new Exception("Datas parametros não referenciadas");
+            throw new BusinessException("Data inicial e Data final são requeridas");
 
         QueryJunction<Voo> param = new QueryJunction<Voo>();
 
@@ -157,11 +128,11 @@ public class VooService : IVooService
         DateTime dataInicial = new DateTime(
             input.DataInicial.Value.Year,
             input.DataInicial.Value.Month,
-            input.DataInicial.Value.Day, 0, 0, 0, 0);
+            input.DataInicial.Value.Day, 0, 0, 0, DateTimeKind.Unspecified);
         DateTime dataFinal = new DateTime(
             input.DataFinal.Value.Year,
             input.DataFinal.Value.Month,
-            input.DataFinal.Value.Day, 23, 59, 59, 997);
+            input.DataFinal.Value.Day, 23, 59, 59, 997, DateTimeKind.Unspecified);
         param.Add(x => x.DataExclusao == null);
         param.Add(x => x.DataVoo >= dataInicial && x.DataVoo <= dataFinal);
 
@@ -171,10 +142,9 @@ public class VooService : IVooService
         var lista = await _vooRepository.GetAllVoos(param);
 
         var response = new List<VooResponseDto>();
+        
         foreach (var voo in lista)
-        {
             response.Add(voo); // Implicit convertion
-        }
 
         return new ApiResponse<IEnumerable<VooResponseDto>>
         {
@@ -195,11 +165,11 @@ public class VooService : IVooService
             DateTime dataInicial = new DateTime(
                 input.DataInicial.Value.Year,
                 input.DataInicial.Value.Month,
-                input.DataInicial.Value.Day, 0, 0, 0, 0);
+                input.DataInicial.Value.Day, 0, 0, 0, 0, DateTimeKind.Unspecified);
             DateTime dataFinal = new DateTime(
                 input.DataFinal.Value.Year,
                 input.DataFinal.Value.Month,
-                input.DataFinal.Value.Day, 23, 59, 59, 997);
+                input.DataFinal.Value.Day, 23, 59, 59, 997, DateTimeKind.Unspecified);
 
             param.Add(x => x.DataVoo >= dataInicial && x.DataVoo <= dataFinal);
         }
@@ -209,7 +179,7 @@ public class VooService : IVooService
             DateTime dataVoo = new DateTime(input.DataVoo.Value.Year,
                 input.DataVoo.Value.Month,
                 input.DataVoo.Value.Day,
-                0, 0, 0, 0);
+                0, 0, 0, 0, DateTimeKind.Unspecified);
             param.Add(x => x.DataVoo == dataVoo);
         }
 
@@ -221,8 +191,10 @@ public class VooService : IVooService
                        CertificadoValidade = c.CertificadoValidade,
                        CiaAereaNome = c.CiaAereaNome,
                        Numero = c.Numero,
+                       FlightType = c.FlightType,
                        SituacaoVoo = (Dtos.Enum.RecordStatus)c.SituacaoVoo,
                        VooId = c.VooId,
+                       GhostFlight = c.GhostFlight,
                        Trechos = (from t in c.Trechos select new VooTrechoResponse { Id = t.id, AeroportoDestinoCodigo = t.portoDestino })
                    });
 
@@ -246,14 +218,16 @@ public class VooService : IVooService
         if (input.Trechos == null || input.Trechos.Count == 0)
             throw new BusinessException($"É necessário ao menos um aeroporto de chegada!");
 
-        var codigoOrigem = _portoIATARepository.GetPortoIATAByCode(userSession.CompanyId, input.AeroportoOrigemCodigo);
-        var codigoDestino = _portoIATARepository.GetPortoIATAByCode(userSession.CompanyId, input.Trechos.LastOrDefault().AeroportoDestinoCodigo);
+        var codigoOrigem = _portoIATARepository
+            .GetPortoIATAByCode(userSession.CompanyId, input.AeroportoOrigemCodigo);
+        var codigoDestino = _portoIATARepository
+            .GetPortoIATAByCode(userSession.CompanyId, input.Trechos[input.Trechos.Count - 1].AeroportoDestinoCodigo);
 
         input.DataVoo = new DateTime(
             input.DataVoo.Year,
             input.DataVoo.Month,
             input.DataVoo.Day,
-            0, 0, 0, 0);
+            0, 0, 0, 0, DateTimeKind.Unspecified);
 
         var voo = new Voo();
 
@@ -264,6 +238,7 @@ public class VooService : IVooService
         voo.CreatedDateTimeUtc = DateTime.UtcNow;
         voo.CiaAereaId = cia.Id;
         voo.Numero = input.Numero;
+        voo.FlightType = input.FlightType;
         voo.CiaAereaId = cia.Id;
         voo.DataVoo = input.DataVoo;
         voo.DataHoraSaidaReal = input.DataHoraSaidaReal;
@@ -274,7 +249,8 @@ public class VooService : IVooService
         voo.PortoIataDestinoId = codigoDestino != null ? codigoDestino.Id : null;
         voo.DataEmissaoXML = DateTime.UtcNow;
         voo.AeroportoOrigemCodigo = input.AeroportoOrigemCodigo;
-        voo.AeroportoDestinoCodigo = input.Trechos.LastOrDefault().AeroportoDestinoCodigo;
+        voo.AeroportoDestinoCodigo = input.Trechos[input.Trechos.Count - 1].AeroportoDestinoCodigo;
+        voo.GhostFlight = cia.OnlyGhostFlight;
 
         VooEntityValidator validator = new VooEntityValidator();
 
@@ -311,7 +287,7 @@ public class VooService : IVooService
                     Notificacoes = null
                 };
         }
-        throw new Exception("Não Foi possível adicionar o voo: Erro Desconhecido!");
+        throw new BusinessException("Não Foi possível adicionar o voo: Erro Desconhecido!");
     }
     public async Task<ApiResponse<VooResponseDto>> AtualizarVoo(VooUpdateRequestDto input, UserSession userSessionInfo)
     {
@@ -323,25 +299,36 @@ public class VooService : IVooService
         if (input.Trechos == null || input.Trechos.Count == 0)
             throw new BusinessException($"É necessário ao menos um aeroporto de chegada");
 
-        var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.Trechos.LastOrDefault().AeroportoDestinoCodigo);
+        var codigoDestinoId = await _portoIATARepository
+            .GetPortoIATAIdByCodigo(input.Trechos[input.Trechos.Count-1].AeroportoDestinoCodigo);
 
         voo.ModifiedDateTimeUtc = DateTime.UtcNow;
         voo.ModificadoPeloId = userSessionInfo.UserId;
         if(input.Numero != null)
             voo.Numero = input.Numero;
+
         if (input.DataVoo != null)
             voo.DataVoo = input.DataVoo.Value;
+
+        voo.AeroportoOrigemCodigo = null;
+        voo.PortoIataOrigemId = null;
+        voo.CountryOrigin = null;
+
         if (input.AeroportoOrigemCodigo != null)
         {
             var codigoOrigem = _portoIATARepository.GetPortoIATAByCode(userSessionInfo.CompanyId, input.AeroportoOrigemCodigo);
             voo.AeroportoOrigemCodigo = input.AeroportoOrigemCodigo;
-            voo.PortoIataOrigemId = codigoOrigem.Id;
-            voo.CountryOrigin = codigoOrigem.SiglaPais;
+            voo.PortoIataOrigemId = codigoOrigem?.Id;
+            voo.CountryOrigin = codigoOrigem?.SiglaPais;
         }
+
         if (input.DataHoraSaidaReal != null)
             voo.DataHoraSaidaReal = input.DataHoraSaidaReal;
+
         if (input.DataHoraSaidaPrevista != null)
             voo.DataHoraSaidaEstimada = input.DataHoraSaidaPrevista;
+
+        voo.AeroportoDestinoCodigo = input.Trechos[input.Trechos.Count - 1].AeroportoDestinoCodigo;
 
         voo.PortoIataDestinoId = codigoDestinoId > 0 ? codigoDestinoId  : null;
         
@@ -351,12 +338,8 @@ public class VooService : IVooService
         VooEntityValidator validator = new VooEntityValidator();
 
         foreach (var trecho in voo.Trechos)
-        {
             if (!input.Trechos.Any(x => x.Id == trecho.Id))
-            {
                 _vooRepository.RemoveTrecho(trecho);
-            };
-        }
 
         foreach (var item in input.Trechos)
         {
@@ -510,7 +493,6 @@ public class VooService : IVooService
         newFlight.Trechos = new List<VooTrecho>();
 
         bool found = false;
-        VooTrecho portOfOrigin = null;
         VooTrecho lastSegment = null;
 
         foreach (var segment in voo.Trechos)
@@ -566,7 +548,6 @@ public class VooService : IVooService
                     throw new BusinessException("Trecho selecionado não possui Porto IATA ou Porto IATA não é do Brasil");
 
                 found = true;
-                portOfOrigin = segment;
 
                 newFlight.AeroportoOrigemCodigo = segment.AeroportoDestinoCodigo;
                 newFlight.CiaAereaId = voo.CiaAereaId;
@@ -577,7 +558,7 @@ public class VooService : IVooService
                     segment.DataHoraSaidaEstimada.Value.Year,
                     segment.DataHoraSaidaEstimada.Value.Month,
                     segment.DataHoraSaidaEstimada.Value.Day,
-                    0,0,0);
+                    0,0,0, DateTimeKind.Unspecified);
                 newFlight.EmpresaId = voo.EmpresaId;
                 newFlight.Environment = userSession.Environment;
                 newFlight.Numero = input.FlightNumber;
@@ -613,62 +594,7 @@ public class VooService : IVooService
 
         throw new BusinessException("Não foi possivel gerar o voo");
     }
-    private ApiResponse<VooResponseDto> ErrorHandling(Exception exception)
-    {
-        var sqlEx = exception?.InnerException as SqlException;
-        if (sqlEx != null)
-        {
-            //This is a DbUpdateException on a SQL database
-
-            if (sqlEx.Number == SqlServerViolationOfUniqueIndex)
-            {
-                //We have an error we can process
-                return new ApiResponse<VooResponseDto>
-                {
-                    Dados = null,
-                    Sucesso = false,
-                    Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = $"SQL{sqlEx.Number.ToString()}",
-                                Mensagem = $"Já existe um voo cadastrado com a mesma data !"
-                            }
-                    }
-                };
-            }
-            else
-            {
-                return new ApiResponse<VooResponseDto>
-                {
-                    Dados = null,
-                    Sucesso = false,
-                    Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = $"SQL{sqlEx.Number.ToString()}",
-                                Mensagem = $"{sqlEx.Message}"
-                            }
-                    }
-                };
-            }
-        }
-        else
-        {
-            return new ApiResponse<VooResponseDto>
-            {
-                Dados = null,
-                Sucesso = false,
-                Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = $"9999",
-                                Mensagem = $"{exception.Message}"
-                            }
-                    }
-            };
-        }
-
-    }
+    #region Private Methods
     private bool ValidarNumeroVoo(string voo)
     {
         var regex = @"^([A-Z0-9]{2}[0-9]{4})$";
@@ -676,4 +602,5 @@ public class VooService : IVooService
 
         return match.Success;
     }
+    #endregion
 }

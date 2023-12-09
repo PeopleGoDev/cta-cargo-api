@@ -4,6 +4,7 @@ using CtaCargo.CctImportacao.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231126000658_Alteracoes055")]
+    partial class Alteracoes055
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -215,9 +217,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<string>("Numero")
                         .IsRequired()
                         .HasColumnType("varchar(10)");
-
-                    b.Property<bool>("OnlyGhostFlight")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Pais")
                         .IsRequired()
@@ -1925,9 +1924,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
                     b.Property<int>("FlightType")
                         .HasColumnType("int");
-
-                    b.Property<bool>("GhostFlight")
-                        .HasColumnType("bit");
 
                     b.Property<string>("InputMode")
                         .HasColumnType("varchar(30)");
