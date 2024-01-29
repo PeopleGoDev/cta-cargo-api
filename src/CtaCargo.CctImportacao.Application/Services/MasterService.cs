@@ -3,9 +3,9 @@ using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
+using CtaCargo.CctImportacao.Application.Validator;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Exceptions;
-using CtaCargo.CctImportacao.Application.Validator;
 using CtaCargo.CctImportacao.Infrastructure.Data;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.Data.SqlClient;
@@ -304,9 +304,7 @@ public class MasterService : IMasterService
         Voo voo;
 
         if (input.VooId > 0)
-
             voo = await _vooRepository.GetVooByIdSimple(userSession.CompanyId, input.VooId);
-
         else
         {
             DateTime dataVoo = new DateTime(input.DataVoo.Year,

@@ -482,6 +482,9 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
 
+        if(input.DepartureTime is not null)
+            voo.DataHoraSaidaReal = input.DepartureTime.Value;
+
         TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
         string xml = _motorIata.GenFlightManifest(voo);
@@ -491,6 +494,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         return await ProcessarRetornoEnvioArquivoVoo(response, voo);
         
     }
+
     private async Task<ApiResponse<string>> SubmitScheduleFlightInternal(UserSession userSession, FlightUploadRequest input, bool reenviar = false)
     {
         Voo voo = await _vooRepository.GetVooWithULDById(userSession.CompanyId, input.FlightId.Value);
@@ -598,6 +602,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
     #endregion
 
     #region Upload Master
+
     #region Upload Master Individual
     private async Task<ApiResponse<IEnumerable<FileUploadResponse>>> EnviarMastersAcao(UserSession userSession, MasterUploadInput input)
     {
@@ -733,6 +738,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         return notificacoes;
     }
     #endregion
+
     private async Task<ApiResponse<IEnumerable<FileUploadResponse>>> EnviarMastersAutomatico(UserSession userSession, FlightUploadRequest input)
     {
         var masters = await _masterRepository.GetMastersForUploadByVooId(userSession.CompanyId, input.FlightId.Value);

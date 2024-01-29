@@ -3,9 +3,9 @@ using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
-using CtaCargo.CctImportacao.Domain.Validator;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Exceptions;
+using CtaCargo.CctImportacao.Domain.Validator;
 using CtaCargo.CctImportacao.Infrastructure.Data;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.Data.SqlClient;
@@ -156,6 +156,7 @@ public class HouseService : IHouseService
     }
     public async Task<ApiResponse<HouseResponseDto>> InserirHouse(UserSession userSession, HouseInsertRequestDto houseRequest, string inputMode = "Manual")
     {
+        houseRequest.Numero = houseRequest.Numero.Trim();
         var limiteDate = DateTime.Now.AddYears(-1);
 
         var houseId = await _houseRepository.GetHouseIdByNumberValidate(userSession.CompanyId, houseRequest.Numero, limiteDate);

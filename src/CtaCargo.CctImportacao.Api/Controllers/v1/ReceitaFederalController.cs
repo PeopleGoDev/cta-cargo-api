@@ -39,13 +39,6 @@ public class ReceitaFederalController : Controller
     {
         return await _submeterRFB.SubmitFlightSchedule(HttpContext.GetUserSession(), input);
     }
-    //[HttpPost]
-    //[Authorize]
-    //[Route("confirmdeparture")]
-    //public async Task<ApiResponse<string>> ConfirmeDeparture(ConfirmDepartureRequest input)
-    //{
-    //    return await _submeterRFB.SubmeterVoo(HttpContext.GetUserSession(), input);
-    //}
 
     [HttpPost]
     [Authorize]

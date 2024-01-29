@@ -1,18 +1,18 @@
-﻿using CtaCargo.CctImportacao.Domain.Entities;
+﻿using CtaCargo.CctImportacao.Application.Dtos.Request;
+using CtaCargo.CctImportacao.Application.Support.Contracts;
+using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Exceptions;
+using CtaCargo.CctImportacao.Domain.Model.Iata.HouseManifest;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Xml.Serialization;
-using Waybill = CtaCargo.CctImportacao.Domain.Model.Iata.WaybillManifest;
-using Flight = CtaCargo.CctImportacao.Domain.Model.Iata.FlightManifest;
-using HouseMasterManifest = CtaCargo.CctImportacao.Domain.Model.Iata.HouseMasterManifest;
-using HouseManifest = CtaCargo.CctImportacao.Domain.Model.Iata.HouseManifest;
 using System.Linq;
 using System.Xml;
-using CtaCargo.CctImportacao.Application.Support.Contracts;
-using CtaCargo.CctImportacao.Application.Dtos.Request;
-using CtaCargo.CctImportacao.Domain.Model.Iata.HouseManifest;
-using CtaCargo.CctImportacao.Domain.Exceptions;
+using System.Xml.Serialization;
+using Flight = CtaCargo.CctImportacao.Domain.Model.Iata.FlightManifest;
+using HouseManifest = CtaCargo.CctImportacao.Domain.Model.Iata.HouseManifest;
+using HouseMasterManifest = CtaCargo.CctImportacao.Domain.Model.Iata.HouseMasterManifest;
+using Waybill = CtaCargo.CctImportacao.Domain.Model.Iata.WaybillManifest;
 
 namespace CtaCargo.CctImportacao.Application.Support;
 
@@ -805,10 +805,10 @@ public class MotorIata : IMotorIata
     {
         HouseWaybillType manhouse = new HouseWaybillType();
 
-        Enum.TryParse(house.PesoTotalBrutoUN, out HouseManifest.MeasurementUnitCommonCodeContentType pesoTotalUN);
-        Enum.TryParse(house.ValorFretePPUN, out HouseManifest.ISO3AlphaCurrencyCodeContentType valorPPUN);
-        Enum.TryParse(house.ValorFreteFCUN, out HouseManifest.ISO3AlphaCurrencyCodeContentType valorFCUN);
-        Enum.TryParse(house.VolumeUN, out HouseManifest.MeasurementUnitCommonCodeContentType volumeUN);
+        Enum.TryParse(house.PesoTotalBrutoUN, out MeasurementUnitCommonCodeContentType pesoTotalUN);
+        Enum.TryParse(house.ValorFretePPUN, out ISO3AlphaCurrencyCodeContentType valorPPUN);
+        Enum.TryParse(house.ValorFreteFCUN, out ISO3AlphaCurrencyCodeContentType valorFCUN);
+        Enum.TryParse(house.VolumeUN, out MeasurementUnitCommonCodeContentType volumeUN);
 
         #region MessageHeaderDocument
         if (house.XmlIssueDate == null)
@@ -816,11 +816,11 @@ public class MotorIata : IMotorIata
 
         manhouse.MessageHeaderDocument = new HouseManifest.MessageHeaderDocumentType
         {
-            ID = new HouseManifest.IDType { Value = $"{ house.Numero }_{ house.DataEmissaoXML.Value.ToString("ddMMyyyhhmmss") }" },
-            Name = new HouseManifest.TextType { Value = "House Waybill" },
-            TypeCode = new HouseManifest.DocumentCodeType { Value = HouseManifest.DocumentNameCodeContentType.Item703 },
+            ID = new IDType { Value = $"{ house.Numero }_{ house.DataEmissaoXML.Value.ToString("ddMMyyyhhmmss") }" },
+            Name = new TextType { Value = "House Waybill" },
+            TypeCode = new DocumentCodeType { Value = DocumentNameCodeContentType.Item703 },
             IssueDateTime = house.XmlIssueDate.Value.AddHours(-3),
-            PurposeCode = new HouseManifest.CodeType { Value = purposeCode.ToString() },
+            PurposeCode = new CodeType { Value = purposeCode.ToString() },
             VersionID = new HouseManifest.IDType { Value = "3.00" },
             SenderParty = new HouseManifest.SenderPartyType[2],
             RecipientParty = new HouseManifest.RecipientPartyType[1],
