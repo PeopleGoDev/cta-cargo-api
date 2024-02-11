@@ -7,7 +7,7 @@ namespace CtaCargo.CctImportacao.Application.Dtos.Response
     {
         public bool Sucesso { get; set; }
         public T Dados { get; set; }
-        public IList<Notificacao> Notificacoes { get; set; }
+        public IList<Notificacao> Notificacoes { get; set; } = new List<Notificacao>();
     }
 
     public class Notificacao

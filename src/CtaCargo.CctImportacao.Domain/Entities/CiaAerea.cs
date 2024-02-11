@@ -20,6 +20,8 @@ public class CiaAerea : BaseEntity
     public string Endereco { get; set; }
     [Column(TypeName = "varchar(60)")]
     public string Complemento { get; set; }
+    [Column(TypeName = "varchar(10)")]
+    public string CEP { get; set; }
     [Required]
     [Column(TypeName = "varchar(60)")]
     public string Cidade { get; set; }
@@ -38,4 +40,10 @@ public class CiaAerea : BaseEntity
     [ForeignKey("CertificadoId")]
     public virtual CertificadoDigital CertificadoDigital { get; set; }
     public bool OnlyGhostFlight { get; set; }
+    [Column(TypeName = "varchar(50)")]
+    public string Contato { get; set; }
+    [Column(TypeName = "varchar(25)")]
+    public string Telefone { get; set; }
+    [Column(TypeName = "varchar(150)")]
+    public string EMail { get; set; }
 }

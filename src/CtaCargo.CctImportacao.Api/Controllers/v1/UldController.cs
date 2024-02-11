@@ -65,6 +65,12 @@ public class UldController: Controller
     public async Task<ApiResponse<List<UldMasterResponseDto>>> InserirUldMaster(List<UldMasterInsertRequest> input) =>
         await _uldMasterService.InserirUldMaster(HttpContext.GetUserSession(), input);
 
+    [HttpPatch]
+    [Authorize]
+    [Route("PatchUldMaster")]
+    public async Task<ApiResponse<UldMasterNumeroPatchQuery>> PatchUldMaster(UldMasterPatchRequest input) =>
+        await _uldMasterService.PatchUldMaster(HttpContext.GetUserSession(), input);
+
     [HttpPost]
     [Authorize]
     [Route("AtualizarUldMaster")]

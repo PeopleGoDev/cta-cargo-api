@@ -19,6 +19,6 @@ namespace CtaCargo.CctImportacao.Application.Services.Contracts
         Task<ApiResponse<IEnumerable<MasterVooResponseDto>>> ListarMastersVoo(UserSession userSession, int vooId);
         Task<ApiResponse<MasterResponseDto>> MasterPorId(UserSession userSession, int masterId);
         Task<ApiResponse<List<MasterResponseDto>>> ImportFile(UserSession userSession, MasterFileImportRequest input, Stream stream);
-        Task<ApiResponse<List<MasterFileResponseDto>>> GetFilesToImport(UserSession userSession);
+        ApiResponse<List<MasterFileResponseDto>> GetFilesToImport(UserSession userSession);
     }
 }

@@ -4,6 +4,7 @@ using CtaCargo.CctImportacao.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240207181521_Alteracoes057")]
+    partial class Alteracoes057
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -172,9 +174,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
-                    b.Property<string>("CEP")
-                        .HasColumnType("varchar(10)");
-
                     b.Property<string>("CNPJ")
                         .IsRequired()
                         .HasColumnType("varchar(14)");
@@ -189,9 +188,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<string>("Complemento")
                         .HasColumnType("varchar(60)");
 
-                    b.Property<string>("Contato")
-                        .HasColumnType("varchar(50)");
-
                     b.Property<DateTime>("CreatedDateTimeUtc")
                         .HasColumnType("datetime");
 
@@ -200,9 +196,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
                     b.Property<DateTime?>("DataExclusao")
                         .HasColumnType("datetime");
-
-                    b.Property<string>("EMail")
-                        .HasColumnType("varchar(150)");
 
                     b.Property<int>("EmpresaId")
                         .HasColumnType("int");
@@ -234,9 +227,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
                     b.Property<int?>("SubmetidoPeloId")
                         .HasColumnType("int");
-
-                    b.Property<string>("Telefone")
-                        .HasColumnType("varchar(25)");
 
                     b.Property<string>("UF")
                         .IsRequired()
@@ -451,7 +441,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasColumnType("varchar(10)");
 
                     b.Property<string>("CNPJ")
-                        .IsRequired()
                         .HasColumnType("varchar(14)");
 
                     b.Property<string>("Cidade")

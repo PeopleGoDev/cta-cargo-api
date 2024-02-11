@@ -9,6 +9,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
         void CreateCertificadoDigital(CertificadoDigital certificado);
         void DeleteCertificadoDigital(CertificadoDigital certificado);
         Task<IEnumerable<CertificadoDigital>> GetAllCertificadosDigital(int empresaId);
+        Task<IEnumerable<CertificadoDigital>> GetAllCertificadosDigitalWithExpiration(int empresaId);
         Task<CertificadoDigital> GetCertificadoDigitalById(int id);
         Task<CertificadoDigital> GetCertificadoDigitalBySerialNumber(int empresaId, string serialNumber);
         Task<bool> SaveChanges();

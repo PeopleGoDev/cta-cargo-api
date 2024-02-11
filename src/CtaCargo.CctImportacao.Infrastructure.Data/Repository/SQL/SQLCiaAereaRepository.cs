@@ -2,7 +2,6 @@
 using CtaCargo.CctImportacao.Infrastructure.Data.Context;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,21 +19,11 @@ public class SQLCiaAereaRepository : ICiaAereaRepository
 
     public void CreateCiaAerea(CiaAerea cia)
     {
-        if (cia == null)
-        {
-            throw new ArgumentNullException(nameof(cia));
-        }
-
         _context.CiasAereas.Add(cia);
     }
 
     public void DeleteCiaAerea(CiaAerea cia)
     {
-        if (cia == null)
-        {
-            throw new ArgumentNullException(nameof(cia));
-        }
-
         _context.CiasAereas.Remove(cia);
     }
 

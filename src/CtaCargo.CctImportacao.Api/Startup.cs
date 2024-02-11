@@ -8,6 +8,7 @@ using CtaCargo.CctImportacao.Application.Services.Contracts;
 using CtaCargo.CctImportacao.Application.Support;
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Application.Validator;
+using CtaCargo.CctImportacao.Infrastructure.Data.Cache;
 using CtaCargo.CctImportacao.Infrastructure.Data.Context;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL;
@@ -36,6 +37,11 @@ public class Startup
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = Configuration.GetConnectionString("RedisConnectionString");
+        });
+
         services.AddDefaultIdentity<IdentityUser>()
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -46,13 +52,13 @@ public class Startup
         services.AddMvc()
             .AddJsonOptions(x =>
            {
-               x.JsonSerializerOptions.IgnoreNullValues = true;
+               x.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
                x.JsonSerializerOptions.PropertyNamingPolicy = null;
            });
 
         services.AddControllers()
-            .AddJsonOptions(options => { 
-                options.JsonSerializerOptions.IgnoreNullValues = true;
+            .AddJsonOptions(options => {
+                options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
                 options.JsonSerializerOptions.PropertyNamingPolicy = null;
             })
             .AddFluentValidation(options =>
@@ -94,6 +100,8 @@ public class Startup
         services.AddScoped<IAgenteDeCargaRepository, SQLAgenteDeCargaRepository>();
         services.AddScoped<INcmRepository, SQLNcmRepository>();
         services.AddScoped<IMasterHouseAssociacaoRepository, SQLMasterHouseAssociacaoRepository>();
+        services.AddScoped<IConfiguraRepository, SQLConfiguraRepository>();
+        services.AddScoped< ICacheService, CacheService>();
 
         services.AddScoped<ICertitificadoDigitalSupport, CertitificadoDigitalSupport>();
         services.AddScoped<IDownloadArquivoCertificado, DownloadArquivoCertificadoAzureStorage>();

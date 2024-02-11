@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static CtaCargo.CctImportacao.Domain.Entities.Master;
 
 namespace CtaCargo.CctImportacao.Application.Dtos.Response;
 
@@ -34,6 +35,7 @@ public class VooResponseDto
     public string? ScheduleErrorCodeRFB { get; set; }
     public string? ScheduleErrorDescriptionRFB { get; set; }
     public bool GhostFlight { get; set; }
+    public bool ReadOnly { get; set; }
 
     public static implicit operator VooResponseDto(Voo voo)
     {
@@ -65,6 +67,7 @@ public class VooResponseDto
             ScheduleErrorCodeRFB = voo.ScheduleErrorCodeRFB,
             ScheduleErrorDescriptionRFB = voo.ScheduleErrorDescriptionRFB,
             GhostFlight = voo.GhostFlight,
+            ReadOnly = !(voo.SituacaoRFBId == RFStatusEnvioType.NoSubmitted || (voo.Reenviar)),
             Trechos = (from c in voo.Trechos
                        select new VooTrechoResponse
                        {
@@ -111,6 +114,7 @@ public class VooUploadResponse : VooResponseDto
             ScheduleErrorCodeRFB = voo.ScheduleErrorCodeRFB,
             ScheduleErrorDescriptionRFB = voo.ScheduleErrorDescriptionRFB,
             GhostFlight = voo.GhostFlight,
+            ReadOnly = !(voo.SituacaoRFBId == RFStatusEnvioType.NoSubmitted || (voo.Reenviar)),
             Trechos = (from c in voo.Trechos
                        select new VooTrechoResponse
                        {

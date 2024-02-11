@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Azure.Core;
 using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
@@ -253,7 +254,6 @@ public class UldMasterService : IUldMasterService
     }
     public async Task<ApiResponse<List<UldMasterResponseDto>>> InserirUldMaster(UserSession userSession, List<UldMasterInsertRequest> input, string inputMode="Manual")
     {
-
         var trecho = _vooRepository.SelectTrecho(input[0].TrechoId);
 
         if (trecho == null)
@@ -330,6 +330,128 @@ public class UldMasterService : IUldMasterService
             new ApiResponse<List<UldMasterResponseDto>>
             {
                 Dados = masterResponseDto,
+                Sucesso = true,
+                Notificacoes = null
+            };
+
+    }
+
+    public async Task<ApiResponse<UldMasterNumeroPatchQuery>> PatchUldMaster(UserSession userSession, UldMasterPatchRequest input, string inputMode = "Manual")
+    {
+        var trecho = _vooRepository.SelectTrecho(input.TrechoId);
+
+        if (trecho == null)
+            throw new BusinessException("Trecho do voo não encontrado !");
+
+        if (trecho.VooInfo.SituacaoRFBId == RFStatusEnvioType.Received)
+            throw new BusinessException("Voo aguardando processamento na RFB. Atualize o status do voo!");
+
+        if (trecho.VooInfo.SituacaoRFBId == RFStatusEnvioType.Processed && !trecho.VooInfo.Reenviar)
+            throw new BusinessException("Voo processado pela Receita Federal não pode ser alterado!");
+
+        List<UldMaster> listaModel = new List<UldMaster>();
+
+        foreach (var item in input.Masters)
+        {
+            var uld = new UldMaster
+            {
+                CreatedDateTimeUtc = DateTime.UtcNow,
+                CriadoPeloId = userSession.UserId,
+                EmpresaId = userSession.CompanyId,
+                Environment = userSession.Environment,
+                InputMode = inputMode,
+                MasterNumero = item.MasterNumero,
+                Peso = item.Peso,
+                PesoUN = item.PesoUN,
+                QuantidadePecas = item.QuantidadePecas,
+                ULDCaracteristicaCodigo = input.UldCaracteristicaCodigo,
+                ULDIdPrimario = input.UldIdPrimario,
+                ULDId = input.UldId,
+                VooTrechoId = trecho.Id,
+                VooId = trecho.VooInfo.Id,
+                Tranferencia = item.Transferencia,
+                TotalParcial = item.TipoDivisao,
+                SummaryDescription = item.DescricaoMercadoria,
+                PortOfOrign = item.AeroportoOrigem,
+                PortOfDestiny = item.AeroportoDestino
+            };
+
+            UldMasterEntityValidator validator = new UldMasterEntityValidator();
+
+            var master = await GetMasterId(userSession.CompanyId, item.MasterNumero);
+
+            if (master != null)
+            {
+                uld.MasterId = master.Id;
+                if (item.AeroportoOrigem == null)
+                    uld.PortOfOrign = master.AeroportoOrigemCodigo;
+                if (item.AeroportoDestino == null)
+                    uld.PortOfDestiny = master.AeroportoDestinoCodigo;
+                if (item.DescricaoMercadoria == null)
+                    uld.SummaryDescription = master.DescricaoMercadoria;
+            }
+            else
+            {
+                uld.MasterId = null;
+            }
+
+            var result = validator.Validate(uld);
+
+            if (!result.IsValid)
+                throw new BusinessException($"{result.Errors[0].ErrorMessage}");
+
+            listaModel.Add(uld);
+        }
+
+        if (input.OriginalUldCaracteristicaCodigo is not null)
+        {
+            trecho.ULDs?.Where(x => x.ULDCaracteristicaCodigo == input.OriginalUldCaracteristicaCodigo &&
+                x.ULDId == input.OriginalUldId &&
+                x.ULDIdPrimario == input.OriginalUldIdPrimario &&
+                x.DataExclusao is null).ToList().ForEach(item =>
+            {
+                item.DataExclusao = DateTime.UtcNow;
+                _uldMasterRepository.UpdateUldMaster(item);
+            });
+        }
+
+        if (await _uldMasterRepository.CreateUldMasterList(listaModel) == 0)
+            throw new BusinessException("Não foi possivel inserir ULDs");
+
+        var response = new UldMasterNumeroPatchQuery
+        {
+            ULDCaracteristicaCodigo = input.UldCaracteristicaCodigo,
+            ULDId = input.UldId,
+            ULDIdPrimario = input.UldIdPrimario,
+            OriginalULDCaracteristicaCodigo = input.OriginalUldCaracteristicaCodigo,
+            OriginalULDId = input.OriginalUldId,
+            OriginalULDIdPrimario = input.OriginalUldIdPrimario,
+            ULDs = from c in listaModel
+                   select new UldMasterNumeroQueryChildren
+                   {
+                       AeroportoDestino = c.PortOfDestiny,
+                       AeroportoOrigem = c.PortOfOrign,
+                       DataCricao = c.CreatedDateTimeUtc,
+                       DescricaoMercadoria = c.SummaryDescription,
+                       Id = c.Id,
+                       MasterId = c.MasterId,
+                       MasterNumero = c.MasterNumero,
+                       Peso = c.Peso,
+                       PesoUnidade = c.PesoUN,
+                       QuantidadePecas = c.QuantidadePecas,
+                       TotalParcial = c.TotalParcial,
+                       Transferencia = c.Tranferencia,
+                       UldCaracteristicaCodigo = c.ULDCaracteristicaCodigo,
+                       UldId = c.ULDId,
+                       UldIdPrimario = c.ULDIdPrimario,
+                       UsuarioCriacao = userSession.UserName
+                   }
+        };
+
+        return
+            new ApiResponse<UldMasterNumeroPatchQuery>
+            {
+                Dados = response,
                 Sucesso = true,
                 Notificacoes = null
             };

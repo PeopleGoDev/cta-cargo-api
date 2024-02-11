@@ -19,6 +19,12 @@ public class UldMasterNumeroQuery
     public IEnumerable<UldMasterNumeroQueryChildren> ULDs { get; set; }
 }
 
+public class UldMasterNumeroPatchQuery: UldMasterNumeroQuery
+{
+    public string? OriginalULDCaracteristicaCodigo { get; set; }
+    public string? OriginalULDId { get; set; }
+    public string? OriginalULDIdPrimario { get; set; }
+}
 public class UldMasterNumeroQueryChildren
 {
     public int? MasterId { get; set; }

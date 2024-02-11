@@ -561,9 +561,7 @@ public class MasterService : IMasterService
         if (fileImport == null)
             throw new BusinessException("Template não definido para importação!");
 
-        var fileService = new FileService();
-
-        var lines = fileService.ReadLines(stream, Encoding.UTF8, fileImport);
+        var lines = FileService.ReadLines(stream, Encoding.UTF8, fileImport);
 
         stream.Close();
 
@@ -587,26 +585,29 @@ public class MasterService : IMasterService
         {
             try
             {
-                var insertMaster = fileService.ReadLineToClass<MasterInsertRequestDto>(line, fileImport);
+                if (!line.IsError)
+                {
+                    var insertMaster = FileService.ReadLineToClass<MasterInsertRequestDto>(line.ParsedFields, fileImport);
 
-                insertMaster.VooId = input.VooId;
-                insertMaster.IndicadorAwbNaoIata = IsAwbNonIata(insertMaster.Numero);
+                    insertMaster.VooId = input.VooId;
+                    insertMaster.IndicadorAwbNaoIata = IsAwbNonIata(insertMaster.Numero);
 
-                var response = await ProcessInsertMaster(userSession, insertMaster, voo, "Importação Manual");
-                if (responses.Dados == null)
-                    responses.Dados = new List<MasterResponseDto>();
-                responses.Dados.Add(response.Dados);
+                    var response = await ProcessInsertMaster(userSession, insertMaster, voo, "Importação Manual");
+                    if (responses.Dados == null)
+                        responses.Dados = new List<MasterResponseDto>();
+                    responses.Dados.Add(response.Dados);
+                    continue;
+                }
+                responses.Notificacoes.Add(new() { Codigo = "ERR1202", Mensagem = $"Erro na lina {fileLine} do arquivo: {line.Error}" });
             }
             catch (Exception ex)
             {
-                if(responses.Notificacoes == null)
+                if (responses.Notificacoes == null)
                     responses.Notificacoes = new List<Notificacao>();
 
-                string message = $"Erro na lina {fileLine} do arquivo:{ex.InnerException?.Message ?? ex.Message}";
+                string message = $"Erro na lina {fileLine} do arquivo: {ex.InnerException?.Message ?? ex.Message}";
 
-                responses.Notificacoes.Add(new
-                        Notificacao
-                { Codigo = "ERR1201", Mensagem = message });
+                responses.Notificacoes.Add(new() { Codigo = "ERR1201", Mensagem = message });
                 _masterRepository.ClearChangeTracker();
             }
             fileLine++;
@@ -614,11 +615,11 @@ public class MasterService : IMasterService
         return responses;
 
     }
-    public async Task<ApiResponse<List<MasterFileResponseDto>>> GetFilesToImport(UserSession userSession)
+    public ApiResponse<List<MasterFileResponseDto>> GetFilesToImport(UserSession userSession)
     {
         var data = _masterRepository.GetMasterFileImportList(userSession.CompanyId);
-        if(data == null)
-            return default(ApiResponse<List<MasterFileResponseDto>>);
+
+        if(data == null) return default;
 
         return new ApiResponse<List<MasterFileResponseDto>>
         {
@@ -786,7 +787,7 @@ public class MasterService : IMasterService
 
 public class FileService
 {
-    public List<string[]> ReadLines(Stream stream, 
+    public static List<FileImportLineStatus> ReadLines(Stream stream, 
         Encoding encoding, 
         FileImport fileImport)
     {
@@ -802,37 +803,51 @@ public class FileService
         }
         return ReadCSVFile(lines.ToArray(), fileImport);
     }
-    private List<string[]> ReadCSVFile(string[] lines,FileImport fileImport)
+    private static List<FileImportLineStatus> ReadCSVFile(string[] lines,FileImport fileImport)
     {
         int line = fileImport.FirstLineTitle ? 1 : 0;
-        var result = new List<string[]>();
+        var result = new List<FileImportLineStatus>();
 
         for (int i = line; i < lines.Length; i++)
         {
-            TextFieldParser parser = new TextFieldParser(new StringReader(lines[i]));
-
-            parser.SetDelimiters(fileImport.Configuration1);
-            parser.HasFieldsEnclosedInQuotes = Convert.ToBoolean(fileImport.Configuration2);
-            
-            string[] fields = null;
-
-            while (!parser.EndOfData)
+            try
             {
-                Console.WriteLine(i);
-                fields = parser.ReadFields();
+                TextFieldParser parser = new(new StringReader(lines[i]));
+
+                parser.SetDelimiters(fileImport.Configuration1);
+                parser.HasFieldsEnclosedInQuotes = Convert.ToBoolean(fileImport.Configuration2);
+
+                string[] fields = null;
+
+                while (!parser.EndOfData)
+                {
+                    fields = parser.ReadFields();
+                }
+
+                parser.Close();
+
+                if (fields.Length != fileImport.Details.ToArray().Length)
+                    throw new BusinessException("Formato da linha invalida");
+
+                result.Add(new FileImportLineStatus {
+                    LineNumber = i,
+                    IsError = false, ParsedFields = fields });
             }
-
-            parser.Close();
-
-            if (fields.Length != fileImport.Details.ToArray().Length)
-                throw new BusinessException("Formato do arquivo invalido!");
-
-            result.Add(fields);
+            catch (Exception ex)
+            {
+                result.Add(new FileImportLineStatus
+                {
+                    LineNumber = i,
+                    IsError = true,
+                    ParsedFields = null,
+                    Error = ex.Message
+                });
+            }
         }
 
         return result;
     }
-    public T ReadLineToClass<T>(string[] line, FileImport fileImport)
+    public static T ReadLineToClass<T>(string[] line, FileImport fileImport)
         where T : new()
     {
         var mapFields = fileImport.Details.OrderBy(x => x.Sequency).ToArray();
@@ -865,6 +880,14 @@ public class FileService
 
         return newItem;
     }
+}
+
+public class FileImportLineStatus
+{
+    public int LineNumber { get; set; }
+    public bool IsError { get; set; }
+    public string Error { get; set; }
+    public string[] ParsedFields { get; set; }
 }
 
 public class MasterFileImportRequest

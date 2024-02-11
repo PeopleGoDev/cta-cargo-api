@@ -20,21 +20,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
 
         public void CreateUsuario(Usuario usr)
         {
-            if (usr == null)
-            {
-                throw new ArgumentNullException(nameof(usr));
-            }
-
             _context.Usuarios.Add(usr);
         }
 
         public void DeleteUsuario(Usuario usr)
         {
-            if (usr == null)
-            {
-                throw new ArgumentNullException(nameof(usr));
-            }
-
             _context.Usuarios.Remove(usr);
         }
 
@@ -64,10 +54,14 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
                 .FirstOrDefaultAsync(x => x.Id == usuarioId);
         }
 
-        public async Task<bool> SaveChanges()
+        public async Task<Usuario> GetUserCertificateById(int userId)
         {
-            return (await _context.SaveChangesAsync() >= 0);
+            return await _context.Usuarios
+                .FirstOrDefaultAsync(x => x.Id == userId && x.DataExclusao == null && !x.Bloqueado);
         }
+
+        public async Task<bool> SaveChanges() =>
+            (await _context.SaveChangesAsync() >= 0);
 
         public void UpdateUsuario(Usuario usr)
         {

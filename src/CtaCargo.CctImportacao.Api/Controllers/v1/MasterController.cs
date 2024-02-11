@@ -107,10 +107,10 @@ public class MasterController : Controller
     [HttpGet]
     [Authorize]
     [Route("ListarArquivosImportacao")]
-    public async Task<ApiResponse<List<MasterFileResponseDto>>> ListFileToImport()
+    public ApiResponse<List<MasterFileResponseDto>> ListFileToImport()
     {
         var userSession = HttpContext.GetUserSession();
-        return await _masterService.GetFilesToImport(userSession);
+        return _masterService.GetFilesToImport(userSession);
     }
 
     [HttpPost]

@@ -11,6 +11,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
         Task<bool> SaveChanges();
         Task<IEnumerable<Usuario>> GetAllUsuarios(int empresaId, bool usuarioSistema = false);
         Task<Usuario> GetUsuarioById(int usuarioId);
+        Task<Usuario> GetUserCertificateById(int userId);
         Task<Usuario> GetUsuarioByAuthentication(string email, string pwd);
         void CreateUsuario(Usuario usr);
         void UpdateUsuario(Usuario usr);

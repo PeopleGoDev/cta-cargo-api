@@ -166,6 +166,7 @@ public class SQLVooRepository : IVooRepository
     {
         return _context.VooTrechos
             .Include(x => x.VooInfo)
+            .Include(x => x.ULDs)
             .FirstOrDefault(x => x.DataExclusao == null && x.Id == id);
     }
 

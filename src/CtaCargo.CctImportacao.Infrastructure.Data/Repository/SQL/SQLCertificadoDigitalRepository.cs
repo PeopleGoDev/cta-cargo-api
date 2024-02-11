@@ -20,21 +20,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
 
         public void CreateCertificadoDigital(CertificadoDigital certificado)
         {
-            if (certificado == null)
-            {
-                throw new ArgumentNullException(nameof(certificado));
-            }
-
             _context.Certificados.Add(certificado);
         }
 
         public void DeleteCertificadoDigital(CertificadoDigital certificado)
         {
-            if (certificado == null)
-            {
-                throw new ArgumentNullException(nameof(certificado));
-            }
-
             _context.Certificados.Remove(certificado);
         }
 
@@ -44,6 +34,13 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
                 .Include("UsuarioCriacaoInfo")
                 .Include("UsuarioModificacaoInfo")
                 .Where(x => x.EmpresaId == empresaId && x.DataVencimento > DateTime.UtcNow &&  x.DataExclusao == null)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<CertificadoDigital>> GetAllCertificadosDigitalWithExpiration(int empresaId)
+        {
+            return await _context.Certificados
+                .Where(x => x.EmpresaId == empresaId && x.DataExclusao == null)
                 .ToListAsync();
         }
 
