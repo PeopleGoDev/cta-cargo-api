@@ -9,12 +9,12 @@ using CtaCargo.CctImportacao.Application.Validator;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Exceptions;
 using CtaCargo.CctImportacao.Domain.Validator;
-using CtaCargo.CctImportacao.Infrastructure.Data;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using FluentValidation.Results;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using static CtaCargo.CctImportacao.Domain.Entities.Master;
@@ -42,7 +42,9 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         IHouseRepository houseRepository,
         IMasterHouseAssociacaoRepository masterHouseAssociacaoRepository,
         IUploadReceitaFederal flightUploadReceitaFederal,
-        IMotorIata motorIata, IValidadorMaster validadorMaster = null, IMapper mapper = null)
+        IMotorIata motorIata, 
+        IValidadorMaster validadorMaster,
+        IMapper mapper)
     {
         _certificadoDigitalSupport = certificadoDigitalSupport;
         _vooRepository = vooRepository;
@@ -148,19 +150,16 @@ public class SubmeterReceitaService : ISubmeterReceitaService
             if (!found)
                 throw new BusinessException("Trecho informado não encontrado");
 
-            X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateCiaAereaAsync(voo.CiaAereaId);
+            var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, voo.CiaAereaId);
 
-            if (certificado == null)
-                certificado = await _certificadoDigitalSupport.GetCertificateUsuarioAsync(userSession.UserId);
+            if (certificate.HasError)
+                throw new BusinessException(certificate.Error);
 
-            if (certificado == null)
-                throw new Exception("Certificado digital da companhia aérea/usuário não cadastrado !");
-
-            TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado);
+            TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
             string xml = _motorIata.GenFlightManifest(voo, input.ItineraryId, input.DepartureTime);
 
-            var response = _uploadReceitaFederal.SubmitFlight(voo.CompanhiaAereaInfo.CNPJ, xml, token, certificado);
+            var response = _uploadReceitaFederal.SubmitFlight(voo.CompanhiaAereaInfo.CNPJ, xml, token, certificate.Certificate);
 
             return await ProcessarRetornoEnvioArquivoVoo(response, voo);
         }
@@ -183,17 +182,14 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         int ciaId = masters[0].VooInfo.CiaAereaId;
 
-        X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateUsuarioAsync(userSession.UserId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
 
-        if (certificado == null)
-            certificado = await _certificadoDigitalSupport.GetCertificateCiaAereaAsync(ciaId);
+        if (certificate.HasError)
+            throw new BusinessException(certificate.Error);
 
-        if (certificado == null)
-            throw new BusinessException("Certificado digital não cadastrado !");
+        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado);
-
-        var result = await SubmeterMastersAutomatico(masters, certificado, token);
+        var result = await SubmeterMastersAutomatico(masters, certificate.Certificate, token);
 
         return new()
         {
@@ -281,177 +277,37 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         }
 
     }
-    public async Task<ApiResponse<FileUploadResponse>> SubmeterMasterExclusion(UserSession userSession, MasterExclusaoRFBInput input)
+    public async Task<MasterResponseDto> SubmeterMasterExclusion(UserSession userSession, MasterExclusaoRFBInput input)
     {
         var master = await _masterRepository.GetMasterForUploadById(userSession.CompanyId, input.MasterId);
 
-        if (master == null)
-            throw new Exception("Master não encontrado !");
+        if (master is null)
+            throw new BusinessException("Master não encontrado!");
 
-        if (master.SituacaoRFBId == Master.RFStatusEnvioType.Received)
-            throw new Exception("O master está em processamento na Receita Federal. Veriticar status do master antes de submeter 'Exclusion'.");
+        if (master.SituacaoDeletionRFBId == 2)
+            throw new BusinessException("Exclusão do Master no Portal Único já confirmado!");
 
-        int ciaId = master.VooInfo.CiaAereaId;
+        if (master.SituacaoRFBId is not RFStatusEnvioType.Processed)
+            throw new BusinessException("House não está com o status \"Submetido a Receita Federal\"!");
 
-        X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateCiaAereaAsync(ciaId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, master.CiaAereaId);
 
-        if (certificado == null)
-            certificado = await _certificadoDigitalSupport.GetCertificateUsuarioAsync(input.UsuarioId);
+        if (certificate.HasError)
+            throw new BusinessException(certificate.Error);
 
-        if (certificado == null)
-            throw new Exception("Certificado digital da companhia aérea/usuário não cadastrado !");
+        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado);
-
-        if (master.SituacaoRFBId ==  Master.RFStatusEnvioType.ReceivedDeletion)
+        if (master.SituacaoDeletionRFBId == 1)
         {
-            // Master submetido para exclusão, verificar status apenas
-            var res = _uploadReceitaFederal.CheckFileProtocol(master.ProtocoloRFB, token);
-
-            var res1 = await ProcessaRetornoChecagemArquivoMaster(res, master);
-
-            return new()
-            {
-                Sucesso = true,
-                Dados = res1,
-                Notificacoes = null
-            };
-        }
-
-        var result = await SubmeterMastersDeletion(master, certificado, token);
-
-        return new()
-        {
-            Sucesso = true,
-            Dados = result,
-            Notificacoes = null
-        };
-    }
-    public async Task<ApiResponse<string>> SubmeterHousesAgentesDeCarga(SubmeterRFBHouseRequest input)
-    {
-        return await EnviarHousesAutomatico(input.DataProcessamento, input.AgenteDeCargaId);
-    }
-    public async Task<ApiResponse<string>> SubmeterAssociacaoHousesMaster(UserSession userSession,
-        SubmeterRFBMasterHouseRequest input)
-    {
-        var masterNumbers = input.Masters.Select(x => x.MasterNumber).ToArray();
-
-        QueryJunction<House> param = new QueryJunction<House>();
-        param.Add(x => masterNumbers.Contains(x.MasterNumeroXML));
-        param.Add(x => x.AgenteDeCargaId == input.FreightFowarderId);
-        param.Add(x => x.DataExclusao == null);
-
-        var houses = _houseRepository.GetHouseForUploading(param);
-
-        if (houses == null)
-            throw new BusinessException("Não há houses a serem enviados !");
-
-        if (houses.Count == 0)
-            throw new BusinessException("Nenhum house selecionado !");
-
-        X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateAgenteDeCargaAsync(input.FreightFowarderId);
-
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado, "AGECARGA");
-
-        await SubmeterAssociacaoHouseMasterList(userSession, input.Masters, houses, certificado, token);
-
-        return new ApiResponse<string>()
-        {
-            Sucesso = true,
-            Dados = "Dados submetidos com sucesso!",
-            Notificacoes = null
-        };
-    }
-    public async Task<ApiResponse<string>> SubmeterAssociation(UserSession userSession, int associationId)
-    {
-        var association = await _masterHouseAssociacaoRepository.SelectMasterHouseAssociacaoById(userSession.CompanyId, associationId);
-
-        if (association == null)
-            throw new BusinessException("Associação não encontrada !");
-
-        QueryJunction<House> param = new QueryJunction<House>();
-        param.Add(x => x.MasterNumeroXML == association.MasterNumber);
-        param.Add(x => x.DataExclusao == null);
-
-        var houses = _houseRepository.GetHouseForUploading(param);
-
-        if (houses == null || houses.Count() == 0)
-            throw new BusinessException("Não há houses associados a este Master !");
-
-        var agenteId = houses.FirstOrDefault().AgenteDeCargaId;
-
-        var masterInfo = new SubmeterRFBMasterHouseItemRequest
-        {
-            DestinationLocation = association.FinalDestinationLocation,
-            MasterNumber = association.MasterNumber,
-            OriginLocation = association.OriginLocation,
-            PackageQuantity = association.PackageQuantity,
-            TotalPiece = association.TotalPieceQuantity,
-            TotalWeight = association.GrossWeight,
-            TotalWeightUnit = association.GrossWeightUnit
-        };
-
-        X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateAgenteDeCargaAsync(agenteId.Value);
-
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado, "AGECARGA");
-
-        if (association.SituacaoDeletionAssociacaoRFBId == 1)
-        {
-            var res = _uploadReceitaFederal.CheckFileProtocol(association.ProtocoloDeletionAssociacaoRFB, token);
-            await ProcessaRetornoChecagemAssociacaoHouseMaster(res, association, houses);
+            var res = _uploadReceitaFederal.CheckFileProtocol(master.ProtocoloDeletionRFB, token);
+            await ProcessaRetornoChecagemCancelarMaster(res, master);
         }
         else
         {
-            await CancelarAssociacaoHouseMasterList(association, userSession, masterInfo, houses, certificado, token);
+            await CancelarMaster(master, certificate.Certificate, token);
         }
-        return new ApiResponse<string>()
-        {
-            Sucesso = true,
-            Dados = "Dados submetidos com sucesso!",
-            Notificacoes = null
-        };
-
-    }
-    public async Task<ApiResponse<HouseResponseDto>> SubmeterHouseExclusion(UserSession userSession, int houseId)
-    {
-        var house = await _houseRepository.GetHouseByIdForExclusionUpload(userSession.CompanyId, houseId);
-
-        if (house == null)
-            throw new BusinessException("House não encontrado ou indisponível!");
-
-        if (house.AgenteDeCargaId == null)
-            throw new BusinessException("House não associado ao um agente de carga!");
         
-        if (house.SituacaoRFBId == 0)
-            throw new BusinessException("House não submetido a RFB. Não é possível submeter o cancelamento");
-
-        if (house.SituacaoRFBId == 1)
-            throw new BusinessException("House está submetido, mas não processado. Submeta o house novamente para confirmar processamento");
-
-        if (house.SituacaoRFBId == 3)
-            throw new BusinessException("House com erro na tentativa se criação na RFB");
-        ;
-        X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateAgenteDeCargaAsync(house.AgenteDeCargaId.Value);
-
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado, "AGECARGA");
-
-        if (house.SituacaoDeletionRFBId == 1)
-        {
-            var res = _uploadReceitaFederal.CheckFileProtocol(house.ProtocoloDeletionRFB, token);
-            await ProcessaRetornoChecagemCancelarHouse(res, house);
-        }
-        else
-        {
-            await CancelarHouse(house, certificado, token);
-        }
-        var dto = _mapper.Map<HouseResponseDto>(house);
-        return new ApiResponse<HouseResponseDto>()
-        {
-            Sucesso = true,
-            Dados = dto,
-            Notificacoes = null
-        };
-
+        return _mapper.Map<MasterResponseDto>(master);
     }
     #endregion
 
@@ -494,7 +350,6 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         return await ProcessarRetornoEnvioArquivoVoo(response, voo);
         
     }
-
     private async Task<ApiResponse<string>> SubmitScheduleFlightInternal(UserSession userSession, FlightUploadRequest input, bool reenviar = false)
     {
         Voo voo = await _vooRepository.GetVooWithULDById(userSession.CompanyId, input.FlightId.Value);
@@ -602,8 +457,6 @@ public class SubmeterReceitaService : ISubmeterReceitaService
     #endregion
 
     #region Upload Master
-
-    #region Upload Master Individual
     private async Task<ApiResponse<IEnumerable<FileUploadResponse>>> EnviarMastersAcao(UserSession userSession, MasterUploadInput input)
     {
         var masters = await _masterRepository.GetMastersForUploadById(userSession.CompanyId, input.MasterId);
@@ -613,17 +466,14 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         int ciaId = masters[0].VooInfo.CiaAereaId;
 
-        X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateCiaAereaAsync(ciaId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
 
-        if (certificado == null)
-            certificado = await _certificadoDigitalSupport.GetCertificateUsuarioAsync(input.UsuarioId);
+        if (certificate.HasError)
+            throw new BusinessException(certificate.Error);
 
-        if (certificado == null)
-            throw new Exception("Certificado digital da companhia aérea/usuário não cadastrado !");
+        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado);
-
-        var result = await SubmeterMastersAcao(masters, certificado, token, input.PurposeCode);
+        var result = await SubmeterMastersAcao(masters, certificate.Certificate, token, input.PurposeCode);
 
         return new ()
         {
@@ -675,70 +525,6 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         };
         return result;
     }
-    private async Task<FileUploadResponse> SubmeterMastersDeletion(Master master, X509Certificate2 certificado, TokenResponse token)
-    {
-        var xml = _motorIata.GenMasterManifest(master, IataXmlPurposeCode.Deletion);
-        var response = _uploadReceitaFederal.SubmitWaybill(master.VooInfo.CompanhiaAereaInfo.CNPJ, xml, token, certificado);
-        return await ProcessarRetornoEnvioMasterExclusion(response, master);
-    }
-    private async Task<List<Notificacao>> SubmeterHouseAcao(List<House> houses, X509Certificate2 certificado, TokenResponse token, IataXmlPurposeCode purposeCode)
-    {
-
-        List<Notificacao> notificacoes = new List<Notificacao>();
-
-        foreach (House house in houses)
-        {
-            try
-            {
-                string xml = "";
-
-                if (house.SituacaoRFBId == 1)
-                {
-                    var res = _uploadReceitaFederal.CheckFileProtocol(house.ProtocoloRFB, token);
-
-                    var listaErros = await ProcessaRetornoChecagemArquivoHouse(res, house);
-
-                    if (listaErros != null)
-                        notificacoes.AddRange(listaErros);
-
-                    continue;
-                }
-
-                switch (purposeCode)
-                {
-                    case IataXmlPurposeCode.Creation:
-                        xml = _motorIata.GenHouseManifest(house, purposeCode);
-                        break;
-                    case IataXmlPurposeCode.Update:
-                        xml = _motorIata.GenHouseManifest(house, purposeCode);
-                        break;
-                    case IataXmlPurposeCode.Deletion:
-                        xml = _motorIata.GenHouseManifest(house, purposeCode);
-                        break;
-                }
-
-                var response = _uploadReceitaFederal.SubmitHouse(house.AgenteDeCargaInfo.CNPJ, xml, token, certificado);
-
-                bool processa = await ProcessarRetornoEnvioArquivoHouse(response, house);
-
-                if (!processa)
-                {
-                    if (response.StatusCode == "Rejected")
-                        notificacoes.Add(new Notificacao { Codigo = "9999", Mensagem = response.Reason });
-                }
-
-                continue;
-
-            }
-            catch (Exception ex)
-            {
-                notificacoes.Add(new Notificacao { Codigo = "9999", Mensagem = ex.Message });
-            }
-        };
-        return notificacoes;
-    }
-    #endregion
-
     private async Task<ApiResponse<IEnumerable<FileUploadResponse>>> EnviarMastersAutomatico(UserSession userSession, FlightUploadRequest input)
     {
         var masters = await _masterRepository.GetMastersForUploadByVooId(userSession.CompanyId, input.FlightId.Value);
@@ -748,17 +534,14 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         int ciaId = masters[0].VooInfo.CiaAereaId;
 
-        X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateCiaAereaAsync(ciaId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
 
-        if (certificado == null)
-            certificado = await _certificadoDigitalSupport.GetCertificateUsuarioAsync(userSession.UserId);
+        if (certificate.HasError)
+            throw new BusinessException(certificate.Error);
 
-        if (certificado == null)
-            throw new Exception("Certificado digital da companhia aérea/usuário não cadastrado !");
+        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado);
-
-        var result = await SubmeterMastersAutomatico(masters, certificado, token);
+        var result = await SubmeterMastersAutomatico(masters, certificate.Certificate, token);
 
         return new ()
         {
@@ -806,654 +589,54 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         };
         return respList;
     }
-    #endregion
-
-    #region Upload House
-    private async Task<ApiResponse<string>> EnviarHousesAutomatico(DateTime dataProcessamento, int agenteDeCargaId)
+    private async Task<FileUploadResponse> ProcessarRetornoEnvioArquivoMaster(ReceitaRetornoProtocol response, Master master)
     {
-        var processDate = 
-            new DateTime(dataProcessamento.Year, 
-            dataProcessamento.Month, 
-            dataProcessamento.Day, 0, 0, 0, 0, DateTimeKind.Unspecified);
-        QueryJunction<House> param = new QueryJunction<House>();
-        param.Add(x => x.DataProcessamento == processDate);
-        param.Add(x => x.AgenteDeCargaId == agenteDeCargaId);
-        param.Add(x => x.DataExclusao == null);
-
-        var houses = _houseRepository.GetHouseForUploading(param);
-
-        if (houses == null)
-            throw new BusinessException("Não foi possivel selecionar Houses para o upload!");
-
-        if (houses.Count == 0)
-            throw new BusinessException("Nenhum house selecionado !");
-
-        X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateAgenteDeCargaAsync(agenteDeCargaId);
-
-        if (certificado == null)
-            throw new BusinessException("Certificado digital do agente de carga não cadastrado !");
-
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado, "AGECARGA");
-
-        var result = await  SubmeterHousesAutomatico(houses, certificado, token);
-
-        if (result != null && result.Count > 0)
-            return new ApiResponse<string>()
-            {
-                Sucesso = false,
-                Dados = null,
-                Notificacoes = result
-            };
-
-        return new ApiResponse<string>()
+        FileUploadResponse resp = new FileUploadResponse
         {
-            Sucesso = true,
-            Dados = "Enviado com sucesso !",
-            Notificacoes = null
+            Id = master.Id,
+            Protocol = master.ProtocoloRFB,
+            Status = response.StatusCode
         };
-    }
-    private async Task<List<Notificacao>> SubmeterHousesAutomatico(IEnumerable<House> houses, X509Certificate2 certificado, TokenResponse token)
-    {
-        List<Notificacao> notificacoes = new List<Notificacao>();
+        master.StatusCodeRFB = response.StatusCode;
 
-        try
-        {
-            foreach (House house in houses)
-            {
-                switch (house.SituacaoRFBId)
-                {
-                    case 1:
-                        var res = _uploadReceitaFederal.CheckFileProtocol(house.ProtocoloRFB, token);
-
-                        var listaErros = await ProcessaRetornoChecagemArquivoHouse(res, house);
-
-                        if (listaErros != null)
-                            notificacoes.AddRange(listaErros);
-                        break;
-                    case 0:
-                    case 2:
-                    case 3:
-                        if (house.SituacaoRFBId == 2 && !house.Reenviar)
-                            break;
-
-                        string xml;
-                        if (house.SituacaoRFBId == 2)
-                            xml = _motorIata.GenHouseManifest(house, IataXmlPurposeCode.Update);
-                        else
-                            xml = _motorIata.GenHouseManifest(house, IataXmlPurposeCode.Creation);
-
-                        var response = _uploadReceitaFederal.SubmitHouse(house.AgenteDeCargaInfo.CNPJ, xml, token, certificado);
-
-                        bool processa = await ProcessarRetornoEnvioArquivoHouse(response, house);
-                        if (!processa)
-                        {
-                            if (response.StatusCode == "Rejected")
-                                notificacoes.Add(new Notificacao { Codigo = "9999", Mensagem = response.Reason });
-
-                            if (response.StatusCode == "Error")
-                                throw new Exception(response.Reason);
-                        }
-                        break;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            notificacoes.Add(new Notificacao { Codigo = "9999", Mensagem = ex.Message });
-        }
-        return notificacoes;
-    }
-    private async Task<bool> ProcessarRetornoEnvioArquivoHouse(ReceitaRetornoProtocol response, House house)
-    {
         switch (response.StatusCode)
         {
             case ("Received"):
-                house.SituacaoRFBId = 1;
-                house.StatusId = 2;
-                house.CodigoErroRFB = null;
-                house.DescricaoErroRFB = null;
-                house.ProtocoloRFB = response.Reason;
-                house.DataProtocoloRFB = response.IssueDateTime;
-                _houseRepository.UpdateHouse(house);
-                await _vooRepository.SaveChanges();
-                return false;
+                master.SituacaoRFBId = Master.RFStatusEnvioType.Received;
+                master.CodigoErroRFB = null;
+                master.DescricaoErroRFB = null;
+                master.ProtocoloRFB = response.Reason;
+                master.DataProtocoloRFB = response.IssueDateTime;
+                break;
             case "Rejected":
-                house.SituacaoRFBId = 3;
-                house.DescricaoErroRFB = response.Reason;
-                house.DataProtocoloRFB = response.IssueDateTime;
-                _houseRepository.UpdateHouse(house);
-                await _vooRepository.SaveChanges();
-                return false;
-            case "Processed":
-                house.SituacaoRFBId = 2;
-                house.CodigoErroRFB = null;
-                house.DescricaoErroRFB = null;
-                house.DataProtocoloRFB = response.IssueDateTime;
-                _houseRepository.UpdateHouse(house);
-                await _vooRepository.SaveChanges();
-                return true;
-            default:
-                return false;
-        }
-    }
-    private async Task<List<Notificacao>> ProcessaRetornoChecagemArquivoHouse(ProtocoloReceitaCheckFile response, House house)
-    {
-        List<Notificacao> notificacoes = new List<Notificacao>();
-        switch (response.status)
-        {
-            case "Rejected":
-                house.SituacaoRFBId = 3;
-                if (response.errorList.Length > 0)
-                {
-                    house.CodigoErroRFB = response.errorList[0].code;
-                    house.DescricaoErroRFB = string.Join("\n", response.errorList.Select(x => x.description));
-                    house.DataChecagemRFB = response.dateTime;
-                    house.Reenviar = false;
-                    foreach (ErrorListCheckFileRFB item in response.errorList)
-                    {
-                        notificacoes.Add(new Notificacao { Codigo = item.code, Mensagem = item.description });
-                    }
-                }
-                _houseRepository.UpdateHouse(house);
-                await _houseRepository.SaveChanges();
-                return notificacoes;
-            case "Processed":
-                house.SituacaoRFBId = 2;
-                house.DataChecagemRFB = response.dateTime;
-                house.Reenviar = false;
-                house.DataChecagemDeletionRFB = null;
-                house.CodigoErroDeletionRFB = null;
-                house.DataProtocoloDeletionRFB = null;
-                house.DescricaoErroDeletionRFB = null;
-                house.ProtocoloDeletionRFB = null;
-                house.SituacaoDeletionRFBId = 0;
-                _houseRepository.UpdateHouse(house);
-                await _houseRepository.SaveChanges();
-                return null;
-            case "Received":
-                return null;
-            default:
-                return null;
-        }
-    }
-    #endregion
-
-    #region House Cancelar
-    private async Task<ApiResponse<string>> CancelarHouse(House house, X509Certificate2 certificado, TokenResponse token)
-    {
-        if (house.SituacaoRFBId == 2)
-        {
-            switch (house.SituacaoDeletionRFBId)
-            {
-                case 0: // Submeter Exclusion
-                case 3:
-                    var xml = _motorIata.GenHouseManifest(house, IataXmlPurposeCode.Deletion);
-                    var response = _uploadReceitaFederal.SubmitHouse(house.AgenteDeCargaInfo.CNPJ, xml, token, certificado);
-                    await ProcessaRetornoEnvioCancelarHouse(response, house);
-
-                    if (response.StatusCode == "Rejected")
-                        throw new BusinessException(response.Reason);
-
-                    break;
-                case 1: // Checar Exclusion
-                    var res = _uploadReceitaFederal.CheckFileProtocol(house.ProtocoloDeletionRFB, token);
-                    await ProcessaRetornoChecagemCancelarHouse(res, house);
-                    break;
-            }
-        }
-
-        return new ApiResponse<string>()
-        {
-            Sucesso = true,
-            Dados = "Enviado com sucesso !",
-            Notificacoes = null
-        };
-    }
-
-    private async Task ProcessaRetornoChecagemCancelarHouse(ProtocoloReceitaCheckFile response,
-                House house)
-    {
-        switch (response.status)
-        {
-            case "Rejected":
-                house.SituacaoDeletionRFBId = 3;
-                if (response.errorList.Length > 0)
-                {
-                    house.CodigoErroDeletionRFB = response.errorList[0].code;
-                    house.DescricaoErroDeletionRFB = string.Join("\n", response.errorList.Select(x => x.description));
-                    house.DataChecagemDeletionRFB = response.dateTime;
-                }
-                _houseRepository.UpdateHouse(house);
+                master.SituacaoRFBId = Master.RFStatusEnvioType.Rejected;
+                master.DescricaoErroRFB = response.Reason;
+                master.DataProtocoloRFB = response.IssueDateTime;
+                resp.Status = response.StatusCode;
+                _validadorMaster.InserirErrosMaster(master);
                 break;
             case "Processed":
-                house.SituacaoDeletionRFBId = 2;
-                house.DataChecagemDeletionRFB = response.dateTime;
-                house.DescricaoErroDeletionRFB = null;
-                house.SituacaoRFBId = 0;
-                house.DataChecagemRFB = null;
-                house.CodigoErroRFB = null;
-                house.DataProcessadoRFB = null;
-                house.ProtocoloRFB = null;
-                _houseRepository.UpdateHouse(house);
+                master.SituacaoRFBId = Master.RFStatusEnvioType.Processed;
+                master.Reenviar = false;
+                master.CodigoErroRFB = null;
+                master.DescricaoErroRFB = null;
+                master.Reenviar = false;
+                master.DataChecagemDeletionRFB = null;
+                master.CodigoErroDeletionRFB = null;
+                master.DataProtocoloDeletionRFB = null;
+                master.DescricaoErroDeletionRFB = null;
+                master.ProtocoloDeletionRFB = null;
+                master.SituacaoDeletionRFBId = 0;
+                master.DataProtocoloRFB = response.IssueDateTime;
+                master.DataChecagemRFB = response.IssueDateTime;
                 break;
             default:
                 break;
         }
-
-        await _houseRepository.SaveChanges();
+        _masterRepository.UpdateMaster(master);
+        await _masterRepository.SaveChanges();
+        return resp;
     }
-
-    private async Task ProcessaRetornoEnvioCancelarHouse(ReceitaRetornoProtocol response,
-        House house)
-    {
-        switch (response.StatusCode)
-        {
-            case "Received":
-                house.SituacaoDeletionRFBId = 1;
-                house.CodigoErroDeletionRFB = null;
-                house.DescricaoErroDeletionRFB = null;
-                house.ProtocoloDeletionRFB = response.Reason;
-                house.DataProtocoloDeletionRFB = response.IssueDateTime;
-                _houseRepository.UpdateHouse(house);
-                break;
-            case "Rejected":
-                house.SituacaoDeletionRFBId = 3;
-                house.CodigoErroDeletionRFB = response.StatusCode;
-                house.DescricaoErroDeletionRFB = response.Reason;
-                house.DataProtocoloDeletionRFB = response.IssueDateTime;
-                _houseRepository.UpdateHouse(house);
-                break;
-            case "Processed":
-                house.SituacaoDeletionRFBId = 2;
-                house.DataChecagemDeletionRFB = response.IssueDateTime;
-                house.DescricaoErroDeletionRFB = null;
-                house.SituacaoRFBId = 0;
-                house.DataChecagemRFB = null;
-                house.CodigoErroRFB = null;
-                house.DataProcessadoRFB = null;
-                house.ProtocoloRFB = null;
-                _houseRepository.UpdateHouse(house);
-                break;
-        }
-
-        await _houseRepository.SaveChanges();
-    }
-    #endregion
-
-    #region Upload Associação House x Master
-    private async Task SubmeterAssociacaoHouseMasterList(UserSession userSession,
-        List<SubmeterRFBMasterHouseItemRequest> Masters, 
-        List<House> houses, 
-        X509Certificate2 certificado, 
-        TokenResponse token)
-    {
-        houses.OrderBy(x => x.MasterNumeroXML);
-        string curMaster = houses.FirstOrDefault().MasterNumeroXML;
-        var masterInfo = Masters.FirstOrDefault(x => x.MasterNumber == curMaster);
-        string freightFowarderCnpj = houses.FirstOrDefault().AgenteDeCargaInfo.CNPJ;
-
-        List<House> houseList = new List<House>();
-        foreach (House house in houses.OrderBy(x => x.MasterNumeroXML))
-        {
-            if(house.MasterNumeroXML == curMaster)
-            {
-                houseList.Add(house);
-                continue;
-            }
-
-            if(house.MasterNumeroXML != curMaster)
-            {
-                await SubmeterHouseMasterAssociacao(userSession, freightFowarderCnpj, masterInfo, houseList, token, certificado);
-                houseList = new List<House>();
-                houseList.Add(house);
-                curMaster = house.MasterNumeroXML;
-                masterInfo = Masters.FirstOrDefault(x => x.MasterNumber == curMaster);
-            }
-        }
-        await SubmeterHouseMasterAssociacao(userSession, freightFowarderCnpj, masterInfo, houseList, token, certificado);
-    }
-
-    private async Task CancelarAssociacaoHouseMasterList(MasterHouseAssociacao associacao,
-        UserSession userSession,
-        SubmeterRFBMasterHouseItemRequest masterInfo,
-        List<House> houses,
-        X509Certificate2 certificado,
-        TokenResponse token)
-    {
-
-        string freightFowarderCnpj = houses.FirstOrDefault().AgenteDeCargaInfo.CNPJ;
-
-        List<House> houseList = new List<House>();
-        foreach (var house in houses)
-        {
-            houseList.Add(house);
-        }
-        await CancelarHouseMasterAssociacao(associacao, userSession, freightFowarderCnpj, masterInfo, houseList, token, certificado);
-    }
-
-    private async Task SubmeterHouseMasterAssociacao(UserSession userSession,
-        string FreightFowarderTaxId, 
-        SubmeterRFBMasterHouseItemRequest masterInfo, 
-        List<House> houses, 
-        TokenResponse token, 
-        X509Certificate2 certificado)
-    {
-        var associacao = await _masterHouseAssociacaoRepository
-            .SelectMasterHouseAssociacaoByMaster(masterInfo.MasterNumber);
-
-        var operation = IataXmlPurposeCode.Creation;
-
-        if (associacao == null)
-        {
-            associacao = new MasterHouseAssociacao
-            {
-                ConsigmentItemQuantity = houses.Count,
-                CreatedDateTimeUtc = DateTime.UtcNow,
-                FinalDestinationLocation = masterInfo.DestinationLocation,
-                GrossWeight = masterInfo.TotalWeight,
-                GrossWeightUnit = masterInfo.TotalWeightUnit,
-                MasterNumber = masterInfo.MasterNumber,
-                MessageHeaderDocumentId = masterInfo.MasterNumber,
-                OriginLocation = masterInfo.OriginLocation,
-                PackageQuantity = masterInfo.PackageQuantity,
-                TotalPieceQuantity = masterInfo.TotalPiece,
-                CriadoPeloId = userSession.UserId,
-                EmpresaId = userSession.CompanyId
-            };
-        }
-        else
-        {
-            if (associacao.SituacaoAssociacaoRFBId == 1)
-            {
-                var res = _uploadReceitaFederal.CheckFileProtocol(associacao.ProtocoloAssociacaoRFB, token);
-                await ProcessaRetornoChecagemArquivoHouseMaster(res, associacao, houses);
-                return;
-            }
-
-            if (!CheckUploadAvailability(houses))
-                return;
-
-            if(associacao.SituacaoAssociacaoRFBId == 2)
-                operation = IataXmlPurposeCode.Update;
-        }
-
-        string xmlAssociacao = _motorIata
-            .GenMasterHouseManifest(masterInfo, houses, operation, associacao.CreatedDateTimeUtc);
-
-        var responseAssociacao = _uploadReceitaFederal
-            .SubmitHouseMaster(FreightFowarderTaxId, xmlAssociacao, token, certificado);
-
-        await ProcessarRetornoEnvioArquivoHouseMaster(responseAssociacao, associacao, houses);
-        
-        return;
-    }
-
-    private async Task CancelarHouseMasterAssociacao(MasterHouseAssociacao associacao, UserSession userSession,
-        string FreightFowarderTaxId,
-        SubmeterRFBMasterHouseItemRequest masterInfo,
-        List<House> houses,
-        TokenResponse token,
-        X509Certificate2 certificado)
-    {
-
-        var operation = IataXmlPurposeCode.Deletion;
-
-        string xmlAssociacao = _motorIata
-            .GenMasterHouseManifest(masterInfo, houses, operation, associacao.CreatedDateTimeUtc);
-
-        var responseAssociacao = _uploadReceitaFederal
-            .SubmitHouseMaster(FreightFowarderTaxId, xmlAssociacao, token, certificado);
-
-        await ProcessarRetornoExclusaoAssociacao(responseAssociacao, associacao, houses);
-
-        return;
-    }
-
-    private bool CheckUploadAvailability(List<House> houses)
-    {
-        return houses
-            .Where(x => x.SituacaoAssociacaoRFBId != 2 || (x.SituacaoAssociacaoRFBId == 2 && x.ReenviarAssociacao))
-            .Count() > 0;
-    }
-    private async Task ProcessarRetornoEnvioArquivoHouseMaster(ReceitaRetornoProtocol response,
-        MasterHouseAssociacao associacao,
-        List<House> houses)
-    {
-        switch (response.StatusCode)
-        {
-            case "Received":
-                associacao.SituacaoAssociacaoRFBId = 1;
-                associacao.CodigoErroAssociacaoRFB = null;
-                associacao.DescricaoErroAssociacaoRFB = null;
-                associacao.ProtocoloAssociacaoRFB = response.Reason;
-                associacao.DataProtocoloAssociacaoRFB = response.IssueDateTime;
-                associacao.ReenviarAssociacao = false;
-                if (associacao.Id == 0)
-                    _masterHouseAssociacaoRepository.InsertMasterHouseAssociacao(associacao);
-                else
-                    _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
-                break;
-            case "Rejected":
-                associacao.SituacaoAssociacaoRFBId = 3;
-                associacao.DescricaoErroAssociacaoRFB = response.Reason;
-                associacao.DataProtocoloAssociacaoRFB = response.IssueDateTime;
-                if (associacao.Id == 0)
-                    _masterHouseAssociacaoRepository.InsertMasterHouseAssociacao(associacao);
-                else
-                    _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
-                break;
-            case "Processed":
-                associacao.SituacaoAssociacaoRFBId = 2;
-                associacao.CodigoErroAssociacaoRFB = null;
-                associacao.DescricaoErroAssociacaoRFB = null;
-                associacao.DataProtocoloAssociacaoRFB = response.IssueDateTime;
-                associacao.ReenviarAssociacao = false;
-                if (associacao.Id == 0)
-                    _masterHouseAssociacaoRepository.InsertMasterHouseAssociacao(associacao);
-                else
-                    _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
-                break;
-        }
-
-        houses.ForEach(house =>
-        {
-            switch (response.StatusCode)
-            {
-                case "Received":
-                    house.SituacaoAssociacaoRFBId = 1;
-                    house.CodigoErroAssociacaoRFB = null;
-                    house.DescricaoErroAssociacaoRFB = null;
-                    house.ProtocoloAssociacaoRFB = response.Reason;
-                    house.DataProtocoloAssociacaoRFB = response.IssueDateTime;
-                    house.ReenviarAssociacao = false;
-                    _houseRepository.UpdateHouse(house);
-                    break;
-                case "Rejected":
-                    house.SituacaoAssociacaoRFBId = 3;
-                    house.DescricaoErroAssociacaoRFB = response.Reason;
-                    house.DataProtocoloAssociacaoRFB = response.IssueDateTime;
-                    _houseRepository.UpdateHouse(house);
-                    break;
-                case "Processed":
-                    house.SituacaoAssociacaoRFBId = 2;
-                    house.CodigoErroAssociacaoRFB = null;
-                    house.DescricaoErroAssociacaoRFB = null;
-                    house.DataProtocoloAssociacaoRFB = response.IssueDateTime;
-                    house.ReenviarAssociacao = false;
-                    _houseRepository.UpdateHouse(house);
-                    break;
-            }
-        });
-        await _vooRepository.SaveChanges();
-    }
-    private async Task ProcessaRetornoChecagemArquivoHouseMaster(ProtocoloReceitaCheckFile response,
-        MasterHouseAssociacao associacao,
-        List<House> houses)
-    {
-        switch (response.status)
-        {
-            case "Rejected":
-                associacao.SituacaoAssociacaoRFBId = 3;
-                if (response.errorList.Length > 0)
-                {
-                    associacao.CodigoErroAssociacaoRFB = response.errorList[0].code;
-                    associacao.DescricaoErroAssociacaoRFB = string.Join("\n", response.errorList.Select(x => x.description));
-                    associacao.DataChecagemAssociacaoRFB = response.dateTime;
-                }
-                if(associacao.Id == 0)
-                    _masterHouseAssociacaoRepository.InsertMasterHouseAssociacao(associacao);
-                else
-                    _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
-                break;
-            case "Processed":
-                associacao.SituacaoAssociacaoRFBId = 2;
-                associacao.DataChecagemAssociacaoRFB = response.dateTime;
-                if (associacao.Id == 0)
-                    _masterHouseAssociacaoRepository.InsertMasterHouseAssociacao(associacao);
-                else
-                    _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
-                break;
-            default:
-                break;
-        }
-        houses.ForEach(house =>
-        {
-            switch (response.status)
-            {
-                case "Rejected":
-                    house.SituacaoAssociacaoRFBId = 3;
-                    if (response.errorList.Length > 0)
-                    {
-                        house.CodigoErroAssociacaoRFB = response.errorList[0].code;
-                        house.DescricaoErroAssociacaoRFB = string.Join("\n", response.errorList.Select(x => x.description));
-                        house.DataChecagemAssociacaoRFB = response.dateTime;
-                    }
-                    _houseRepository.UpdateHouse(house);
-                    break;
-                case "Processed":
-                    house.SituacaoAssociacaoRFBId = 2;
-                    house.DataChecagemAssociacaoRFB = response.dateTime;
-                    _houseRepository.UpdateHouse(house);
-                    break;
-                default:
-                    break;
-            }
-        });
-        await _masterHouseAssociacaoRepository.SaveChanges();
-    }
-
-    private async Task ProcessaRetornoChecagemAssociacaoHouseMaster(ProtocoloReceitaCheckFile response,
-        MasterHouseAssociacao associacao,
-        List<House> houses)
-    {
-        switch (response.status)
-        {
-            case "Rejected":
-                associacao.SituacaoDeletionAssociacaoRFBId = 3;
-                if (response.errorList.Length > 0)
-                {
-                    associacao.CodigoErroDeletionAssociacaoRFB = response.errorList[0].code;
-                    associacao.DescricaoErroDeletionAssociacaoRFB = string.Join("\n", response.errorList.Select(x => x.description));
-                    associacao.DataChecagemDeletionAssociacaoRFB = response.dateTime;
-                }
-                _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
-                break;
-            case "Processed":
-                associacao.SituacaoDeletionAssociacaoRFBId = 4;
-                associacao.DataChecagemDeletionAssociacaoRFB = response.dateTime;
-                associacao.DataExclusao = DateTime.UtcNow;
-                _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
-                break;
-            default:
-                break;
-        }
-        houses.ForEach(house =>
-        {
-            switch (response.status)
-            {
-                case "Processed":
-                    house.SituacaoAssociacaoRFBId = 0;
-                    house.DataChecagemAssociacaoRFB = null;
-                    house.DescricaoErroAssociacaoRFB = null;
-                    house.DataProtocoloAssociacaoRFB = null;
-                    house.ProtocoloAssociacaoRFB = null;
-                    house.ReenviarAssociacao = false;
-                    _houseRepository.UpdateHouse(house);
-                    break;
-                default:
-                    break;
-            }
-        });
-        await _masterHouseAssociacaoRepository.SaveChanges();
-    }
-
-    private async Task ProcessarRetornoExclusaoAssociacao(ReceitaRetornoProtocol response,
-        MasterHouseAssociacao associacao,
-        List<House> houses)
-    {
-        switch (response.StatusCode)
-        {
-            case "Received":
-                associacao.SituacaoDeletionAssociacaoRFBId = 1;
-                associacao.CodigoErroDeletionAssociacaoRFB = null;
-                associacao.DescricaoErroDeletionAssociacaoRFB = null;
-                associacao.ProtocoloDeletionAssociacaoRFB = response.Reason;
-                associacao.DataProtocoloDeletionAssociacaoRFB = response.IssueDateTime;
-                _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
-                break;
-            case "Rejected":
-                associacao.SituacaoDeletionAssociacaoRFBId = 3;
-                associacao.CodigoErroDeletionAssociacaoRFB = response.StatusCode ;
-                associacao.DescricaoErroDeletionAssociacaoRFB = response.Reason;
-                associacao.DataProtocoloDeletionAssociacaoRFB = response.IssueDateTime;
-                _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
-                break;
-            case "Processed":
-                associacao.SituacaoDeletionAssociacaoRFBId = 2;
-                associacao.CodigoErroDeletionAssociacaoRFB = null;
-                associacao.DescricaoErroDeletionAssociacaoRFB = null;
-                associacao.DataProtocoloDeletionAssociacaoRFB = response.IssueDateTime;
-                _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
-                break;
-        }
-
-        if (response.StatusCode == "Processed")
-        {
-            houses.ForEach(house =>
-            {
-                house.SituacaoAssociacaoRFBId = 0;
-                house.CodigoErroAssociacaoRFB = null;
-                house.DescricaoErroAssociacaoRFB = null;
-                house.DataProtocoloAssociacaoRFB = null;
-                house.ReenviarAssociacao = false;
-                _houseRepository.UpdateHouse(house);
-            });
-        }
-        await _vooRepository.SaveChanges();
-    }
-    #endregion
-
-    #region Métodos Privados
-    private ApiResponse<string> GeraErrorValidator(ValidationResult resultValidator)
-    {
-        ApiResponse<string> apiResponseError = new ApiResponse<string>()
-        {
-            Sucesso = false,
-            Dados = null,
-            Notificacoes = new List<Notificacao>()
-        };
-        foreach (var item in resultValidator.Errors)
-        {
-            apiResponseError.Notificacoes.Add(new Notificacao()
-            {
-                Codigo = "9999",
-                Mensagem = item.ErrorMessage
-            });
-        }
-
-        return apiResponseError;
-    }
-
     private async Task<FileUploadResponse> ProcessaRetornoChecagemArquivoMaster(ProtocoloReceitaCheckFile response, Master master)
     {
         FileUploadResponse resp = new FileUploadResponse
@@ -1484,7 +667,13 @@ public class SubmeterReceitaService : ISubmeterReceitaService
                 master.Reenviar = false;
                 master.CodigoErroRFB = null;
                 master.DescricaoErroRFB = null;
-                master.ProtocoloRFB = response.protocolNumber;
+                master.Reenviar = false;
+                master.DataChecagemDeletionRFB = null;
+                master.CodigoErroDeletionRFB = null;
+                master.DataProtocoloDeletionRFB = null;
+                master.DescricaoErroDeletionRFB = null;
+                master.ProtocoloDeletionRFB = null;
+                master.SituacaoDeletionRFBId = 0;
                 master.DataChecagemRFB = response.dateTime;
                 _masterRepository.UpdateMaster(master);
                 await _masterRepository.SaveChanges();
@@ -1497,6 +686,29 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         return resp;
     }
+    #endregion
+
+    #region Métodos Privados
+    private ApiResponse<string> GeraErrorValidator(ValidationResult resultValidator)
+    {
+        ApiResponse<string> apiResponseError = new ApiResponse<string>()
+        {
+            Sucesso = false,
+            Dados = null,
+            Notificacoes = new List<Notificacao>()
+        };
+        foreach (var item in resultValidator.Errors)
+        {
+            apiResponseError.Notificacoes.Add(new Notificacao()
+            {
+                Codigo = "9999",
+                Mensagem = item.ErrorMessage
+            });
+        }
+
+        return apiResponseError;
+    }
+    #endregion
 
     #region Verificação Arquivo Voo
     private async Task<ApiResponse<string>> ProcessarRetornoEnvioArquivoVoo(ReceitaRetornoProtocol response, Voo voo)
@@ -1662,91 +874,94 @@ public class SubmeterReceitaService : ISubmeterReceitaService
     }
     #endregion
 
-    private async Task<FileUploadResponse> ProcessarRetornoEnvioArquivoMaster(ReceitaRetornoProtocol response, Master master)
+    #region Master Cancelar
+    private async Task<ApiResponse<string>> CancelarMaster(
+        Master master,
+        X509Certificate2 certificado,
+        TokenResponse token)
     {
-        FileUploadResponse resp = new FileUploadResponse
-        {
-            Id = master.Id,
-            Protocol = master.ProtocoloRFB,
-            Status = response.StatusCode
-        };
-        master.StatusCodeRFB = response.StatusCode;
+        var xml = _motorIata.GenMasterManifest(master, IataXmlPurposeCode.Deletion);
+        var response = _uploadReceitaFederal.SubmitWaybill(master.CiaAereaInfo.CNPJ, xml, token, certificado);
+        await ProcessaRetornoEnvioCancelarMaster(response, master);
 
-        switch (response.StatusCode)
+        if (response.StatusCode == "Rejected")
+            throw new BusinessException(response.Reason);
+
+        return new ApiResponse<string>()
         {
-            case ("Received"):
-                master.SituacaoRFBId = Master.RFStatusEnvioType.Received;
-                master.CodigoErroRFB = null;
-                master.DescricaoErroRFB = null;
-                master.ProtocoloRFB = response.Reason;
-                master.DataProtocoloRFB = response.IssueDateTime;
-                break;
+            Sucesso = true,
+            Dados = "Enviado com sucesso !",
+            Notificacoes = null
+        };
+    }
+    private async Task ProcessaRetornoChecagemCancelarMaster(
+        ProtocoloReceitaCheckFile response,
+        Master master)
+    {
+        switch (response.status)
+        {
             case "Rejected":
-                master.SituacaoRFBId = Master.RFStatusEnvioType.Rejected;
-                master.DescricaoErroRFB = response.Reason;
-                master.DataProtocoloRFB = response.IssueDateTime;
-                resp.Status = response.StatusCode;
-                _validadorMaster.InserirErrosMaster(master);
+                master.SituacaoDeletionRFBId = 3;
+                if (response.errorList.Length > 0)
+                {
+                    master.CodigoErroDeletionRFB = response.errorList[0].code;
+                    master.DescricaoErroDeletionRFB = string.Join("\n", response.errorList.Select(x => x.description));
+                    master.DataChecagemDeletionRFB = response.dateTime;
+                }
+                _masterRepository.UpdateMaster(master);
                 break;
             case "Processed":
-                master.SituacaoRFBId = Master.RFStatusEnvioType.Processed;
-                master.Reenviar = false;
+                master.SituacaoDeletionRFBId = 2;
+                master.DataChecagemDeletionRFB = response.dateTime;
+                master.DescricaoErroDeletionRFB = null;
+                master.SituacaoRFBId = 0;
+                master.DataChecagemRFB = null;
                 master.CodigoErroRFB = null;
-                master.DescricaoErroRFB = null;
-                master.DataProtocoloRFB = response.IssueDateTime;
+                master.DataProcessadoRFB = null;
+                master.ProtocoloRFB = null;
+                _masterRepository.UpdateMaster(master);
                 break;
             default:
                 break;
         }
-        _masterRepository.UpdateMaster(master);
-        await _vooRepository.SaveChanges();
-        return resp;
+
+        await _masterRepository.SaveChanges();
     }
-    private async Task<FileUploadResponse> ProcessarRetornoEnvioMasterExclusion(ReceitaRetornoProtocol response, Master master)
+    private async Task ProcessaRetornoEnvioCancelarMaster(
+        ReceitaRetornoProtocol response,
+        Master master)
     {
-        var result = new FileUploadResponse
-        {
-            Id = master.Id,
-            Status = response.Reason
-        };
-
-        MasterEntityValidator validator = new MasterEntityValidator();
-
         switch (response.StatusCode)
         {
             case "Received":
-                master.SituacaoRFBId = Master.RFStatusEnvioType.ReceivedDeletion;
-                master.CodigoErroRFB = null;
-                master.DescricaoErroRFB = null;
-                master.ProtocoloRFB = response.Reason;
-                master.DataProtocoloRFB = response.IssueDateTime;
-                result.Protocol = response.Reason;
+                master.SituacaoDeletionRFBId = 1;
+                master.CodigoErroDeletionRFB = null;
+                master.DescricaoErroDeletionRFB = null;
+                master.ProtocoloDeletionRFB = response.Reason;
+                master.DataProtocoloDeletionRFB = response.IssueDateTime;
                 _masterRepository.UpdateMaster(master);
-                await _vooRepository.SaveChanges();
                 break;
             case "Rejected":
-                master.SituacaoRFBId = Master.RFStatusEnvioType.Rejected;
-                master.DescricaoErroRFB = response.Reason;
-                master.DataProtocoloRFB = response.IssueDateTime;
-                result.Message = response.Reason;
+                master.SituacaoDeletionRFBId = 3;
+                master.CodigoErroDeletionRFB = response.StatusCode;
+                master.DescricaoErroDeletionRFB = response.Reason;
+                master.DataProtocoloDeletionRFB = response.IssueDateTime;
                 _masterRepository.UpdateMaster(master);
-                await _vooRepository.SaveChanges();
                 break;
             case "Processed":
-                var resultProcessed = validator.Validate(master);
-                master.StatusId = resultProcessed.IsValid ? 1 : 0;
+                master.SituacaoDeletionRFBId = 2;
+                master.DataChecagemDeletionRFB = response.IssueDateTime;
+                master.DescricaoErroDeletionRFB = null;
                 master.SituacaoRFBId = 0;
+                master.DataChecagemRFB = null;
                 master.CodigoErroRFB = null;
-                master.DescricaoErroRFB = null;
-                master.DataProtocoloRFB = null;
-                result.Protocol = response.Reason;
+                master.DataProcessadoRFB = null;
+                master.ProtocoloRFB = null;
                 _masterRepository.UpdateMaster(master);
-                await _vooRepository.SaveChanges();
-                break;
-            default:
                 break;
         }
-        return result;
+
+        await _masterRepository.SaveChanges();
     }
     #endregion
 }

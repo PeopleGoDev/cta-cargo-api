@@ -18,10 +18,12 @@ namespace CtaCargo.CctImportacao.Api.Controllers.v1;
 public class ReceitaFederalController : Controller
 {
     private readonly ISubmeterReceitaService _submeterRFB;
+    private readonly IReceitaHouseService _receitaHouseService;
 
-    public ReceitaFederalController(ISubmeterReceitaService submeterRFB)
+    public ReceitaFederalController(ISubmeterReceitaService submeterRFB, IReceitaHouseService receitaHouseService)
     {
         _submeterRFB = submeterRFB;
+        _receitaHouseService = receitaHouseService;
     }
 
     [HttpPost]
@@ -74,11 +76,16 @@ public class ReceitaFederalController : Controller
     [HttpPost]
     [Authorize]
     [Route("SubmeterMasterExclusion")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<IEnumerable<FileUploadResponse>>))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<MasterResponseDto>))]
     public async Task<IActionResult> SubmeterMasterExclusion(MasterExclusaoRFBInput input)
     {
         var response = await _submeterRFB.SubmeterMasterExclusion(HttpContext.GetUserSession(), input);
-        return Ok(response);
+
+        return Ok(new ApiResponse<MasterResponseDto>()
+        {
+            Dados = response,
+            Sucesso = true,
+        });
     }
 
     [HttpPost]
@@ -86,7 +93,8 @@ public class ReceitaFederalController : Controller
     [Route("SubmeterHouseAgenteDeCarga")]
     public async Task<ApiResponse<string>> SubmeterHouseAgenteDeCarga(SubmeterRFBHouseRequest input)
     {
-        return await _submeterRFB.SubmeterHousesAgentesDeCarga(input);
+        return await _receitaHouseService
+            .SubmeterHousesAgentesDeCarga(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -100,7 +108,7 @@ public class ReceitaFederalController : Controller
         if(input.Masters is null) return BadRequest();
         if(input.Masters.Count == 0)  return BadRequest();
 
-        return Ok(await _submeterRFB.SubmeterAssociacaoHousesMaster(HttpContext.GetUserSession(), input));
+        return Ok(await _receitaHouseService.SubmeterAssociacaoHousesMaster(HttpContext.GetUserSession(), input));
     }
 
     [HttpGet]
@@ -113,7 +121,7 @@ public class ReceitaFederalController : Controller
         if (associationId == null) return BadRequest();
         if (associationId <= 0) return BadRequest();
 
-        return Ok(await _submeterRFB.SubmeterAssociation(HttpContext.GetUserSession(), associationId.Value));
+        return Ok(await _receitaHouseService.SubmeterAssociation(HttpContext.GetUserSession(), associationId.Value));
     }
 
     [HttpGet]
@@ -126,6 +134,6 @@ public class ReceitaFederalController : Controller
         if (houseId == null) return BadRequest();
         if (houseId <= 0) return BadRequest();
 
-        return Ok(await _submeterRFB.SubmeterHouseExclusion(HttpContext.GetUserSession(), houseId));
+        return Ok(await _receitaHouseService.SubmeterHouseExclusion(HttpContext.GetUserSession(), houseId));
     }
 }

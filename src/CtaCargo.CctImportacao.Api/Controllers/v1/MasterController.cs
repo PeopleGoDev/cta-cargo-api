@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using CtaCargo.CctImportacao.Api.Controllers.Session;
-using CtaCargo.CctImportacao.Application.Dtos;
+﻿using CtaCargo.CctImportacao.Api.Controllers.Session;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services;
@@ -9,6 +6,8 @@ using CtaCargo.CctImportacao.Application.Services.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace CtaCargo.CctImportacao.Api.Controllers;
 
@@ -28,8 +27,7 @@ public class MasterController : Controller
     [Route("ObterMasterPorId")]
     public async Task<ApiResponse<MasterResponseDto>> ObterMasterPorId(int masterId)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _masterService.MasterPorId(userSession, masterId);
+        return await _masterService.MasterPorId(HttpContext.GetUserSession(), masterId);
     }
 
     [HttpPost]
@@ -37,8 +35,7 @@ public class MasterController : Controller
     [Route("ListarMasters")]
     public async Task<ApiResponse<IEnumerable<MasterResponseDto>>> ListarMasters(MasterListarRequest input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _masterService.ListarMasters(userSession, input);
+        return await _masterService.ListarMasters(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -46,8 +43,7 @@ public class MasterController : Controller
     [Route("ListarMastersPorDataCriacao")]
     public async Task<ApiResponse<IEnumerable<MasterResponseDto>>> ListarMastersPorDataCriacao(MasterHousePorDataCriacaoRequest input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _masterService.ListarMastersPorDataCriacao(userSession, input);
+        return await _masterService.ListarMastersPorDataCriacao(HttpContext.GetUserSession(), input);
     }
 
     [HttpGet]
@@ -55,8 +51,7 @@ public class MasterController : Controller
     [Route("ListarMastersVoo")]
     public async Task<ApiResponse<IEnumerable<MasterVooResponseDto>>> ListarMastersVoo(int vooId)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _masterService.ListarMastersVoo(userSession, vooId);
+        return await _masterService.ListarMastersVoo(HttpContext.GetUserSession(), vooId);
     }
     
     [HttpGet]
@@ -64,8 +59,7 @@ public class MasterController : Controller
     [Route("ListarMastersListaPorVooId")]
     public async Task<ApiResponse<IEnumerable<MasterListaResponseDto>>> ListarMastersListaPorVooId(int vooId)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _masterService.ListarMasterListaPorVooId(userSession, vooId);
+        return await _masterService.ListarMasterListaPorVooId(HttpContext.GetUserSession(), vooId);
     }
 
     [HttpPost]
@@ -73,8 +67,7 @@ public class MasterController : Controller
     [Route("InserirMaster")]
     public async Task<ApiResponse<MasterResponseDto>> InserirMaster([FromBody]MasterInsertRequestDto input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _masterService.InserirMaster(userSession, input);
+        return await _masterService.InserirMaster(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -82,8 +75,7 @@ public class MasterController : Controller
     [Route("AtualizarMaster")]
     public async Task<ApiResponse<MasterResponseDto>> AtualizarMaster([FromBody]MasterUpdateRequestDto input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _masterService.AtualizarMaster(userSession, input);
+        return await _masterService.AtualizarMaster(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -91,8 +83,7 @@ public class MasterController : Controller
     [Route("AtualizarReeviarMaster")]
     public async Task<ApiResponse<IEnumerable<MasterResponseDto>>> AtualizarReeviarMaster([FromBody] AtualizarMasterReenviarRequest input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _masterService.AtualizarReenviarMaster(userSession, input);
+        return await _masterService.AtualizarReenviarMaster(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -100,8 +91,7 @@ public class MasterController : Controller
     [Route("ExcluirMaster")]
     public async Task<ApiResponse<string>> ExcluirMaster(ExcluirMastersByIdRequest input)
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _masterService.ExcluirMaster(userSession, input);
+        return await _masterService.ExcluirMaster(HttpContext.GetUserSession(), input);
     }
 
     [HttpGet]
@@ -109,8 +99,7 @@ public class MasterController : Controller
     [Route("ListarArquivosImportacao")]
     public ApiResponse<List<MasterFileResponseDto>> ListFileToImport()
     {
-        var userSession = HttpContext.GetUserSession();
-        return _masterService.GetFilesToImport(userSession);
+        return _masterService.GetFilesToImport(HttpContext.GetUserSession());
     }
 
     [HttpPost]
@@ -122,8 +111,7 @@ public class MasterController : Controller
         {
             using (var ms = file.OpenReadStream())
             {
-                var userSession = HttpContext.GetUserSession();
-                return await _masterService.ImportFile(userSession, input, ms);
+                return await _masterService.ImportFile(HttpContext.GetUserSession(), input, ms);
             }
         }
 

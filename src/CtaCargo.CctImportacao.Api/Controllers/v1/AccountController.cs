@@ -1,7 +1,6 @@
 ﻿using CtaCargo.CctImportacao.Api.Controllers.Session;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
-using CtaCargo.CctImportacao.Application.Services;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -142,6 +141,20 @@ public class AccountController : Controller
         {
             Dados = response,
             Sucesso = response is null ? false : true,
+        };
+    }
+
+    [HttpPost("new-register-package")]
+    public async Task<ApiResponse<string>> NewRegisterPackage(
+    [FromHeader(Name = "Registration-Token")] Guid registerSession,
+    [FromBody] RegistrySelectedPackage request)
+    {
+        var response = await _accountService.NewRegistryPackage(registerSession.ToString(), request);
+
+        return new()
+        {
+            Dados = "Sucesso",
+            Sucesso = true,
         };
     }
 }

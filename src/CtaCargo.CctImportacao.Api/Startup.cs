@@ -37,9 +37,11 @@ public class Startup
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
-        services.AddStackExchangeRedisCache(options =>
+        services.AddDistributedSqlServerCache(options =>
         {
-            options.Configuration = Configuration.GetConnectionString("RedisConnectionString");
+            options.ConnectionString = Configuration.GetConnectionString("DefaultConnection");
+            options.SchemaName = "dbo";
+            options.TableName = "CctCache";
         });
 
         services.AddDefaultIdentity<IdentityUser>()
@@ -80,6 +82,7 @@ public class Startup
         services.AddScoped<IPortoIataService, PortoIATAService>();
         services.AddScoped<IUploadService, UploadService>();
         services.AddScoped<ISubmeterReceitaService, SubmeterReceitaService>();
+        services.AddScoped<IReceitaHouseService, ReceitaHouseService>();
         services.AddScoped<IUldMasterService, UldMasterService>();
         services.AddScoped<ICertificadoDigitalService, CertificadoDigitalService>();
         services.AddScoped<INaturezaCargaService, NaturezaCargaService>();
@@ -108,6 +111,8 @@ public class Startup
         services.AddScoped<IAutenticaReceitaFederal, AutenticaReceitaFederal>();
         services.AddScoped<IUploadReceitaFederal, FlightUploadReceitaFederal>();
         services.AddScoped<IMotorIata, MotorIata>();
+        services.AddScoped<IMotorIataHouse, MotorIataHouse>();
+
         services.AddScoped<ISendEmail, SendEmail>();
         services.AddScoped<IValidadorMaster, ValidadorMaster>(); 
     }

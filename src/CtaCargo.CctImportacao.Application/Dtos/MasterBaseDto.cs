@@ -66,4 +66,6 @@ public class MasterBaseDto
     public string AssinaturaTransportadorNome { get; set; }
     public string AssinaturaTransportadorLocal { get; set; }
     public DateTime? AssinaturaTransportadorData { get; set; }
+    public int RFBCancelationStatus { get; set; }
+    public string RFBCancelationProtocol { get; set; }
 }

@@ -277,6 +277,14 @@ public class AccountService : IAccountService
         };
     }
 
+    public async Task<bool> NewRegistryPackage(string registrationToken, RegistrySelectedPackage request)
+    {
+        registrationToken = $"{registrationToken}-selected-package";
+
+        await _cacheService.SetData<RegistrySelectedPackage>(registrationToken, request, DateTime.Now);
+
+        return true;
+    }
     public RegistryUpdateResponse SetRegistry(UserSession userSession, RegistryUpdateRequest request)
     {
         var registry = _configuraRepository.GetCompanyById(userSession.CompanyId);

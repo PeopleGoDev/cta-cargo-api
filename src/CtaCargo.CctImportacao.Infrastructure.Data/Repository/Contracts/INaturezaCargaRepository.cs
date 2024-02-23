@@ -8,7 +8,7 @@ public interface INaturezaCargaRepository
 {
     void CreateNaturezaCarga(NaturezaCarga narurezaCarga);
     void DeleteNaturezaCarga(NaturezaCarga narurezaCarga);
-    Task<IEnumerable<NaturezaCarga>> GetAllNaturezaCarga(int empresaId);
+    Task<List<NaturezaCarga>> GetAllNaturezaCarga(int empresaId);
     Task<NaturezaCarga> GetNaturezaCargaById(int id);
     Task<int?> GetNaturezaCargaIdByCodigo(string codigo);
     IEnumerable<NaturezaCarga> GetTopSpecialInstruction(string like, int top);

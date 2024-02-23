@@ -1,6 +1,5 @@
 ﻿using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
-using CtaCargo.CctImportacao.Domain.Exceptions;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using System;
 using System.Security.Cryptography.X509Certificates;
@@ -38,14 +37,14 @@ public class CertitificadoDigitalSupport : ICertitificadoDigitalSupport
         if(certificate != null && certificate.NotAfter > DateTime.Now)
             return new CctCertificate(CctCertificate.CertificateOriginType.User, certificate, false, null);
 
-        if (certificate != null)
+        if (certificate is not null)
             hasUserExpired = true;
 
         certificate = await GetCertificateCiaAereaAsync(airCompanyId);
         if (certificate != null && certificate.NotAfter > DateTime.Now)
             return new CctCertificate(CctCertificate.CertificateOriginType.Company, certificate, false, null);
 
-        if (certificate != null)
+        if (certificate is not null)
             hasCompanyExpired = true;
 
         if (hasUserExpired)
@@ -63,17 +62,17 @@ public class CertitificadoDigitalSupport : ICertitificadoDigitalSupport
         bool hasCompanyExpired = false;
 
         var certificate = await GetCertificateUsuarioAsync(usuarioId);
-        if (certificate != null && certificate.NotAfter > DateTime.Now)
+        if (certificate?.NotAfter > DateTime.Now)
             return new CctCertificate(CctCertificate.CertificateOriginType.User, certificate, false, null);
 
         if (certificate != null)
             hasUserExpired = true;
 
         certificate = await GetCertificateAgenteDeCargaAsync(freightForwarderId);
-        if (certificate != null && certificate.NotAfter > DateTime.Now)
+        if (certificate?.NotAfter > DateTime.Now)
             return new CctCertificate(CctCertificate.CertificateOriginType.Company, certificate, false, null);
 
-        if (certificate != null)
+        if (certificate is not null)
             hasCompanyExpired = true;
 
         if (hasUserExpired)
@@ -105,7 +104,7 @@ public class CertitificadoDigitalSupport : ICertitificadoDigitalSupport
         return x509;
     }
 
-    public async Task<X509Certificate2> GetCertificateAgenteDeCargaAsync(int agenteDeCargaId)
+    private async Task<X509Certificate2> GetCertificateAgenteDeCargaAsync(int agenteDeCargaId)
     {
         AgenteDeCarga agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaById(agenteDeCargaId);
 
@@ -125,14 +124,15 @@ public class CertitificadoDigitalSupport : ICertitificadoDigitalSupport
         return x509;
     }
 
-    public async Task<X509Certificate2> GetCertificateUsuarioAsync(int usuarioId, bool optionalError = true)
+    private async Task<X509Certificate2> GetCertificateUsuarioAsync(int usuarioId, bool optionalError = true)
     {
         Usuario usuario = await _usuarioRepository.GetUsuarioById(usuarioId);
 
         if (usuario?.CertificadoId is null)
             return null;
 
-        CertificadoDigital certificado = await _certificadoDigitalRepository.GetCertificadoDigitalById((int)usuario.CertificadoId);
+        CertificadoDigital certificado = await _certificadoDigitalRepository
+            .GetCertificadoDigitalById(usuario.CertificadoId.Value);
 
         if (certificado == null)
             return null;
@@ -147,7 +147,6 @@ public class CertitificadoDigitalSupport : ICertitificadoDigitalSupport
 
         X509Certificate2 x509 = new X509Certificate2(arquivoMemoria, password);
         return x509;
-
     }
 }
 

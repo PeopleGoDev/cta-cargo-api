@@ -17,4 +17,5 @@ public interface IAccountService
     Task<RegistryResponse> NewRegistryGet(string registrationToken);
     Task<CiaAereaResponseDto> NewRegistryAirCompanyGet(string registrationToken);
     RegistryUpdateResponse SetRegistry(UserSession userSession, RegistryUpdateRequest request);
+    Task<bool> NewRegistryPackage(string registrationToken, RegistrySelectedPackage request);
 }

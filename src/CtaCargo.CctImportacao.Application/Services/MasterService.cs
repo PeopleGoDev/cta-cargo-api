@@ -41,7 +41,7 @@ public class MasterService : IMasterService
         IErroMasterRepository erroMasterRepository,
         INaturezaCargaRepository naturezaCargaRepository,
         IUldMasterRepository uldMasterRepository,
-        IMapper mapper, 
+        IMapper mapper,
         IValidadorMaster validadorMaster = null)
     {
         _masterRepository = masterRepository;
@@ -55,51 +55,18 @@ public class MasterService : IMasterService
     }
     public async Task<ApiResponse<MasterResponseDto>> MasterPorId(UserSession userSession, int masterId)
     {
-        try
-        {
-            var lista = await _masterRepository.GetMasterById(userSession.CompanyId, masterId);
-            if (lista == null)
-            {
-                return
-                    new ApiResponse<MasterResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Master não encontrado !"
-                            }
-                        }
-                    };
-            }
-            var dto = _mapper.Map<MasterResponseDto>(lista);
-            return
-                    new ApiResponse<MasterResponseDto>
-                    {
-                        Dados = dto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-        }
-        catch (Exception ex)
-        {
-            return
-                    new ApiResponse<MasterResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Erro na aplicação! {ex.Message} !"
-                            }
-                        }
-                    };
-        }
+        var lista = await _masterRepository.GetMasterById(userSession.CompanyId, masterId) ??
+            throw new BusinessException("Master não encontrado!");
 
+        var dto = _mapper.Map<MasterResponseDto>(lista);
+
+        return
+                new ApiResponse<MasterResponseDto>
+                {
+                    Dados = dto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
     }
     public async Task<ApiResponse<IEnumerable<MasterResponseDto>>> ListarMasters(UserSession userSession, MasterListarRequest input)
     {
@@ -298,7 +265,7 @@ public class MasterService : IMasterService
     }
     public async Task<ApiResponse<MasterResponseDto>> InserirMaster(UserSession userSession, MasterInsertRequestDto input)
     {
-        if(input.VooId == 0 && input.NumeroVooXML.Trim().Length != 6)
+        if (input.VooId == 0 && input.NumeroVooXML.Trim().Length != 6)
             throw new BusinessException("Número do voo deve conter apenas 6 caracteres!");
 
         Voo voo;
@@ -554,7 +521,7 @@ public class MasterService : IMasterService
         }
 
     }
-    public async Task<ApiResponse<List<MasterResponseDto>>> ImportFile(UserSession userSession, MasterFileImportRequest input,  Stream stream)
+    public async Task<ApiResponse<List<MasterResponseDto>>> ImportFile(UserSession userSession, MasterFileImportRequest input, Stream stream)
     {
         var fileImport = _masterRepository.GetMasterFileImportById(userSession.CompanyId, input.FileImportId);
 
@@ -581,7 +548,7 @@ public class MasterService : IMasterService
 
         int fileLine = 1 + (fileImport.FirstLineTitle ? 1 : 0);
 
-        foreach (var line in lines) 
+        foreach (var line in lines)
         {
             try
             {
@@ -619,7 +586,7 @@ public class MasterService : IMasterService
     {
         var data = _masterRepository.GetMasterFileImportList(userSession.CompanyId);
 
-        if(data == null) return default;
+        if (data == null) return default;
 
         return new ApiResponse<List<MasterFileResponseDto>>
         {
@@ -772,11 +739,11 @@ public class MasterService : IMasterService
         if (e.Length != 11)
             throw new Exception("Número do master deve conter 11 digitos");
 
-        if (!int.TryParse(e,out int digits))
+        if (!int.TryParse(e, out int digits))
             return true;
 
-        var digitos7 = Convert.ToInt32(e.Substring(3,7));
-        var digito = Convert.ToInt32(e.Substring(10,1));
+        var digitos7 = Convert.ToInt32(e.Substring(3, 7));
+        var digito = Convert.ToInt32(e.Substring(10, 1));
         var digitoesperado = digitos7 % 7;
         if (digito == digitoesperado)
             return false;
@@ -787,14 +754,14 @@ public class MasterService : IMasterService
 
 public class FileService
 {
-    public static List<FileImportLineStatus> ReadLines(Stream stream, 
-        Encoding encoding, 
+    public static List<FileImportLineStatus> ReadLines(Stream stream,
+        Encoding encoding,
         FileImport fileImport)
     {
         var lines = new List<string>();
         using (var reader = new StreamReader(stream, encoding))
         {
-            
+
             string line = String.Empty;
             while ((line = reader.ReadLine()) != null)
             {
@@ -803,7 +770,7 @@ public class FileService
         }
         return ReadCSVFile(lines.ToArray(), fileImport);
     }
-    private static List<FileImportLineStatus> ReadCSVFile(string[] lines,FileImport fileImport)
+    private static List<FileImportLineStatus> ReadCSVFile(string[] lines, FileImport fileImport)
     {
         int line = fileImport.FirstLineTitle ? 1 : 0;
         var result = new List<FileImportLineStatus>();
@@ -829,9 +796,12 @@ public class FileService
                 if (fields.Length != fileImport.Details.ToArray().Length)
                     throw new BusinessException("Formato da linha invalida");
 
-                result.Add(new FileImportLineStatus {
+                result.Add(new FileImportLineStatus
+                {
                     LineNumber = i,
-                    IsError = false, ParsedFields = fields });
+                    IsError = false,
+                    ParsedFields = fields
+                });
             }
             catch (Exception ex)
             {

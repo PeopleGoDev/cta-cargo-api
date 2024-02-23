@@ -115,14 +115,13 @@ public class SqlMasterRepository : IMasterRepository
             .Include("CiaAereaInfo")
             .Include("AeroportoOrigemInfo")
             .Include("AeroportoDestinoInfo")
-            .Include("ErrosMaster")
+            .Include(x => x.ErrosMaster.Where(y => y.DataExclusao == null))
             .Include("ULDs")
             .Include("VooInfo")
             .Include("VooInfo.CompanhiaAereaInfo")
             .Include("VooInfo.PortoIataOrigemInfo")
             .Include("VooInfo.PortoIataDestinoInfo")
-            .Where(x => x.EmpresaId == companyId && x.Id == masterId && x.DataExclusao == null)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(x => x.EmpresaId == companyId && x.Id == masterId && x.DataExclusao == null);
     }
 
     public async Task<List<Master>> GetMastersForUploadByVooId(int companyId, int vooId)

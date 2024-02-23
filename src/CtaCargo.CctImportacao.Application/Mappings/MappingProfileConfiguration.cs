@@ -254,7 +254,9 @@ public class MappingProfileConfiguration : Profile
         .ForMember(dest => dest.Reenviar, m => m.MapFrom(a => a.Reenviar))
         .ForMember(dest => dest.Erros, m => m.MapFrom(a => a.ErrosMaster))
         .ForMember(dest => dest.Volume, m => m.MapFrom(a => a.Volume))
-        .ForMember(dest => dest.VolumeUN, m => m.MapFrom(a => a.VolumeUN));
+        .ForMember(dest => dest.VolumeUN, m => m.MapFrom(a => a.VolumeUN))
+        .ForMember(dest => dest.RFBCancelationStatus, m => m.MapFrom(a => a.SituacaoDeletionRFBId))
+        .ForMember(dest => dest.RFBCancelationProtocol, m => m.MapFrom(a => a.ProtocoloDeletionRFB));
 
         CreateMap<ErroMaster, MasterErroDto>()
             .ForMember(dest => dest.Erro, m => m.MapFrom(a => a.Erro));

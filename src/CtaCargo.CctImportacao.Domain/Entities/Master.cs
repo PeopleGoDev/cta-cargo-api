@@ -223,4 +223,16 @@ public class Master : BaseEntity
     public DateTime? FlightEstimatedArrival { get; set; }
     [Column(TypeName = "varchar(15)")]
     public string StatusCodeRFB { get; set; }
+
+    #region Deletion Session
+    [Column(TypeName = "varchar(50)")]
+    public string ProtocoloDeletionRFB { get; set; }
+    [Column(TypeName = "varchar(40)")]
+    public string CodigoErroDeletionRFB { get; set; }
+    [Column(TypeName = "text")]
+    public string DescricaoErroDeletionRFB { get; set; }
+    public int SituacaoDeletionRFBId { get; set; }
+    public DateTime? DataProtocoloDeletionRFB { get; set; }
+    public DateTime? DataChecagemDeletionRFB { get; set; }
+    #endregion
 }

@@ -33,3 +33,8 @@ public class RegistryAirCompanyInsertRequest : RegistryResponse
     public string Number { get; set; }
     public string CertificatePassword { get; set; }
 }
+
+public class RegistrySelectedPackage
+{
+    public string PackageId { get; set; }
+}

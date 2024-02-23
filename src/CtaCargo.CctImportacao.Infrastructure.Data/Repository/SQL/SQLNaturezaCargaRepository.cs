@@ -41,7 +41,7 @@ public class SQLNaturezaCargaRepository : INaturezaCargaRepository
         _context.NaturezasCarga.Update(narurezaCarga);
     }
 
-    public async Task<IEnumerable<NaturezaCarga>> GetAllNaturezaCarga(int empresaId) => await _context.NaturezasCarga
+    public async Task<List<NaturezaCarga>> GetAllNaturezaCarga(int empresaId) => await _context.NaturezasCarga
             .Where(x => x.EmpresaId == empresaId && x.DataExclusao == null)
             .OrderByDescending(x => x.Codigo)
             .ToListAsync();

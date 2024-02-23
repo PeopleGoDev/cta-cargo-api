@@ -167,9 +167,7 @@ public class House : BaseEntity
     [Column(TypeName = "datetime")]
     public DateTime? XmlIssueDate { get; set; }
 
-
-
-
+    #region Deletion Session
     [Column(TypeName = "varchar(50)")]
     public string ProtocoloDeletionRFB { get; set; }
     [Column(TypeName = "varchar(40)")]
@@ -179,6 +177,8 @@ public class House : BaseEntity
     public int SituacaoDeletionRFBId { get; set; } // “Received” , “Rejected”, “Processed”
     public DateTime? DataProtocoloDeletionRFB { get; set; }
     public DateTime? DataChecagemDeletionRFB { get; set; }
+    #endregion
+
     [Column(TypeName = "varchar(120)")]
     public string NaturezaCargaLista { get; set; }
     public string[] NaturezaCargaArray()
