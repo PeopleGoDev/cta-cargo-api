@@ -46,13 +46,14 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
 
         public async Task<CertificadoDigital> GetCertificadoDigitalById(int id)
         {
-            return await _context.Certificados.FindAsync(id);
+            return await _context.Certificados.FirstOrDefaultAsync(x => x.Id == id && x.DataExclusao == null);
         }
 
         public async Task<CertificadoDigital> GetCertificadoDigitalBySerialNumber(int empresaId, string serialNumber)
         {
             return await _context.Certificados
-                .FirstOrDefaultAsync(x => x.EmpresaId == empresaId && x.SerialNumber == serialNumber && x.DataExclusao == null);
+                .FirstOrDefaultAsync(x => x.EmpresaId == empresaId && 
+                x.SerialNumber == serialNumber && x.DataExclusao == null);
         }
 
         public void UpdateCertificadoDigital(CertificadoDigital certificado)

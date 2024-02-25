@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
 
 namespace CtaCargo.CctImportacao.Application.Dtos.Response;
 
@@ -30,6 +28,9 @@ public class UsuarioInfoResponse
     public DateTime DataAlteracao { get; set; }
     public string UrlFoto { get; set; }
     public string UserProfile { get; set; }
+    public DateTime? CertificateExpiration { get; set; }
+    public string CertificateOwner { get; set; }
+    public string CertificateOwnerId { get; set; }
 }
 
 public class UsuarioToken

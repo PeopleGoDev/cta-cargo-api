@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using CtaCargo.CctImportacao.Api.Controllers.Session;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace CtaCargo.CctImportacao.Api.Controllers;
 
@@ -29,13 +30,17 @@ public class UploadController : Controller
         {
             using (var ms = file.OpenReadStream())
             {
-                return await _uploadService.UploadArquivo(input, ms);
+                var response = await _uploadService.UploadArquivo(HttpContext.GetUserSession(), input, ms);
+                return new()
+                {
+                    Dados = response,
+                    Sucesso = true,
+                };
             }
         }
 
-        return new ApiResponse<UploadCertificadoResponseDto>()
+        return new()
         {
-            Dados = null,
             Sucesso = false,
             Notificacoes = new List<Notificacao>() {
                     new Notificacao()
@@ -46,4 +51,5 @@ public class UploadController : Controller
                 }
         };
     }
+
 }
