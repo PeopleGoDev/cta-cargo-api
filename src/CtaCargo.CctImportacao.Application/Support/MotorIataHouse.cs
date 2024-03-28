@@ -29,7 +29,7 @@ public class MotorIataHouse : IMotorIataHouse
 
         manhouse.MessageHeaderDocument = new MessageHeaderDocumentType
         {
-            ID = new IDType { Value = $"{house.Numero}_{house.DataEmissaoXML.Value.ToString("ddMMyyyhhmmss")}" },
+            ID = new IDType { Value = $"{house.Numero}_{house.DataEmissaoXML.Value:ddMMyyyhhmmss}" },
             Name = new TextType { Value = "House Waybill" },
             TypeCode = new DocumentCodeType { Value = DocumentNameCodeContentType.Item703 },
             IssueDateTime = house.XmlIssueDate.Value.AddHours(-3),
@@ -67,7 +67,7 @@ public class MotorIataHouse : IMotorIataHouse
                 Signatory = new TextType { Value = "180020" },
                 IssueAuthenticationLocation = new AuthenticationLocationType
                 {
-                    Name = new TextType { Value = house.AeroportoOrigemInfo.Codigo }
+                    Name = new TextType { Value = house.AeroportoOrigemCodigo }
                 }
             }
         };
@@ -92,20 +92,20 @@ public class MotorIataHouse : IMotorIataHouse
             },
             OriginLocation = new OriginLocationType
             {
-                ID = new IDType { Value = house.AeroportoOrigemInfo.Codigo },
-                Name = new TextType { Value = house.AeroportoOrigemInfo.Nome }
+                ID = new IDType { Value = house.AeroportoOrigemCodigo },
+                Name = new TextType { Value = house.AeroportoOrigemInfo?.Nome }
             },
             FinalDestinationLocation = new FinalDestinationLocationType
             {
-                ID = new IDType { Value = house.AeroportoDestinoInfo.Codigo },
-                Name = new TextType { Value = house.AeroportoDestinoInfo.Nome }
+                ID = new IDType { Value = house.AeroportoDestinoCodigo },
+                Name = new TextType { Value = house.AeroportoDestinoInfo?.Nome }
             }
         };
 
         #region MasterConsigment -> IncludedHouseConsigmnet
         manhouse.MasterConsignment.IncludedHouseConsignment = new HouseConsignmentType
         {
-            TotalChargePrepaidIndicatorFlag = house.ValorFreteFC == 0 ? true : false,
+            TotalChargePrepaidIndicatorFlag = (house.ValorFreteFC == 0),
             ValuationTotalChargeAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
             TaxTotalChargeAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
             WeightTotalChargeAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
@@ -175,13 +175,13 @@ public class MotorIataHouse : IMotorIataHouse
             },
             OriginLocation = new OriginLocationType
             {
-                ID = new IDType { Value = house.AeroportoOrigemInfo.Codigo },
-                Name = new TextType { Value = house.AeroportoOrigemInfo.Nome }
+                ID = new IDType { Value = house.AeroportoOrigemCodigo },
+                Name = new TextType { Value = house.AeroportoOrigemInfo?.Nome }
             },
             FinalDestinationLocation = new FinalDestinationLocationType
             {
-                ID = new IDType { Value = house.AeroportoDestinoInfo.Codigo },
-                Name = new TextType { Value = house.AeroportoDestinoInfo.Nome }
+                ID = new IDType { Value = house.AeroportoDestinoCodigo },
+                Name = new TextType { Value = house.AeroportoDestinoInfo?.Nome }
             },
             HandlingOSIInstructions = new OSIInstructionsType[1],
             IncludedHouseConsignmentItem = new HouseConsignmentItemType[1],
@@ -315,11 +315,11 @@ public class MotorIataHouse : IMotorIataHouse
 
         #endregion
 
-        XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
+        XmlSerializerNamespaces ns = new();
         ns.Add("", "iata:datamodel:3");
         ns.Add("ns2", "iata:waybill:1");
         ns.Add("q1", "iata:housewaybill:1");
-        return SerializeFromStream<HouseWaybillType>(manhouse, ns);
+        return SerializeFromStream(manhouse, ns);
     }
 
     public string GenMasterHouseManifest(SubmeterRFBMasterHouseItemRequest masterInfo, List<House> houses, IataXmlPurposeCode purposeCode, DateTime issueDate)

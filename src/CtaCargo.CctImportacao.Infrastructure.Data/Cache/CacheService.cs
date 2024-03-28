@@ -9,13 +9,14 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Cache;
 public class CacheService : ICacheService
 {
     private readonly IDistributedCache _distributedCache;
+    private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     public CacheService(IDistributedCache distributedCache)
     {
         _distributedCache = distributedCache;
     }
 
-    public async Task<T> GetData<T>(string key, CancellationToken cancellationToken = default)
+    public async Task<T> GetDataAsync<T>(string key, CancellationToken cancellationToken = default)
     {
         string cachedValue = await _distributedCache.GetStringAsync(
             key,
@@ -29,11 +30,21 @@ public class CacheService : ICacheService
         return JsonSerializer.Deserialize<T>(cachedValue);
     }
 
-    public async Task SetData<T>(string key, T value, DateTimeOffset expirationTime)
+    public async Task SetDataAsync<T>(string key, T value, DateTimeOffset expirationTime)
     {
         await _distributedCache.SetStringAsync(key, JsonSerializer.Serialize<T>(value), new DistributedCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1)
+            AbsoluteExpirationRelativeToNow = expirationTime - DateTime.UtcNow
+        });
+    }
+
+    public async Task SetDataAsync<T>(string key, T value, double milliSeconds)
+    {
+        var expiraion = ConvertMillisecondsToTime(milliSeconds);
+
+        await _distributedCache.SetStringAsync(key, JsonSerializer.Serialize<T>(value), new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = expiraion.AddMinutes(-2) - DateTime.UtcNow 
         });
     }
 
@@ -58,5 +69,10 @@ public class CacheService : ICacheService
             bytes = binaryReader.ReadBytes((int)stream.Length);
         }
         return bytes;
+    }
+
+    public static DateTime ConvertMillisecondsToTime(double milliseconds)
+    {
+        return UnixEpoch.AddMilliseconds(milliseconds);
     }
 }

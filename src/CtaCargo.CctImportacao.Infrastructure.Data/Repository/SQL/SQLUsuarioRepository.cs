@@ -40,7 +40,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
         {
             var usuario = await _context.Usuarios
                 .Include(x => x.Empresa)
-                .Where(x => x.EMail == email && x.DataExclusao == null)
+                .Where(x => x.Account == email && x.DataExclusao == null)
                 .FirstOrDefaultAsync();
 
             if (usuario == null) return null;

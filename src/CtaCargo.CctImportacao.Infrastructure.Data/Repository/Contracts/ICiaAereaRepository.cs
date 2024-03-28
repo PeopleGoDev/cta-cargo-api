@@ -8,7 +8,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
     {
         Task<bool> SaveChanges();
         Task<IEnumerable<CiaAerea>> GetAllCiaAereas(int empresaId);
-        Task<CiaAerea> GetCiaAereaById(int id);
+        Task<CiaAerea> GetCiaAereaById(int ciaId, int id);
         Task<CiaAerea> GetCiaAereaByIataCode(int empresaId, string iataCode);
         void CreateCiaAerea(CiaAerea cia);
         void UpdateCiaAerea(CiaAerea cia);

@@ -1,8 +1,7 @@
-using System;
-using System.Reflection;
 using AutoMapper;
 using CtaCargo.CctImportacao.Api.Infrastructure.Extensions;
 using CtaCargo.CctImportacao.Api.Infrastructure.Middlewares;
+using CtaCargo.CctImportacao.Application.Refit;
 using CtaCargo.CctImportacao.Application.Services;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using CtaCargo.CctImportacao.Application.Support;
@@ -20,6 +19,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Refit;
+using System;
+using System.Net.Http;
+using System.Net.Security;
+using System.Reflection;
 
 namespace CtaCargo.CctImportacao.Api;
 
@@ -43,6 +47,34 @@ public class Startup
             options.SchemaName = "dbo";
             options.TableName = "CctCache";
         });
+
+        var baseRFBUrl = Configuration["EndPoints:ReceitaFederalBaseUrl"];
+
+        var httpClientHandler = new HttpClientHandler();
+        httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
+        {
+            return true;
+        };
+
+        services.AddRefitClient<IFlightRfb>()
+            .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseRFBUrl))
+            .ConfigurePrimaryHttpMessageHandler(() => httpClientHandler);
+
+        services.AddRefitClient<IMasterRfb>()
+            .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseRFBUrl))
+            .ConfigurePrimaryHttpMessageHandler(() => httpClientHandler);
+
+        services.AddRefitClient<IHouseRfb>()
+            .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseRFBUrl))
+            .ConfigurePrimaryHttpMessageHandler(() => httpClientHandler);
+
+        services.AddRefitClient<IHouseAssociationRfb>()
+            .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseRFBUrl))
+            .ConfigurePrimaryHttpMessageHandler(() => httpClientHandler);
+
+        services.AddRefitClient<ICheckFileRfb>()
+            .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseRFBUrl))
+            .ConfigurePrimaryHttpMessageHandler(() => httpClientHandler);
 
         services.AddDefaultIdentity<IdentityUser>()
             .AddRoles<IdentityRole>()

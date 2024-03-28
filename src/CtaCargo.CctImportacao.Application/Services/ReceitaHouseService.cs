@@ -75,12 +75,12 @@ public class ReceitaHouseService : IReceitaHouseService
             throw new BusinessException("Nenhum house selecionado !");
 
         var certificate = await
-            _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession.UserId, input.AgenteDeCargaId);
+            _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession, input.AgenteDeCargaId);
 
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate, "AGECARGA");
+        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate, "AGECARGA");
 
         var result = await SubmeterHousesAutomatico(houses, naturezaCargas, certificate.Certificate, token);
 
@@ -120,12 +120,12 @@ public class ReceitaHouseService : IReceitaHouseService
             throw new BusinessException("Nenhum house selecionado !");
 
         var certificate = await 
-            _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession.UserId, input.FreightFowarderId);
+            _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession, input.FreightFowarderId);
 
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate, "AGECARGA");
+        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate, "AGECARGA");
 
         await SubmeterAssociacaoHouseMasterList(userSession, input.Masters, houses, certificate.Certificate, token);
 
@@ -169,12 +169,12 @@ public class ReceitaHouseService : IReceitaHouseService
         };
 
         var certificate = await
-            _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession.UserId, agenteId.Value);
+            _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession, agenteId.Value);
 
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate, "AGECARGA");
+        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate, "AGECARGA");
 
         if (association.SituacaoDeletionAssociacaoRFBId == 1)
         {
@@ -215,12 +215,12 @@ public class ReceitaHouseService : IReceitaHouseService
         var naturezaCargas = await _naturezaCargaRepository.GetAllNaturezaCarga(userSession.CompanyId);
 
         var certificate = await
-            _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession.UserId, house.AgenteDeCargaId.Value);
+            _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession, house.AgenteDeCargaId.Value);
 
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate, "AGECARGA");
+        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate, "AGECARGA");
 
         if (house.SituacaoDeletionRFBId == 1)
         {
@@ -252,45 +252,54 @@ public class ReceitaHouseService : IReceitaHouseService
 
         foreach (House house in houses)
         {
-            switch (house.SituacaoRFBId)
+            try
             {
-                case 1:
-                    var res = _uploadReceitaFederal.CheckFileProtocol(house.ProtocoloRFB, token);
+                switch (house.SituacaoRFBId)
+                {
+                    case 1:
+                        var res = _uploadReceitaFederal.CheckFileProtocol(house.ProtocoloRFB, token);
 
-                    var listaErros = await ProcessaRetornoChecagemArquivoHouse(res, house);
+                        var listaErros = await ProcessaRetornoChecagemArquivoHouse(res, house);
 
-                    if (listaErros != null)
-                        notificacoes.AddRange(listaErros);
-                    break;
-                case 0:
-                case 2:
-                case 3:
-                    if (house.SituacaoRFBId == 2 && !house.Reenviar)
+                        if (listaErros != null)
+                            notificacoes.AddRange(listaErros);
                         break;
+                    case 0:
+                    case 2:
+                    case 3:
+                        if (house.SituacaoRFBId == 2 && !house.Reenviar)
+                            break;
 
-                    string xml;
-                    if (house.SituacaoRFBId == 2)
-                        xml = _motorIataHouse.GenHouseManifest(house, naturezaCargas, IataXmlPurposeCode.Update);
-                    else
-                        xml = _motorIataHouse.GenHouseManifest(house, naturezaCargas, IataXmlPurposeCode.Creation);
+                        string xml;
+                        if (house.SituacaoRFBId == 2)
+                            xml = _motorIataHouse.GenHouseManifest(house, naturezaCargas, IataXmlPurposeCode.Update);
+                        else
+                            xml = _motorIataHouse.GenHouseManifest(house, naturezaCargas, IataXmlPurposeCode.Creation);
 
-                    var response = _uploadReceitaFederal.SubmitHouse(house.AgenteDeCargaInfo.CNPJ, xml, token, certificado);
+                        var response = _uploadReceitaFederal.SubmitHouse(house.AgenteDeCargaInfo.CNPJ, xml, token, certificado);
 
-                    bool processa = await ProcessarRetornoEnvioArquivoHouse(response, house);
-                    if (!processa)
-                    {
-                        if (response.StatusCode == "Rejected")
-                            notificacoes.Add(new Notificacao { Codigo = "9999", Mensagem = response.Reason });
+                        bool processa = await ProcessarRetornoEnvioArquivoHouse(response, house);
+                        if (!processa)
+                        {
+                            if (response.StatusCode == "Rejected")
+                                notificacoes.Add(new Notificacao { Codigo = "9999", Mensagem = response.Reason });
 
-                        if (response.StatusCode == "Error")
-                            throw new Exception(response.Reason);
-                    }
-                    break;
+                            if (response.StatusCode == "Error")
+                                throw new Exception(response.Reason);
+                        }
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                notificacoes.Add(new Notificacao { Codigo = "XML01A", Mensagem= ex.Message });
             }
         }
 
         return notificacoes;
     }
+
+    #region Metodos Privados
     private async Task<bool> ProcessarRetornoEnvioArquivoHouse(ReceitaRetornoProtocol response, House house)
     {
         switch (response.StatusCode)
@@ -811,5 +820,5 @@ public class ReceitaHouseService : IReceitaHouseService
         await _houseRepository.SaveChanges();
     }
     #endregion
-
+    #endregion
 }

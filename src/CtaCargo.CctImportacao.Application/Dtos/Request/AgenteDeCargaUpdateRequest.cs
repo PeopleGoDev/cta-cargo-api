@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace CtaCargo.CctImportacao.Application.Dtos.Request
+﻿namespace CtaCargo.CctImportacao.Application.Dtos.Request
 {
     public class AgenteDeCargaUpdateRequest
     {
@@ -14,7 +10,6 @@ namespace CtaCargo.CctImportacao.Application.Dtos.Request
         public string Cidade { get; set; }
         public string Estado { get; set; }
         public string Pais { get; set; }
-        public int UsuarioId { get; set; }
         public string Numero { get; set; }
     }
 }

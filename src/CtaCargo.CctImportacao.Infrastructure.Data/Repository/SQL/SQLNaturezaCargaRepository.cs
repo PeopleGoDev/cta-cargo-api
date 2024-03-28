@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL;
@@ -21,21 +20,11 @@ public class SQLNaturezaCargaRepository : INaturezaCargaRepository
 
     public void CreateNaturezaCarga(NaturezaCarga narurezaCarga)
     {
-        if (narurezaCarga == null)
-        {
-            throw new ArgumentNullException(nameof(narurezaCarga));
-        }
-
         _context.NaturezasCarga.Add(narurezaCarga);
     }
 
     public void DeleteNaturezaCarga(NaturezaCarga narurezaCarga)
     {
-        if (narurezaCarga == null)
-        {
-            throw new ArgumentNullException(nameof(narurezaCarga));
-        }
-
         narurezaCarga.DataExclusao = DateTime.UtcNow;
 
         _context.NaturezasCarga.Update(narurezaCarga);

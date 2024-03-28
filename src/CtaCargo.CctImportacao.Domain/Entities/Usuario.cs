@@ -56,4 +56,8 @@ public class Usuario
     public DateTime? DataReset { get; set; }
     public int? CertificadoId { get; set; }
     public UserProfileType Perfil { get; set; }
+
+    [Required]
+    [Column(TypeName = "varchar(150)")]
+    public string Account { get; set; }
 }

@@ -1,4 +1,5 @@
-﻿using CtaCargo.CctImportacao.Application.Dtos.Request;
+﻿using CtaCargo.CctImportacao.Api.Controllers.Session;
+using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using Microsoft.AspNetCore.Authorization;
@@ -24,15 +25,15 @@ public class CiaAereaController : Controller
     [Route("ObterCiaAereaPorId")]
     public async Task<ApiResponse<CiaAereaResponseDto>> ObterCiaAereaPorId(int ciaId)
     {
-        return await _ciaAereaService.CiaAereaPorId(ciaId);
+        return await _ciaAereaService.CiaAereaPorId(HttpContext.GetUserSession(), ciaId);
     }
 
     [HttpGet]
     [Authorize]
     [Route("ListarCiasAereas")]
-    public async Task<ApiResponse<IEnumerable<CiaAereaResponseDto>>> ListarCiasAereas(int empresaId)
+    public async Task<ApiResponse<IEnumerable<CiaAereaResponseDto>>> ListarCiasAereas()
     {
-        return await _ciaAereaService.ListarCiaAereas(empresaId);
+        return await _ciaAereaService.ListarCiaAereas(HttpContext.GetUserSession());
     }
 
     [HttpPost]
@@ -40,7 +41,7 @@ public class CiaAereaController : Controller
     [Route("InserirCiaAerea")]
     public async Task<ApiResponse<CiaAereaResponseDto>> InserirCiaAerea([FromBody]CiaAereaInsertRequest input)
     {  
-        return await _ciaAereaService.InserirCiaAerea(input);
+        return await _ciaAereaService.InserirCiaAerea(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -48,7 +49,7 @@ public class CiaAereaController : Controller
     [Route("AtualizarCiaAerea")]
     public async Task<ApiResponse<CiaAereaResponseDto>> AtualizarCiaAerea([FromBody]CiaAereaUpdateRequest input)
     {
-        return await _ciaAereaService.AtualizarCiaAerea(input);
+        return await _ciaAereaService.AtualizarCiaAerea(HttpContext.GetUserSession(), input);
     }
 
     [HttpDelete]
@@ -56,14 +57,14 @@ public class CiaAereaController : Controller
     [Route("ExcluirCiaAerea")]
     public async Task<ApiResponse<CiaAereaResponseDto>> ExcluirCiaAerea(int ciaId)
     {
-        return await _ciaAereaService.ExcluirCiaAerea(ciaId);
+        return await _ciaAereaService.ExcluirCiaAerea(HttpContext.GetUserSession(), ciaId);
     }
 
     [HttpGet]
     [Authorize]
     [Route("ListarCiasAereasSimples")]
-    public async Task<ApiResponse<IEnumerable<CiaAreaListaSimplesResponse>>> ListarCiasAereasSimples(int empresaId)
+    public async Task<ApiResponse<IEnumerable<CiaAreaListaSimplesResponse>>> ListarCiasAereasSimples()
     {
-        return await _ciaAereaService.ListarCiaAereasSimples(empresaId);
+        return await _ciaAereaService.ListarCiaAereasSimples(HttpContext.GetUserSession());
     }
 }

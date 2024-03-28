@@ -70,7 +70,7 @@ public class ReceitaFederalController : Controller
     [Route("VerificarProtocoloVoo")]
     public async Task<ApiResponse<string>> VerificarProtocoloVoo(FlightUploadRequest input)
     {
-        return await _submeterRFB.VerificarProtocoloVoo(input);
+        return await _submeterRFB.VerificarProtocoloVoo(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]

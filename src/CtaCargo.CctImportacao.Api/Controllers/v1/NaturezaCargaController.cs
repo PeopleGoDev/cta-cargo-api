@@ -1,4 +1,5 @@
-﻿using CtaCargo.CctImportacao.Application.Dtos.Request;
+﻿using CtaCargo.CctImportacao.Api.Controllers.Session;
+using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
@@ -33,9 +34,9 @@ public class NaturezaCargaController: Controller
     [HttpGet]
     [Authorize]
     [Route("ListarNaturezaCarga")]
-    public async Task<ApiResponse<IEnumerable<NaturezaCargaResponseDto>>> ListarNaturezaCarga(int empresaId)
+    public async Task<ApiResponse<IEnumerable<NaturezaCargaResponseDto>>> ListarNaturezaCarga()
     {
-        return await _naturezaCargaService.ListarNaturezaCarga(empresaId);
+        return await _naturezaCargaService.ListarNaturezaCarga(HttpContext.GetUserSession().CompanyId);
     }
 
     [HttpPost]
@@ -43,7 +44,7 @@ public class NaturezaCargaController: Controller
     [Route("InserirNaturezaCarga")]
     public async Task<ApiResponse<NaturezaCargaResponseDto>> InserirNaturezaCarga([FromBody] NaturezaCargaInsertRequestDto input)
     {
-        return await _naturezaCargaService.InserirNaturezaCarga(input);
+        return await _naturezaCargaService.InserirNaturezaCarga(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -51,7 +52,7 @@ public class NaturezaCargaController: Controller
     [Route("AtualizarNaturezaCarga")]
     public async Task<ApiResponse<NaturezaCargaResponseDto>> AtualizarNaturezaCarga([FromBody] NaturezaCargaUpdateRequestDto input)
     {
-        return await _naturezaCargaService.AtualizarNaturezaCarga(input);
+        return await _naturezaCargaService.AtualizarNaturezaCarga(HttpContext.GetUserSession(), input);
     }
 
     [HttpDelete]

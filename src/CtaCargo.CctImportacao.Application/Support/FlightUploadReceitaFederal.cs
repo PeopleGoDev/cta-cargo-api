@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using CtaCargo.CctImportacao.Application.Refit;
+using CtaCargo.CctImportacao.Application.Support.Contracts;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
 using System.Net;
@@ -19,7 +21,11 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
     public readonly string _requestHouseMasterMethod;
     public readonly string _requestFileMethod;
 
-    public FlightUploadReceitaFederal(IConfiguration configuration)
+    private readonly IMasterRfb _masterRfb;
+
+    public FlightUploadReceitaFederal(
+        IConfiguration configuration,
+        IMasterRfb masterRfb)
     {
         _configuration = configuration;
         _baseUrl = _configuration.GetSection("EndPoints").GetSection("ReceitaFederalBaseUrl").Value;
@@ -28,7 +34,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         _requestHouseMethod = _configuration.GetSection("EndPoints").GetSection("ReceitaFederalHouseSubmit").Value;
         _requestHouseMasterMethod = _configuration.GetSection("EndPoints").GetSection("ReceitaFederalHouseMasterSubmit").Value;
         _requestFileMethod = _configuration.GetSection("EndPoints").GetSection("ReceitaFederalVerifyFiles").Value;
-
+        _masterRfb = masterRfb;
     }
 
     public ReceitaRetornoProtocol SubmitFlight(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado)
@@ -39,7 +45,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
             string url = $"{_baseUrl}{_requestFlightMethod}?cnpj={cnpj}";
             string postData = xml;
 
-            return SubmitFile(url, xml, token, certificado);
+            return SubmitFile(url, xml, token);
 
         }
         catch (WebException ex)
@@ -60,7 +66,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
             string url = $"{_baseUrl}{_requestWaybillMethod}?cnpj={cnpj}";
             string postData = xml;
 
-            return SubmitFile(url, xml, token, certificado);
+            return SubmitFile(url, xml, token);
         }
         catch (WebException ex)
         {
@@ -88,7 +94,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
             string url = $"{_baseUrl}{_requestHouseMethod}?cnpj={cnpj}";
             string postData = xml;
 
-            return SubmitFile(url, xml, token, certificado);
+            return SubmitFile(url, xml, token);
         }
         catch (WebException ex)
         {
@@ -116,7 +122,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
             string url = $"{_baseUrl}{_requestHouseMasterMethod}?cnpj={cnpj}";
             string postData = xml;
 
-            return SubmitFile(url, xml, token, certificado);
+            return SubmitFile(url, xml, token);
         }
         catch (WebException ex)
         {
@@ -136,7 +142,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         }
 
     }
-    private ReceitaRetornoProtocol SubmitFile(string url, string xml, TokenResponse token, X509Certificate2 certificado)
+    private static ReceitaRetornoProtocol SubmitFile(string url, string xml, TokenResponse token)
     {
         ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
         HttpWebRequest request = null;

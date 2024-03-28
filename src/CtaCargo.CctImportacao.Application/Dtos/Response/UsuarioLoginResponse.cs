@@ -12,14 +12,11 @@ public class UsuarioLoginResponse
 
 public class UsuarioInfoResponse
 {
-    public int UsuarioId { get; set; }
-    public int EmpresaId { get; set; }
     public string EmpresaNome { get; set; }
     public string EmpresaLogoUrl { get; set; }
     public string Nome { get; set; }
     public string Sobrenome { get; set; }
     public string Email { get; set; }
-    public string CompanhiaId { get; set; }
     public string CompanhiaNome { get; set; }
     public bool AlteraCompanhia { get; set; }
     public bool AcessoUsuarios { get; set; }

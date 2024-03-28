@@ -23,9 +23,9 @@ public class CertificadoDigitalController : Controller
     [HttpGet]
     [Authorize]
     [Route("ListarCertificadosDigitais")]
-    public async Task<ApiResponse<IEnumerable<CertificadoDigitalResponseDto>>> ListarCertificadosDigitais(int empresaId)
+    public async Task<ApiResponse<IEnumerable<CertificadoDigitalResponseDto>>> ListarCertificadosDigitais()
     {
-        return await _certificadoDigitalService.ListarCertificadosDigitais(empresaId);
+        return await _certificadoDigitalService.ListarCertificadosDigitais(HttpContext.GetUserSession().CompanyId);
     }
 
     [HttpGet]
@@ -33,7 +33,6 @@ public class CertificadoDigitalController : Controller
     [Route("get-valid-certificate")]
     public async Task<ApiResponse<DigitalCertificateUserRelatedResponse>> GetValidCertification()
     {
-        var userSession = HttpContext.GetUserSession();
-        return await _certificadoDigitalService.GetCertificateOwner(userSession);
+        return await _certificadoDigitalService.GetCertificateOwner(HttpContext.GetUserSession());
     }
 }

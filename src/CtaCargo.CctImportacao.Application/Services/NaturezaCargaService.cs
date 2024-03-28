@@ -1,11 +1,12 @@
 ﻿using AutoMapper;
+using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Exceptions;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -72,255 +73,101 @@ public class NaturezaCargaService : INaturezaCargaService
         }
 
     }
+
     public async Task<ApiResponse<IEnumerable<NaturezaCargaResponseDto>>> ListarNaturezaCarga(int empresaId)
     {
-        try
-        {
-            var lista = await _naturezaCArgaRepository.GetAllNaturezaCarga(empresaId);
+        var lista = await _naturezaCArgaRepository.GetAllNaturezaCarga(empresaId);
 
-            var dto = _mapper.Map<IEnumerable<NaturezaCargaResponseDto>>(lista);
+        var dto = _mapper.Map<IEnumerable<NaturezaCargaResponseDto>>(lista);
 
-            return
-                    new ApiResponse<IEnumerable<NaturezaCargaResponseDto>>
-                    {
-                        Dados = dto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-        }
-        catch (Exception ex)
-        {
-            return
-                    new ApiResponse<IEnumerable<NaturezaCargaResponseDto>>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Erro na aplicação! {ex.Message} !"
-                            }
-                        }
-                    };
-        }
+        return
+                new ApiResponse<IEnumerable<NaturezaCargaResponseDto>>
+                {
+                    Dados = dto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
 
     }
-    public async Task<ApiResponse<NaturezaCargaResponseDto>> InserirNaturezaCarga(NaturezaCargaInsertRequestDto input)
+
+    public async Task<ApiResponse<NaturezaCargaResponseDto>> InserirNaturezaCarga(UserSession userSession, NaturezaCargaInsertRequestDto input)
     {
-        try
+        var naturezaCarga = _mapper.Map<NaturezaCarga>(input);
+
+        naturezaCarga.CreatedDateTimeUtc = DateTime.UtcNow;
+        naturezaCarga.CriadoPeloId = userSession.UserId;
+        naturezaCarga.EmpresaId = userSession.CompanyId;
+
+        _naturezaCArgaRepository.CreateNaturezaCarga(naturezaCarga);
+
+        if (await _naturezaCArgaRepository.SaveChanges())
         {
-            var naturezaCarga = _mapper.Map<NaturezaCarga>(input);
-
-            naturezaCarga.CreatedDateTimeUtc = DateTime.UtcNow;
-
-            _naturezaCArgaRepository.CreateNaturezaCarga(naturezaCarga);
-
-            if (await _naturezaCArgaRepository.SaveChanges())
-            {
-                var PortoIATAResponseDto = _mapper.Map<NaturezaCargaResponseDto>(naturezaCarga);
-                return
-                    new ApiResponse<NaturezaCargaResponseDto>
-                    {
-                        Dados = PortoIATAResponseDto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            else
-            {
-                return
-                    new ApiResponse<NaturezaCargaResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = true,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não Foi possível adicionar Natureza da Carga: Erro Desconhecido!"
-                            }
-                        }
-                    };
-            }
-
-        }
-        catch (DbUpdateException e)
-        {
-            return ErrorHandling(e);
-        }
-        catch (Exception ex)
-        {
+            var PortoIATAResponseDto = _mapper.Map<NaturezaCargaResponseDto>(naturezaCarga);
             return
-                    new ApiResponse<NaturezaCargaResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Não Foi possível adicionar Natureza da Carga: {ex.Message} !"
-                            }
-                        }
-                    };
+                new ApiResponse<NaturezaCargaResponseDto>
+                {
+                    Dados = PortoIATAResponseDto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
         }
+        else
+            throw new BusinessException("Não Foi possível adicionar Natureza da Carga: Erro Desconhecido!");
 
     }
-    public async Task<ApiResponse<NaturezaCargaResponseDto>> AtualizarNaturezaCarga(NaturezaCargaUpdateRequestDto input)
+
+    public async Task<ApiResponse<NaturezaCargaResponseDto>> AtualizarNaturezaCarga(UserSession userSession, NaturezaCargaUpdateRequestDto input)
     {
-        try
+        var naturezaCarga = await _naturezaCArgaRepository.GetNaturezaCargaById(input.NaturezaCargaId);
+
+        if (naturezaCarga == null)
+            throw new BusinessException("Não foi possível atualizar Natureza da Carga: Natureza da Carga não encontrada !");
+
+        _mapper.Map(input, naturezaCarga);
+
+        naturezaCarga.ModifiedDateTimeUtc = DateTime.UtcNow;
+        naturezaCarga.ModificadoPeloId = userSession.UserId;
+
+        _naturezaCArgaRepository.UpdateNaturezaCarga(naturezaCarga);
+
+        if (await _naturezaCArgaRepository.SaveChanges())
         {
-            var naturezaCarga = await _naturezaCArgaRepository.GetNaturezaCargaById(input.NaturezaCargaId);
-
-            if (naturezaCarga == null)
-            {
-                return
-                    new ApiResponse<NaturezaCargaResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível atualizar Natureza da Carga: Natureza da Carga não encontrada !"
-                            }
-                        }
-                    };
-            }
-
-            _mapper.Map(input, naturezaCarga);
-
-            naturezaCarga.ModifiedDateTimeUtc = DateTime.UtcNow;
-
-            _naturezaCArgaRepository.UpdateNaturezaCarga(naturezaCarga);
-
-            if (await _naturezaCArgaRepository.SaveChanges())
-            {
-                var PortoIATAResponseDto = _mapper.Map<NaturezaCargaResponseDto>(naturezaCarga);
-                return
-                    new ApiResponse<NaturezaCargaResponseDto>
-                    {
-                        Dados = PortoIATAResponseDto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            else
-            {
-                return
-                    new ApiResponse<NaturezaCargaResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível atualizar Natureza da Carga: Erro Desconhecido!"
-                            }
-                        }
-                    };
-            }
-
-        }
-        catch (DbUpdateException e)
-        {
-            return ErrorHandling(e);
-        }
-        catch (Exception ex)
-        {
+            var PortoIATAResponseDto = _mapper.Map<NaturezaCargaResponseDto>(naturezaCarga);
             return
-                    new ApiResponse<NaturezaCargaResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Não foi possível atualizar Natureza da Carga: {ex.Message} !"
-                            }
-                        }
-                    };
+                new ApiResponse<NaturezaCargaResponseDto>
+                {
+                    Dados = PortoIATAResponseDto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
         }
+        else
+            throw new BusinessException("Não foi possível atualizar Natureza da Carga: Erro Desconhecido!");
 
     }
+
     public async Task<ApiResponse<NaturezaCargaResponseDto>> ExcluirNaturezaCarga(int id)
     {
-        try
-        {
-            var naturezaCarga = await _naturezaCArgaRepository.GetNaturezaCargaById(id);
 
-            if (naturezaCarga == null)
-            {
-                return
-                    new ApiResponse<NaturezaCargaResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível excluir Natureza da Carga: Natureza da Carga não encontrado !"
-                            }
-                        }
-                    };
-            }
+        var naturezaCarga = await _naturezaCArgaRepository.GetNaturezaCargaById(id);
 
-            _naturezaCArgaRepository.DeleteNaturezaCarga(naturezaCarga);
+        if (naturezaCarga == null)
+            throw new BusinessException("Não foi possível excluir Natureza da Carga: Natureza da Carga não encontrado !");
 
-            if (await _naturezaCArgaRepository.SaveChanges())
-            {
-                return
-                    new ApiResponse<NaturezaCargaResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            else
-            {
-                return
-                    new ApiResponse<NaturezaCargaResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível excluir Natureza da Carga: Erro Desconhecido!"
-                            }
-                        }
-                    };
-            }
+        _naturezaCArgaRepository.DeleteNaturezaCarga(naturezaCarga);
 
-        }
-        catch (DbUpdateException e)
-        {
-            return ErrorHandling(e);
-        }
-        catch (Exception ex)
+        if (await _naturezaCArgaRepository.SaveChanges())
         {
             return
-                    new ApiResponse<NaturezaCargaResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Não foi possível excluir Natureza da Carga: {ex.Message} !"
-                            }
-                        }
-                    };
+                new ApiResponse<NaturezaCargaResponseDto>
+                {
+                    Dados = null,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
         }
-
+        else
+            throw new BusinessException("Não foi possível excluir Natureza da Carga: Erro Desconhecido!");
     }
 
     public IEnumerable<NaturezaCarga> GetSpecialInstructionByDescriptionLike(string like) =>

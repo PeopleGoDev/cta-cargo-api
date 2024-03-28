@@ -6,8 +6,6 @@ using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Exceptions;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -33,8 +31,7 @@ public class UsuarioService : IUsuarioService
 
     public async Task<ApiResponse<UsuarioResponseDto>> UsuarioPorId(int usuarioId)
     {
-        var lista = await _usuarioRepository.GetUsuarioById(usuarioId);
-        if (lista == null)
+        var lista = await _usuarioRepository.GetUsuarioById(usuarioId) ??
             throw new BusinessException("Usuário não encontroado");
 
         var dto = _mapper.Map<UsuarioResponseDto>(lista);
@@ -64,366 +61,107 @@ public class UsuarioService : IUsuarioService
 
     public async Task<ApiResponse<UsuarioResponseDto>> InserirUsuario(UsuarioInsertRequest usuarioRequest)
     {
-        try
-        {
-            var password = GeneratePassword(true, true, true, true, 8);
-            var usuarioModel = _mapper.Map<Usuario>(usuarioRequest);
-            usuarioModel.CreatedDateTimeUtc = DateTime.UtcNow;
-            usuarioModel.Senha = password;
-            usuarioModel.AlterarSenha = true;
+        var password = GeneratePassword(true, true, true, true, 8);
+        var usuarioModel = _mapper.Map<Usuario>(usuarioRequest);
+        usuarioModel.Account = usuarioRequest.Account;
+        usuarioModel.CreatedDateTimeUtc = DateTime.UtcNow;
+        usuarioModel.Senha = password;
+        usuarioModel.AlterarSenha = true;
 
-            _usuarioRepository.CreateUsuario(usuarioModel);
+        _usuarioRepository.CreateUsuario(usuarioModel);
 
-            string emailBody = "<p>Bem-vindo ao CCT Importação</p>";
-            emailBody += $"<p>Sua senha é <b>{ password }</b></p>";
-            _sendEmail.Email(usuarioModel.EMail, "Bem-vindo ao CCT Importação", emailBody);
+        string emailBody = "<p>Bem-vindo ao CCT Importação</p>";
+        emailBody += $"<p>Sua senha é <b>{password}</b></p>";
+        _sendEmail.Email(usuarioModel.EMail, "Bem-vindo ao CCT Importação", emailBody);
 
-            if (await _usuarioRepository.SaveChanges())
+        if (!await _usuarioRepository.SaveChanges())
+            throw new BusinessException("Não Foi possível adicionar o usuário: Erro Desconhecido!");
+
+        var usuarioResponseDTO = _mapper.Map<UsuarioResponseDto>(usuarioModel);
+        return
+            new ApiResponse<UsuarioResponseDto>
             {
-                var usuarioResponseDTO = _mapper.Map<UsuarioResponseDto>(usuarioModel);
-                return
-                    new ApiResponse<UsuarioResponseDto>
-                    {
-                        Dados = usuarioResponseDTO,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            else
-            {
-                return
-                    new ApiResponse<UsuarioResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = true,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não Foi possível adicionar o usuário: Erro Desconhecido!"
-                            }
-                        }
-                    };
-            }
-
-        }
-        catch (DbUpdateException e)
-        {
-            return ErrorHandling(e);
-        }
-        catch (Exception ex)
-        {
-            return
-                    new ApiResponse<UsuarioResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Não Foi possível adicionar o usuário: {ex.Message} !"
-                            }
-                        }
-                    };
-        }
+                Dados = usuarioResponseDTO,
+                Sucesso = true,
+                Notificacoes = null
+            };
     }
 
     public async Task<ApiResponse<UsuarioResponseDto>> AtualizarUsuario(UsuarioUpdateRequest usuarioRequest)
     {
-        try
-        {
-            var usuarioRepo = await _usuarioRepository.GetUsuarioById(usuarioRequest.UsuarioId);
-            if (usuarioRepo == null)
+        var user = await _usuarioRepository.GetUsuarioById(usuarioRequest.UsuarioId) ??
+            throw new BusinessException("Não foi possível atualizar o usuário: Usuário não encontrado !");
+
+        _mapper.Map(usuarioRequest, user);
+        user.EMail = usuarioRequest.Email;
+        user.ModifiedDateTimeUtc = DateTime.UtcNow;
+
+        _usuarioRepository.UpdateUsuario(user);
+
+        if (!await _usuarioRepository.SaveChanges())
+            throw new BusinessException("Não foi possível atualizar o usuário: Erro Desconhecido!");
+
+        var usuarioResponseDTO = _mapper.Map<UsuarioResponseDto>(user);
+
+        return
+            new ApiResponse<UsuarioResponseDto>
             {
-                return
-                    new ApiResponse<UsuarioResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível atualizar o usuário: Usuário não encontrado !"
-                            }
-                        }
-                    };
-            }
-
-            _mapper.Map(usuarioRequest, usuarioRepo);
-            usuarioRepo.ModifiedDateTimeUtc = DateTime.UtcNow;
-
-            _usuarioRepository.UpdateUsuario(usuarioRepo);
-
-            if (await _usuarioRepository.SaveChanges())
-            {
-                var usuarioResponseDTO = _mapper.Map<UsuarioResponseDto>(usuarioRepo);
-                return
-                    new ApiResponse<UsuarioResponseDto>
-                    {
-                        Dados = usuarioResponseDTO,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            else
-            {
-                return
-                    new ApiResponse<UsuarioResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível atualizar o usuário: Erro Desconhecido!"
-                            }
-                        }
-                    };
-            }
-
-        }
-        catch (DbUpdateException e)
-        {
-            return ErrorHandling(e);
-        }
-        catch (Exception ex)
-        {
-            return
-                    new ApiResponse<UsuarioResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Não foi possível atualizar o usuário: {ex.Message} !"
-                            }
-                        }
-                    };
-        }
-
+                Dados = usuarioResponseDTO,
+                Sucesso = true,
+                Notificacoes = null
+            };
     }
 
-    public async Task<ApiResponse<string>> ResetarUsuario(UsuarioUpdateRequest usuarioRequest)
+    public async Task<ApiResponse<string>> ResetarUsuario(UserResetRequest usuarioRequest)
     {
-        try
-        {
-            var usuarioRepo = await _usuarioRepository.GetUsuarioById(usuarioRequest.UsuarioId);
-            if (usuarioRepo == null)
+        var user = await _usuarioRepository.GetUsuarioById(usuarioRequest.UserId) ?? 
+            throw new BusinessException("Não foi possível resetar a senha do usuário !");
+
+        var password = GeneratePassword(true, true, true, true, 8);
+        user.Senha = password;
+        user.AlterarSenha = true;
+        user.DataReset = DateTime.UtcNow;
+
+        string emailBody = "<p>Alteração senha CCT Importação</p>";
+        emailBody += $"<p>Sua senha foi alterada para <b>{password}</b></p>";
+        _sendEmail.Email(user.EMail, "Alteração de Senha CCT Importação", emailBody);
+
+        _usuarioRepository.UpdateUsuario(user);
+
+        if (!await _usuarioRepository.SaveChanges())
+            throw new BusinessException("Não foi possível resetar senha do usuário!");
+
+        return
+            new ApiResponse<string>
             {
-                return
-                    new ApiResponse<string>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível resetar a senha do usuário !"
-                            }
-                        }
-                    };
-            }
-
-            var password = GeneratePassword(true, true, true, true, 8);
-            usuarioRepo.Senha = password;
-            usuarioRepo.AlterarSenha = true;
-            usuarioRepo.DataReset = DateTime.UtcNow;
-
-            string emailBody = "<p>Alteração senha CCT Importação</p>";
-            emailBody += $"<p>Sua senha foi alterada para <b>{ password }</b></p>";
-            _sendEmail.Email(usuarioRepo.EMail, "Alteração de Senha CCT Importação", emailBody);
-
-            _usuarioRepository.UpdateUsuario(usuarioRepo);
-
-            if (await _usuarioRepository.SaveChanges())
-            {
-                var usuarioResponseDTO = _mapper.Map<UsuarioResponseDto>(usuarioRepo);
-                return
-                    new ApiResponse<string>
-                    {
-                        Dados = "Senha do usuário resetada com sucesso!",
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            else
-            {
-                return
-                    new ApiResponse<string>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível resetar senha do usuário!"
-                            }
-                        }
-                    };
-            }
-
-        }
-        catch (Exception ex)
-        {
-            return
-                    new ApiResponse<string>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Não foi possível resetar senha do usuário: {ex.Message} !"
-                            }
-                        }
-                    };
-        }
-
+                Dados = "Senha do usuário resetada com sucesso!",
+                Sucesso = true,
+                Notificacoes = null
+            };
     }
 
     public async Task<ApiResponse<UsuarioResponseDto>> ExcluirUsuario(int usuarioId)
     {
-        try
-        {
-            var usuarioRepo = await _usuarioRepository.GetUsuarioById(usuarioId);
-            if (usuarioRepo == null)
-            {
-                return
-                    new ApiResponse<UsuarioResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível excluir usuário: Usuário não encontrado !"
-                            }
-                        }
-                    };
-            }
+        var user = await _usuarioRepository.GetUsuarioById(usuarioId) ??
+            throw new BusinessException("Não foi possível excluir usuário: Usuário não encontrado !");
 
-            usuarioRepo.DataExclusao = DateTime.UtcNow;
+        user.DataExclusao = DateTime.UtcNow;
 
-            _usuarioRepository.UpdateUsuario(usuarioRepo);
+        _usuarioRepository.UpdateUsuario(user);
 
-            if (await _usuarioRepository.SaveChanges())
-            {
-                return
-                    new ApiResponse<UsuarioResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            else
-            {
-                return
-                    new ApiResponse<UsuarioResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível excluir usuário: Erro Desconhecido!"
-                            }
-                        }
-                    };
-            }
+        if (!await _usuarioRepository.SaveChanges())
+            throw new BusinessException("Não foi possível excluir usuário: Erro Desconhecido!");
 
-        }
-        catch (DbUpdateException e)
-        {
-            return ErrorHandling(e);
-        }
-        catch (Exception ex)
-        {
-            return
-                    new ApiResponse<UsuarioResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Não foi possível excluir usuário: {ex.Message} !"
-                            }
-                        }
-                    };
-        }
-
-    }
-
-    private ApiResponse<UsuarioResponseDto> ErrorHandling(Exception exception)
-    {
-        var sqlEx = exception?.InnerException as SqlException;
-        if (sqlEx != null)
-        {
-            //This is a DbUpdateException on a SQL database
-
-            if (sqlEx.Number == SqlServerViolationOfUniqueIndex)
-            {
-                //We have an error we can process
-                return new ApiResponse<UsuarioResponseDto>
-                {
-                    Dados = null,
-                    Sucesso = false,
-                    Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = $"SQL{sqlEx.Number.ToString()}",
-                                Mensagem = $"Já existe um usuário cadastrado com o mesmo E-mail !"
-                            }
-                    }
-                };
-            }
-            else
-            {
-                return new ApiResponse<UsuarioResponseDto>
-                {
-                    Dados = null,
-                    Sucesso = false,
-                    Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = $"SQL{sqlEx.Number.ToString()}",
-                                Mensagem = $"{sqlEx.Message}"
-                            }
-                    }
-                };
-            }
-        }
-        else
-        {
-            return new ApiResponse<UsuarioResponseDto>
+        return
+            new ApiResponse<UsuarioResponseDto>
             {
                 Dados = null,
-                Sucesso = false,
-                Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = $"9999",
-                                Mensagem = $"{exception.Message}"
-                            }
-                    }
+                Sucesso = true,
+                Notificacoes = null
             };
-        }
-
     }
 
-    private string GeneratePassword(bool useLowercase, bool useUppercase, bool useNumbers, bool useSpecial, int passwordSize)
+    private static string GeneratePassword(bool useLowercase, bool useUppercase, bool useNumbers, bool useSpecial, int passwordSize)
     {
         const string LOWER_CASE = "abcdefghijklmnopqursuvwxyz";
         const string UPPER_CAES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -432,7 +170,7 @@ public class UsuarioService : IUsuarioService
 
         char[] _password = new char[passwordSize];
         string charSet = ""; // Initialise to blank
-        System.Random _random = new Random();
+        Random _random = new();
         int counter;
 
         // Build up the character set to choose from
@@ -449,6 +187,6 @@ public class UsuarioService : IUsuarioService
             _password[counter] = charSet[_random.Next(charSet.Length - 1)];
         }
 
-        return String.Join(null, _password);
+        return string.Join(null, _password);
     }
 }

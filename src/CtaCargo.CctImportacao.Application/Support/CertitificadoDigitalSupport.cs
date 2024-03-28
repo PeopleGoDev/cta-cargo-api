@@ -1,4 +1,5 @@
-﻿using CtaCargo.CctImportacao.Application.Support.Contracts;
+﻿using CtaCargo.CctImportacao.Application.Dtos;
+using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using System;
@@ -28,19 +29,19 @@ public class CertitificadoDigitalSupport : ICertitificadoDigitalSupport
         _downloadArquivoCertificado = downloadArquivoCertificado;
     }
 
-    public async Task<CctCertificate> GetCertificateForAirCompany(int usuarioId, int airCompanyId)
+    public async Task<CctCertificate> GetCertificateForAirCompany(UserSession userSession, int airCompanyId)
     {
         bool hasUserExpired = false;
         bool hasCompanyExpired = false;
 
-        var certificate = await GetCertificateUsuarioAsync(usuarioId);
+        var certificate = await GetCertificateUsuarioAsync(userSession.UserId);
         if(certificate != null && certificate.NotAfter > DateTime.Now)
             return new CctCertificate(CctCertificate.CertificateOriginType.User, certificate, false, null);
 
         if (certificate is not null)
             hasUserExpired = true;
 
-        certificate = await GetCertificateCiaAereaAsync(airCompanyId);
+        certificate = await GetCertificateCiaAereaAsync(userSession, airCompanyId);
         if (certificate != null && certificate.NotAfter > DateTime.Now)
             return new CctCertificate(CctCertificate.CertificateOriginType.Company, certificate, false, null);
 
@@ -56,19 +57,19 @@ public class CertitificadoDigitalSupport : ICertitificadoDigitalSupport
         return new CctCertificate(CctCertificate.CertificateOriginType.Unknown, null, true, "Não há certificados disponivel para Usuario/Companhia Aérea");
     }
 
-    public async Task<CctCertificate> GetCertificateForFreightFowarder(int usuarioId, int freightForwarderId)
+    public async Task<CctCertificate> GetCertificateForFreightFowarder(UserSession userSession, int freightForwarderId)
     {
         bool hasUserExpired = false;
         bool hasCompanyExpired = false;
 
-        var certificate = await GetCertificateUsuarioAsync(usuarioId);
+        var certificate = await GetCertificateUsuarioAsync(userSession.UserId);
         if (certificate?.NotAfter > DateTime.Now)
             return new CctCertificate(CctCertificate.CertificateOriginType.User, certificate, false, null);
 
         if (certificate != null)
             hasUserExpired = true;
 
-        certificate = await GetCertificateAgenteDeCargaAsync(freightForwarderId);
+        certificate = await GetCertificateAgenteDeCargaAsync(userSession.CompanyId, freightForwarderId);
         if (certificate?.NotAfter > DateTime.Now)
             return new CctCertificate(CctCertificate.CertificateOriginType.Company, certificate, false, null);
 
@@ -84,9 +85,9 @@ public class CertitificadoDigitalSupport : ICertitificadoDigitalSupport
         return null;
     }
 
-    public async Task<X509Certificate2> GetCertificateCiaAereaAsync(int ciaAereaId)
+    public async Task<X509Certificate2> GetCertificateCiaAereaAsync(UserSession userSession, int ciaAereaId)
     {
-        CiaAerea ciaAerea = await _ciaAereaRepository.GetCiaAereaById(ciaAereaId);
+        CiaAerea ciaAerea = await _ciaAereaRepository.GetCiaAereaById(userSession.CompanyId, ciaAereaId);
 
         if (ciaAerea?.CertificadoDigital is null)
             return null;
@@ -104,9 +105,9 @@ public class CertitificadoDigitalSupport : ICertitificadoDigitalSupport
         return x509;
     }
 
-    private async Task<X509Certificate2> GetCertificateAgenteDeCargaAsync(int agenteDeCargaId)
+    private async Task<X509Certificate2> GetCertificateAgenteDeCargaAsync(int ciaId, int agenteDeCargaId)
     {
-        AgenteDeCarga agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaById(agenteDeCargaId);
+        AgenteDeCarga agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaById(ciaId, agenteDeCargaId);
 
         if (agenteDeCarga?.CertificadoDigital is null)
             return null;

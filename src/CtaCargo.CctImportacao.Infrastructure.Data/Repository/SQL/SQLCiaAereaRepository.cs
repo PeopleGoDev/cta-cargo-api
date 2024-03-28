@@ -35,11 +35,11 @@ public class SQLCiaAereaRepository : ICiaAereaRepository
             .ToListAsync();
     }
 
-    public async Task<CiaAerea> GetCiaAereaById(int id)
+    public async Task<CiaAerea> GetCiaAereaById(int ciaId, int id)
     {
         return await _context.CiasAereas
             .Include("CertificadoDigital")
-            .FirstOrDefaultAsync(x => x.Id == id);
+            .FirstOrDefaultAsync(x => x.EmpresaId == ciaId && x.Id == id);
     }
 
     public async Task<CiaAerea> GetCiaAereaByIataCode(int empresaId, string iataCode)

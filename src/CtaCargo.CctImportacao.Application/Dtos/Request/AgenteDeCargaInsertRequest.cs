@@ -6,7 +6,6 @@ namespace CtaCargo.CctImportacao.Application.Dtos.Request
 {
     public class AgenteDeCargaInsertRequest
     {
-        public int EmpresaId { get; set; }
         public string Nome { get; set; }
         public string CNPJ { get; set; }
         public string Endereco1 { get; set; }
@@ -14,7 +13,6 @@ namespace CtaCargo.CctImportacao.Application.Dtos.Request
         public string Cidade { get; set; }
         public string Estado { get; set; }
         public string Pais { get; set; }
-        public int UsuarioId { get; set; }
         public string Numero { get; set; }
     }
 }

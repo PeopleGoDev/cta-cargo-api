@@ -14,7 +14,6 @@ using FluentValidation.Results;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using static CtaCargo.CctImportacao.Domain.Entities.Master;
@@ -150,12 +149,12 @@ public class SubmeterReceitaService : ISubmeterReceitaService
             if (!found)
                 throw new BusinessException("Trecho informado não encontrado");
 
-            var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, voo.CiaAereaId);
+            var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession, voo.CiaAereaId);
 
             if (certificate.HasError)
                 throw new BusinessException(certificate.Error);
 
-            TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
+            TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
             string xml = _motorIata.GenFlightManifest(voo, input.ItineraryId, input.DepartureTime);
 
@@ -182,12 +181,12 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         int ciaId = masters[0].VooInfo.CiaAereaId;
 
-        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession, ciaId);
 
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
+        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
         var result = await SubmeterMastersAutomatico(masters, certificate.Certificate, token);
 
@@ -203,7 +202,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
     {
         return await EnviarMastersAcao(userSession, input);
     }
-    public async Task<ApiResponse<string>> VerificarProtocoloVoo(FlightUploadRequest input)
+    public async Task<ApiResponse<string>> VerificarProtocoloVoo(UserSession userSession, FlightUploadRequest input)
     {
         try
         {
@@ -214,9 +213,9 @@ public class SubmeterReceitaService : ISubmeterReceitaService
             string protolo = voo.ProtocoloRFB;
             int ciaId = voo.CiaAereaId;
 
-            X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateCiaAereaAsync(ciaId);
+            X509Certificate2 certificado = await _certificadoDigitalSupport.GetCertificateCiaAereaAsync(userSession, ciaId);
 
-            TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificado);
+            TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificado);
 
             ProtocoloReceitaCheckFile response = _uploadReceitaFederal.CheckFileProtocol(protolo, token);
 
@@ -290,12 +289,12 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         if (master.SituacaoRFBId is not RFStatusEnvioType.Processed)
             throw new BusinessException("House não está com o status \"Submetido a Receita Federal\"!");
 
-        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, master.CiaAereaId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession, master.CiaAereaId);
 
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
+        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
         if (master.SituacaoDeletionRFBId == 1)
         {
@@ -333,7 +332,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         int ciaId = voo.CiaAereaId;
 
-        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession, ciaId);
 
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
@@ -341,7 +340,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         if(input.DepartureTime is not null)
             voo.DataHoraSaidaReal = input.DepartureTime.Value;
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
+        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
         string xml = _motorIata.GenFlightManifest(voo);
 
@@ -372,12 +371,12 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         int ciaId = voo.CiaAereaId;
 
-        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession, ciaId);
 
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
+        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
         string xml = _motorIata.GenFlightManifest(voo,null,null,true);
 
@@ -392,12 +391,12 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         int ciaId = voo.CiaAereaId;
 
-        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession, ciaId);
 
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
+        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
         var res = _uploadReceitaFederal.CheckFileProtocol(voo.ProtocoloRFB, token);
 
@@ -427,12 +426,12 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         int ciaId = voo.CiaAereaId;
 
-        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession, ciaId);
 
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
+        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
         var res = _uploadReceitaFederal.CheckFileProtocol(voo.ProtocoloScheduleRFB, token);
 
@@ -466,12 +465,12 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         int ciaId = masters[0].VooInfo.CiaAereaId;
 
-        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession, ciaId);
 
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
+        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
         var result = await SubmeterMastersAcao(masters, certificate.Certificate, token, input.PurposeCode);
 
@@ -534,12 +533,12 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         int ciaId = masters[0].VooInfo.CiaAereaId;
 
-        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession.UserId, ciaId);
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession, ciaId);
 
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
 
-        TokenResponse token = _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
+        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
         var result = await SubmeterMastersAutomatico(masters, certificate.Certificate, token);
 

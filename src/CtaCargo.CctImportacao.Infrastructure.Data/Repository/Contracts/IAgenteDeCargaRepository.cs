@@ -9,7 +9,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
         void CreateAgenteDeCarga(AgenteDeCarga agenteDeCarga);
         void DeleteAgenteDeCarga(AgenteDeCarga agenteDeCarga);
         Task<AgenteDeCarga> GetAgenteDeCargaByIataCode(int empresaId, string iataCode);
-        Task<AgenteDeCarga> GetAgenteDeCargaById(int id);
+        Task<AgenteDeCarga> GetAgenteDeCargaById(int ciaId, int id);
         Task<IEnumerable<AgenteDeCarga>> GetAllAgenteDeCarga(int empresaId);
         Task<bool> SaveChanges();
         void UpdateAgenteDeCarga(AgenteDeCarga agenteDeCarga);

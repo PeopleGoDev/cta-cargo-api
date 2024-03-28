@@ -13,8 +13,6 @@ public class MappingProfileConfiguration : Profile
         #region Login
         // Mapeamento de Usuario e Informação de Login
         CreateMap<Usuario, UsuarioInfoResponse>()
-            .ForMember(dest => dest.UsuarioId, m => m.MapFrom(a => a.Id))
-            .ForMember(dest => dest.EmpresaId, m => m.MapFrom(a => a.EmpresaId))
             .ForMember(dest => dest.Nome, m => m.MapFrom(a => a.Nome))
             .ForMember(dest => dest.Sobrenome, m => m.MapFrom(a => a.Sobrenome))
             .ForMember(dest => dest.EmpresaNome, m => m.MapFrom(a => a.Empresa.RazaoSocial))
@@ -25,7 +23,6 @@ public class MappingProfileConfiguration : Profile
             .ForMember(dest => dest.AcessoClientes, m => m.MapFrom(a => a.AcessaClientes))
             .ForMember(dest => dest.AcessoCompanhias, m => m.MapFrom(a => a.AcessaCiasAereas))
             .ForMember(dest => dest.DataAlteracao, m => m.MapFrom(a => a.ModifiedDateTimeUtc))
-            .ForMember(dest => dest.CompanhiaId, m => m.MapFrom(a => a.CiaAereaId))
             .ForMember(dest => dest.CompanhiaNome, m => m.MapFrom(a => a.CiaAereaNome));
         #endregion
 
@@ -45,7 +42,6 @@ public class MappingProfileConfiguration : Profile
             .ForMember(dest => dest.DataExpiracaoCertificado, m => m.MapFrom(a => a.CertificadoDigital.DataVencimento));
 
         CreateMap<CiaAereaInsertRequest, CiaAerea>()
-            .ForMember(dest => dest.EmpresaId, m => m.MapFrom(a => a.EmpresaId))
             .ForMember(dest => dest.Nome, m => m.MapFrom(a => a.Nome))
             .ForMember(dest => dest.Endereco, m => m.MapFrom(a => a.Endereco1))
             .ForMember(dest => dest.Complemento, m => m.MapFrom(a => a.Endereco2))
@@ -87,7 +83,6 @@ public class MappingProfileConfiguration : Profile
             .ForMember(dest => dest.DataExpiracaoCertificado, m => m.MapFrom(a => a.CertificadoDigital.DataVencimento));
 
         CreateMap<AgenteDeCargaInsertRequest, AgenteDeCarga>()
-            .ForMember(dest => dest.EmpresaId, m => m.MapFrom(a => a.EmpresaId))
             .ForMember(dest => dest.Nome, m => m.MapFrom(a => a.Nome))
             .ForMember(dest => dest.Endereco, m => m.MapFrom(a => a.Endereco1))
             .ForMember(dest => dest.Complemento, m => m.MapFrom(a => a.Endereco2))
@@ -127,13 +122,15 @@ public class MappingProfileConfiguration : Profile
             .ForMember(dest => dest.AcessoUsuarios, m => m.MapFrom(a => a.AcessaUsuarios))
             .ForMember(dest => dest.AcessoClientes, m => m.MapFrom(a => a.AcessaClientes))
             .ForMember(dest => dest.DataCriacao, m => m.MapFrom(a => a.CreatedDateTimeUtc))
-            .ForMember(dest => dest.CertificadoDigitalId, m => m.MapFrom(a => a.CertificadoId));
+            .ForMember(dest => dest.CertificadoDigitalId, m => m.MapFrom(a => a.CertificadoId))
+            .ForMember(dest => dest.Account, m => m.MapFrom(a => a.Account));
 
         CreateMap<UsuarioInsertRequest, Usuario>()
             .ForMember(dest => dest.EmpresaId, m => m.MapFrom(a => a.EmpresaId))
             .ForMember(dest => dest.Nome, m => m.MapFrom(a => a.Nome))
             .ForMember(dest => dest.Sobrenome, m => m.MapFrom(a => a.Sobrenome))
             .ForMember(dest => dest.EMail, m => m.MapFrom(a => a.Email))
+            .ForMember(dest => dest.Account, m => m.MapFrom(a => a.Account))
             .ForMember(dest => dest.CiaAereaId, m => m.MapFrom(a => a.CompanhiaId))
             .ForMember(dest => dest.AlteraCia, m => m.MapFrom(a => a.AlteraCompanhia))
             .ForMember(dest => dest.AcessaCiasAereas, m => m.MapFrom(a => a.AcessoCompanhias))
@@ -146,6 +143,7 @@ public class MappingProfileConfiguration : Profile
             .ForMember(dest => dest.Id, m => m.MapFrom(a => a.UsuarioId))
             .ForMember(dest => dest.Nome, m => m.MapFrom(a => a.Nome))
             .ForMember(dest => dest.Sobrenome, m => m.MapFrom(a => a.Sobrenome))
+            .ForMember(dest => dest.EMail, m => m.MapFrom(a => a.Email))
             .ForMember(dest => dest.CiaAereaId, m => m.MapFrom(a => a.CompanhiaId))
             .ForMember(dest => dest.AlteraCia, m => m.MapFrom(a => a.AlteraCompanhia))
             .ForMember(dest => dest.AcessaCiasAereas, m => m.MapFrom(a => a.AcessoCompanhias))
@@ -188,13 +186,10 @@ public class MappingProfileConfiguration : Profile
 
         CreateMap<NaturezaCargaInsertRequestDto, NaturezaCarga>()
             .ForMember(dest => dest.Codigo, m => m.MapFrom(a => a.Codigo))
-            .ForMember(dest => dest.Descricao, m => m.MapFrom(a => a.Descricao))
-            .ForMember(dest => dest.CriadoPeloId, m => m.MapFrom(a => a.UsuarioInsercaoId))
-            .ForMember(dest => dest.EmpresaId, m => m.MapFrom(a => a.EmpresaId));
+            .ForMember(dest => dest.Descricao, m => m.MapFrom(a => a.Descricao));
 
         CreateMap<NaturezaCargaUpdateRequestDto, NaturezaCarga>()
-            .ForMember(dest => dest.Descricao, m => m.MapFrom(a => a.Descricao))
-            .ForMember(dest => dest.ModificadoPeloId, m => m.MapFrom(a => a.UsuarioModificadorId));
+            .ForMember(dest => dest.Descricao, m => m.MapFrom(a => a.Descricao));
         #endregion
 
         #region Master

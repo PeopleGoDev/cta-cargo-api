@@ -7,6 +7,7 @@ public class UsuarioResponseDto
     public int UsuarioId { get; set; }
     public string Nome { get; set; }
     public string Sobrenome { get; set; }
+    public string Account { get; set; }
     public string Email { get; set; }
     public int CompanhiaId { get; set; }
     public string CompanhiaNome { get; set; }

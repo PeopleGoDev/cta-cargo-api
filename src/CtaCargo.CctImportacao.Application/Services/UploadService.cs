@@ -96,7 +96,7 @@ public class UploadService : IUploadService
         switch (input.CertificadoDestino)
         {
             case FileDestinationMap.CiaAerea:
-                var cia = await _ciaaereaRepository.GetCiaAereaById(input.Id.Value);
+                var cia = await _ciaaereaRepository.GetCiaAereaById(userSession.CompanyId, input.Id.Value);
                 if (cia == null)
                     throw new BusinessException("Companhia Aerea não encontrada!");
 
@@ -106,7 +106,7 @@ public class UploadService : IUploadService
                     throw new BusinessException("Erro desconhecido: Não foi possível gravar as informação na tabela CiaAerea!");
                 break;
             case FileDestinationMap.AgenteDeCarga:
-                var agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaById(input.Id.Value);
+                var agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaById(userSession.CompanyId, input.Id.Value);
                 if (agenteDeCarga == null)
                     throw new BusinessException("Agente de Carga não encontrada!");
                 agenteDeCarga.CertificadoId = certificadoId;
@@ -147,9 +147,9 @@ public class UploadService : IUploadService
             throw new BusinessException(ex.Message, ex);
         }
     }
-    private async Task<string> GetFileNameAirCompany(int companhiaId)
+    private async Task<string> GetFileNameAirCompany(UserSession userSession, int airCompanyId)
     {
-        CiaAerea cia = await _ciaaereaRepository.GetCiaAereaById(companhiaId);
+        CiaAerea cia = await _ciaaereaRepository.GetCiaAereaById(userSession.CompanyId, airCompanyId);
         if (cia != null)
         {
             return
