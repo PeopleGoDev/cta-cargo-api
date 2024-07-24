@@ -4,7 +4,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using CtaCargo.CctImportacao.Domain.Entities;
 
-namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
+namespace CtaCargo.CctImportacao.Domain.Repositories
 {
     public interface IMasterRepository
     {

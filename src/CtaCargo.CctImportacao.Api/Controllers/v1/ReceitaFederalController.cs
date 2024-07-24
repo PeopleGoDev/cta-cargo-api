@@ -99,6 +99,15 @@ public class ReceitaFederalController : Controller
 
     [HttpPost]
     [Authorize]
+    [Route("SubmeterHouseAgenteDeCargaPorIds")]
+    public async Task<ApiResponse<string>> SubmeterHouseAgenteDeCargaEIds(SubmeterRFBHouseByIdsRequest input)
+    {
+        return await _receitaHouseService
+            .SubmeterHousesAgentesDeCargaAndIds(HttpContext.GetUserSession(), input);
+    }
+
+    [HttpPost]
+    [Authorize]
     [Route("SubmeterAssociacaoHouseMaster")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<string>))]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -131,7 +140,6 @@ public class ReceitaFederalController : Controller
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CancelarHouses(int houseId)
     {
-        if (houseId == null) return BadRequest();
         if (houseId <= 0) return BadRequest();
 
         return Ok(await _receitaHouseService.SubmeterHouseExclusion(HttpContext.GetUserSession(), houseId));

@@ -1,22 +1,20 @@
 ﻿using CtaCargo.CctImportacao.Domain.Entities;
-using CtaCargo.CctImportacao.Domain.Model.Iata.FlightManifest;
+using CtaCargo.CctImportacao.Domain.Model;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using CtaCargo.CctImportacao.Infrastructure.Data.Context;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL;
 
-public class SQLVooRepository : IVooRepository
+public class VooRepository : IVooRepository
 {
     private readonly ApplicationDbContext _context;
 
-    public SQLVooRepository(ApplicationDbContext context)
+    public VooRepository(ApplicationDbContext context)
     {
         _context = context;
     }

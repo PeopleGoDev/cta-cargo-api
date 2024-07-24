@@ -1,7 +1,7 @@
 ﻿using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Model.Iata.FlightManifest;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using CtaCargo.CctImportacao.Domain.Validator;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.Extensions.Logging;
 
 namespace CtaCargo.CctImportacao.Batch.Services;

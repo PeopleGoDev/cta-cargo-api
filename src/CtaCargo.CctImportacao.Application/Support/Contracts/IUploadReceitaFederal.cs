@@ -5,9 +5,9 @@ namespace CtaCargo.CctImportacao.Application.Support.Contracts;
 
 public interface IUploadReceitaFederal
 {
-    ReceitaRetornoProtocol SubmitFlight(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado);
-    ReceitaRetornoProtocol SubmitWaybill(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado);
-    ReceitaRetornoProtocol SubmitHouse(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado);
-    ReceitaRetornoProtocol SubmitHouseMaster(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado);
-    ProtocoloReceitaCheckFile CheckFileProtocol(string protocol, TokenResponse token);
+    Task<ReceitaRetornoProtocol> SubmitFlight(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado);
+    Task<ReceitaRetornoProtocol> SubmitWaybill(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado);
+    Task<ReceitaRetornoProtocol> SubmitHouse(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado);
+    Task<ReceitaRetornoProtocol> SubmitHouseMaster(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado);
+    Task<ProtocoloReceitaCheckFile> CheckFileProtocol(string protocol, TokenResponse token);
 }

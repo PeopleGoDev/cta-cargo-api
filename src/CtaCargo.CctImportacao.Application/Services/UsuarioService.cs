@@ -1,11 +1,12 @@
 ﻿using AutoMapper;
+using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Exceptions;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -59,7 +60,7 @@ public class UsuarioService : IUsuarioService
                 };
     }
 
-    public async Task<ApiResponse<UsuarioResponseDto>> InserirUsuario(UsuarioInsertRequest usuarioRequest)
+    public async Task<ApiResponse<UsuarioResponseDto>> InserirUsuario(UserSession userSession, UsuarioInsertRequest usuarioRequest)
     {
         var password = GeneratePassword(true, true, true, true, 8);
         var usuarioModel = _mapper.Map<Usuario>(usuarioRequest);
@@ -67,15 +68,16 @@ public class UsuarioService : IUsuarioService
         usuarioModel.CreatedDateTimeUtc = DateTime.UtcNow;
         usuarioModel.Senha = password;
         usuarioModel.AlterarSenha = true;
+        usuarioModel.EmpresaId = userSession.CompanyId;
+        usuarioModel.CriadoPeloId = userSession.UserId;
 
         _usuarioRepository.CreateUsuario(usuarioModel);
 
-        string emailBody = "<p>Bem-vindo ao CCT Importação</p>";
-        emailBody += $"<p>Sua senha é <b>{password}</b></p>";
-        _sendEmail.Email(usuarioModel.EMail, "Bem-vindo ao CCT Importação", emailBody);
-
         if (!await _usuarioRepository.SaveChanges())
             throw new BusinessException("Não Foi possível adicionar o usuário: Erro Desconhecido!");
+
+        string emailBody = GenBody("Bem-vindo ao CCT Importação", usuarioModel.Account, password);
+        _sendEmail.Email(usuarioModel.EMail, "CCT Importação - Bem-vindo", emailBody);
 
         var usuarioResponseDTO = _mapper.Map<UsuarioResponseDto>(usuarioModel);
         return
@@ -114,7 +116,7 @@ public class UsuarioService : IUsuarioService
 
     public async Task<ApiResponse<string>> ResetarUsuario(UserResetRequest usuarioRequest)
     {
-        var user = await _usuarioRepository.GetUsuarioById(usuarioRequest.UserId) ?? 
+        var user = await _usuarioRepository.GetUsuarioById(usuarioRequest.UserId) ??
             throw new BusinessException("Não foi possível resetar a senha do usuário !");
 
         var password = GeneratePassword(true, true, true, true, 8);
@@ -122,9 +124,8 @@ public class UsuarioService : IUsuarioService
         user.AlterarSenha = true;
         user.DataReset = DateTime.UtcNow;
 
-        string emailBody = "<p>Alteração senha CCT Importação</p>";
-        emailBody += $"<p>Sua senha foi alterada para <b>{password}</b></p>";
-        _sendEmail.Email(user.EMail, "Alteração de Senha CCT Importação", emailBody);
+        string emailBody = GenBody("Reset de senha", user.Account, password);
+        _sendEmail.Email(user.EMail, "CCT Importação - Reset de Senha", emailBody);
 
         _usuarioRepository.UpdateUsuario(user);
 
@@ -188,5 +189,12 @@ public class UsuarioService : IUsuarioService
         }
 
         return string.Join(null, _password);
+    }
+
+    private string GenBody(string title, string user, string password)
+    {
+        return $"<h3>{title}</h3>"
+            + $"<p>Usuário  <b>{user}</b></p>"
+            + $"<p>Senha <b>{password}</b></p>";
     }
 }

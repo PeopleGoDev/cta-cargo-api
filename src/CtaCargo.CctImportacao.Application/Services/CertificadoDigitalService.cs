@@ -2,7 +2,7 @@
 using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 

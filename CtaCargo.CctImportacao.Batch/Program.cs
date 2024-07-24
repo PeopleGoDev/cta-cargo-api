@@ -1,11 +1,11 @@
 using CtaCargo.CctImportacao.Batch.Services;
 using CtaCargo.CctImportacao.Infrastructure.Data.Context;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL;
 using CtaCargo.CctImportacao.Application.Validator;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using CtaCargo.CctImportacao.Domain.Repositories;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()
@@ -13,7 +13,7 @@ var host = new HostBuilder()
     {
         services.AddScoped<FunctionTimerService>();
         services.AddScoped<IConfiguraRepository, SQLConfiguraRepository>();
-        services.AddScoped<IVooRepository, SQLVooRepository>();
+        services.AddScoped<IVooRepository, VooRepository>();
         services.AddScoped<IPortoIATARepository, SQLPortoIATARepository>();
         services.AddScoped<IMasterRepository, SqlMasterRepository>();
         services.AddScoped<IUldMasterRepository, SQLUldMasterRepository>();

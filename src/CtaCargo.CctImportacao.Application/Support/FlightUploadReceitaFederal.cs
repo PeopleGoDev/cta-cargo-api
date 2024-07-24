@@ -7,6 +7,7 @@ using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Xml;
 
 namespace CtaCargo.CctImportacao.Application.Support;
@@ -37,7 +38,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         _masterRfb = masterRfb;
     }
 
-    public ReceitaRetornoProtocol SubmitFlight(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado)
+    public async Task<ReceitaRetornoProtocol> SubmitFlight(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado)
     {
         try
         {
@@ -45,20 +46,26 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
             string url = $"{_baseUrl}{_requestFlightMethod}?cnpj={cnpj}";
             string postData = xml;
 
-            return SubmitFile(url, xml, token);
+            return await SubmitFile(url, xml, token);
 
         }
-        catch (WebException ex)
+        catch (WebException)
         {
-            throw ex;
+            throw;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            throw ex;
+            throw;
         }
         
     }
-    public ReceitaRetornoProtocol SubmitWaybill(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado)
+    public async Task<ReceitaRetornoProtocol> SubmitWaybill_old(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado)
+    {
+        var response = await _masterRfb.Submit(cnpj, xml, token.SetToken, token.XCSRFToken);
+
+        return GetProtocolResponse(response);
+    }
+    public async Task<ReceitaRetornoProtocol> SubmitWaybill(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado)
     {
         try
         {
@@ -66,7 +73,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
             string url = $"{_baseUrl}{_requestWaybillMethod}?cnpj={cnpj}";
             string postData = xml;
 
-            return SubmitFile(url, xml, token);
+            return await SubmitFile(url, xml, token);
         }
         catch (WebException ex)
         {
@@ -86,7 +93,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         }
 
     }
-    public ReceitaRetornoProtocol SubmitHouse(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado)
+    public async Task<ReceitaRetornoProtocol> SubmitHouse(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado)
     {
         try
         {
@@ -94,7 +101,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
             string url = $"{_baseUrl}{_requestHouseMethod}?cnpj={cnpj}";
             string postData = xml;
 
-            return SubmitFile(url, xml, token);
+            return await SubmitFile(url, xml, token);
         }
         catch (WebException ex)
         {
@@ -114,7 +121,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         }
 
     }
-    public ReceitaRetornoProtocol SubmitHouseMaster(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado)
+    public async Task<ReceitaRetornoProtocol> SubmitHouseMaster(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado)
     {
         try
         {
@@ -122,7 +129,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
             string url = $"{_baseUrl}{_requestHouseMasterMethod}?cnpj={cnpj}";
             string postData = xml;
 
-            return SubmitFile(url, xml, token);
+            return await SubmitFile(url, xml, token);
         }
         catch (WebException ex)
         {
@@ -142,7 +149,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         }
 
     }
-    private static ReceitaRetornoProtocol SubmitFile(string url, string xml, TokenResponse token)
+    private static async Task<ReceitaRetornoProtocol> SubmitFile(string url, string xml, TokenResponse token)
     {
         ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
         HttpWebRequest request = null;
@@ -154,9 +161,10 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         request.ContentLength = bytes.Length;
         request.Headers.Add("Authorization", token.SetToken);
         request.Headers.Add("X-CSRF-Token", token.XCSRFToken);
-        request.ProtocolVersion = HttpVersion.Version11;
+        //request.ProtocolVersion = HttpVersion.Version11;
+        request.ProtocolVersion = HttpVersion.Version10;
 
-        using (Stream requeststream = request.GetRequestStream())
+        using (Stream requeststream = await request.GetRequestStreamAsync())
         {
             requeststream.Write(bytes, 0, bytes.Length);
             requeststream.Close();
@@ -166,9 +174,9 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         string reason = "";
         DateTime? issueDate = null;
 
-        using (var webResponse = request.GetResponse())
+        using (var webResponse = await request.GetResponseAsync())
         {
-            using (StreamReader sr = new StreamReader(webResponse.GetResponseStream()))
+            using (StreamReader sr = new(webResponse.GetResponseStream()))
             {
                 XmlDocument doc = new XmlDocument();
                 doc.Load(sr);
@@ -205,7 +213,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         };
 
     }
-    public ProtocoloReceitaCheckFile CheckFileProtocol(string protocol, TokenResponse token)
+    public async Task<ProtocoloReceitaCheckFile> CheckFileProtocol(string protocol, TokenResponse token)
     {
         ProtocoloReceitaCheckFile responseObject = null;
         try
@@ -219,9 +227,9 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
             request.Headers.Add("X-CSRF-Token", token.XCSRFToken);
             request.ProtocolVersion = HttpVersion.Version11;
 
-            using (var webResponse = request.GetResponse())
+            using (var webResponse = await request.GetResponseAsync())
             {
-                using (StreamReader sr = new StreamReader(webResponse.GetResponseStream()))
+                using (StreamReader sr = new(webResponse.GetResponseStream()))
                 {
                     var response = sr.ReadToEnd().Trim();
                     sr.Close();
@@ -240,5 +248,42 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         {
             throw ex;
         }
+    }
+    private ReceitaRetornoProtocol GetProtocolResponse(string response)
+    {
+        string statusCode = "";
+        string reason = "";
+        DateTime? issueDate = null;
+
+        XmlDocument doc = new();
+        doc.LoadXml(response);
+        XmlNamespaceManager ns = new(doc.NameTable);
+        ns.AddNamespace("ns2", "iata:response:3");
+        ns.AddNamespace("", "iata:datamodel:3");
+
+        var node3 = doc.SelectSingleNode("ns2:Response/ns2:MessageHeaderDocument", ns);
+        if (node3 != null && node3.HasChildNodes)
+            foreach (XmlNode item in node3.ChildNodes)
+                if (item.Name == "IssueDateTime")
+                    issueDate = DateTime.Parse(item.InnerText);
+
+        var node = doc.SelectSingleNode("ns2:Response/ns2:BusinessHeaderDocument", ns);
+        if (node != null && node.HasChildNodes)
+            foreach (XmlNode item in node.ChildNodes)
+                if (item.Name == "StatusCode")
+                    statusCode = item.InnerText;
+
+        var node2 = doc.SelectSingleNode("ns2:Response/ns2:ResponseStatus", ns);
+        if (node2 != null && node2.HasChildNodes)
+            foreach (XmlNode item in node2.ChildNodes)
+                if (item.Name == "Reason")
+                    reason = item.InnerText;
+
+        return new ReceitaRetornoProtocol
+        {
+            StatusCode = statusCode,
+            Reason = reason,
+            IssueDateTime = issueDate
+        };
     }
 }

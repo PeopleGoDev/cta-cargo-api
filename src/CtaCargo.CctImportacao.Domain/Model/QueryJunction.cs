@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Text;
 
-namespace CtaCargo.CctImportacao.Infrastructure.Data
+namespace CtaCargo.CctImportacao.Domain.Model
 {
     public class QueryJunction<T>
     {
@@ -14,7 +14,8 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data
             lista = new List<Expression<Func<T, bool>>>();
         }
 
-        public void Add(Expression<Func<T, bool>> predicate) {
+        public void Add(Expression<Func<T, bool>> predicate)
+        {
             lista.Add(predicate);
         }
 
@@ -23,7 +24,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data
             if (lista.Count > 1)
             {
                 var mainPre = lista[0];
-                for( int i = 1; i < lista.Count; i++)
+                for (int i = 1; i < lista.Count; i++)
                 {
                     mainPre = AndAlso(mainPre, lista[i]);
                 }
@@ -35,7 +36,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data
         }
 
         private Expression<Func<T, bool>> AndAlso(
-            Expression<Func<T, bool>> expr1, 
+            Expression<Func<T, bool>> expr1,
             Expression<Func<T, bool>> expr2)
         {
             // need to detect whether they use the same

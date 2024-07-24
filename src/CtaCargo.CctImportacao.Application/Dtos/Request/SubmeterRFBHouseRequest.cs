@@ -12,6 +12,13 @@ public class SubmeterRFBHouseRequest
     public int AgenteDeCargaId { get; set; }
 }
 
+public class SubmeterRFBHouseByIdsRequest
+{
+    public DateTime DataProcessamento { get; set; }
+    public int FreightFowarderId { get; set; }
+    public List<int> HouseIds { get; set; }
+}
+
 public class SubmeterRFBMasterHouseRequest
 {
     public int FreightFowarderId { get; set; }
@@ -28,6 +35,7 @@ public class SubmeterRFBMasterHouseItemRequest
     public string TotalWeightUnit { get; set; }
     public int PackageQuantity { get; set; }
     public int TotalPiece { get; set; }
+    public int[] HouseIds { get; set; }
 }
 
 public class MasterHouseAssociationUploadResponse

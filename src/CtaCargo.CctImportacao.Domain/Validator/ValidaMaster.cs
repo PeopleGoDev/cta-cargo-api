@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace CtaCargo.CctImportacao.Domain.Validators;
+namespace CtaCargo.CctImportacao.Domain.Validator;
 
 public static class ValidaMaster
 {

@@ -17,8 +17,4 @@
     <ProjectReference Include="..\CtaCargo.CctImportacao.Infrastructure.Data\CtaCargo.CctImportacao.Infrastructure.Data.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Handlers\" />
-  </ItemGroup>
-
 </Project>

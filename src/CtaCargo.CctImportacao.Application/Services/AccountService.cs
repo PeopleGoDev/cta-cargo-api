@@ -4,9 +4,8 @@ using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Exceptions;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using CtaCargo.CctImportacao.Domain.Validator;
-using CtaCargo.CctImportacao.Infrastructure.Data.Cache;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using System.Threading.Tasks;
 
 namespace CtaCargo.CctImportacao.Application.Services;
@@ -14,24 +13,18 @@ namespace CtaCargo.CctImportacao.Application.Services;
 public class AccountService : IAccountService
 {
     private readonly IUsuarioRepository _usuarioRepository;
-    private readonly ICacheService _cacheService;
     private readonly ICertificadoDigitalRepository _certificadoDigitalRepository;
-    private readonly IConfiguraRepository _configuraRepository;
     private readonly ITokenService _tokenSerice;
     private readonly IMapper _mapper;
     public AccountService(
         IUsuarioRepository usuarioRepository,
-        IConfiguraRepository configuraRepository,
         IMapper mapper,
         ITokenService tokenSerice,
-        ICacheService cacheService,
         ICertificadoDigitalRepository certificadoDigitalRepository = null)
     {
         _usuarioRepository = usuarioRepository;
-        _configuraRepository = configuraRepository;
         _mapper = mapper;
         _tokenSerice = tokenSerice;
-        _cacheService = cacheService;
         _certificadoDigitalRepository = certificadoDigitalRepository;
     }
 
@@ -43,19 +36,18 @@ public class AccountService : IAccountService
         if (!result.IsValid)
             throw new BusinessException(result.Errors[0].ErrorMessage);
 
-        Usuario user = await _usuarioRepository.GetUsuarioByAuthentication(usuarioLogin.Email, usuarioLogin.Senha);
-        if (user == null)
+        Usuario user = 
+            await _usuarioRepository.GetUsuarioByAuthentication(usuarioLogin.Email, usuarioLogin.Senha) ?? 
             throw new BusinessException("Usuário/Senha Invalido!");
 
-        string token = null;
-        UsuarioInfoResponse userReaddto = null;
+        UsuarioInfoResponse userReaddto = _mapper.Map<UsuarioInfoResponse>(user);
 
+        string token = null;
         bool alteraSenha = user.AlterarSenha;
         if (!user.AlterarSenha)
         {
-            token = _tokenSerice.GenerateToken(user);
-            userReaddto = _mapper.Map<UsuarioInfoResponse>(user);
             userReaddto.UserProfile = user.Perfil.ToString();
+            token = _tokenSerice.GenerateToken(user);
         }
 
         if (usuarioLogin.AlterarSenhar)
@@ -64,9 +56,8 @@ public class AccountService : IAccountService
             user.AlterarSenha = false;
             _usuarioRepository.UpdateUsuario(user);
             await _usuarioRepository.SaveChanges();
-            token = _tokenSerice.GenerateToken(user);
-            userReaddto = _mapper.Map<UsuarioInfoResponse>(user);
             alteraSenha = false;
+            token = _tokenSerice.GenerateToken(user);
         }
 
         if (user.CertificadoId is not null)

@@ -1,8 +1,8 @@
-﻿using System;
+﻿using CtaCargo.CctImportacao.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using static CtaCargo.CctImportacao.Domain.Entities.Master;
 
 namespace CtaCargo.CctImportacao.Domain.Entities;
 

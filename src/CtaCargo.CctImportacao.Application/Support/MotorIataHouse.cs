@@ -1,6 +1,7 @@
 ﻿using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Enums;
 using CtaCargo.CctImportacao.Domain.Model.Iata.HouseManifest;
 using System;
 using System.Collections.Generic;
@@ -16,7 +17,7 @@ public class MotorIataHouse : IMotorIataHouse
 {
     public string GenHouseManifest(House house, List<NaturezaCarga> naturezaCargaList, IataXmlPurposeCode purposeCode)
     {
-        HouseWaybillType manhouse = new HouseWaybillType();
+        HouseWaybillType manhouse = new();
 
         Enum.TryParse(house.PesoTotalBrutoUN, out MeasurementUnitCommonCodeContentType pesoTotalUN);
         Enum.TryParse(house.ValorFretePPUN, out ISO3AlphaCurrencyCodeContentType valorPPUN);

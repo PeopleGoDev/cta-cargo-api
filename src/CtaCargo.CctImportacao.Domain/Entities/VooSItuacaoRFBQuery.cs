@@ -1,4 +1,4 @@
-﻿using static CtaCargo.CctImportacao.Domain.Entities.Master;
+﻿using CtaCargo.CctImportacao.Domain.Enums;
 
 namespace CtaCargo.CctImportacao.Domain.Entities;
 

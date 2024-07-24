@@ -5,13 +5,13 @@ using CtaCargo.CctImportacao.Application.Services.Contracts;
 using CtaCargo.CctImportacao.Domain.Validator;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Exceptions;
-using CtaCargo.CctImportacao.Infrastructure.Data;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using CtaCargo.CctImportacao.Domain.Repositories;
+using CtaCargo.CctImportacao.Domain.Model;
 
 namespace CtaCargo.CctImportacao.Application.Services;
 

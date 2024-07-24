@@ -1,6 +1,7 @@
 ﻿using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Model;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using CtaCargo.CctImportacao.Infrastructure.Data.Context;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -34,9 +35,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
             _context.MasterHouseAssociacoes.Update(masterHouseAssociacao);
         }
 
-        public async Task<List<MasterHouseAssociacao>> SelectMasterHouseAssociacaoParam(Expression<Func<MasterHouseAssociacao, bool>> predicate)
+        public async Task<List<MasterHouseAssociacao>> SelectMasterHouseAssociacaoParam(QueryJunction<MasterHouseAssociacao> param)
         {
-            return await _context.MasterHouseAssociacoes.Where(predicate).ToListAsync();
+            return await _context.MasterHouseAssociacoes.Where(param.ToPredicate()).ToListAsync();
         }
 
         public async Task<MasterHouseAssociacao> SelectMasterHouseAssociacaoById(int ciaId, int id)

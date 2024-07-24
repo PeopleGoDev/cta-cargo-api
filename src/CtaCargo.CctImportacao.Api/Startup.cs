@@ -1,15 +1,16 @@
 using AutoMapper;
 using CtaCargo.CctImportacao.Api.Infrastructure.Extensions;
 using CtaCargo.CctImportacao.Api.Infrastructure.Middlewares;
+using CtaCargo.CctImportacao.Application.Handlers;
 using CtaCargo.CctImportacao.Application.Refit;
 using CtaCargo.CctImportacao.Application.Services;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using CtaCargo.CctImportacao.Application.Support;
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Application.Validator;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using CtaCargo.CctImportacao.Infrastructure.Data.Cache;
 using CtaCargo.CctImportacao.Infrastructure.Data.Context;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
@@ -22,7 +23,6 @@ using Microsoft.Extensions.Hosting;
 using Refit;
 using System;
 using System.Net.Http;
-using System.Net.Security;
 using System.Reflection;
 
 namespace CtaCargo.CctImportacao.Api;
@@ -62,7 +62,7 @@ public class Startup
 
         services.AddRefitClient<IMasterRfb>()
             .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseRFBUrl))
-            .ConfigurePrimaryHttpMessageHandler(() => httpClientHandler);
+            .ConfigurePrimaryHttpMessageHandler<RefitHttpClientHandler>();
 
         services.AddRefitClient<IHouseRfb>()
             .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseRFBUrl))
@@ -124,7 +124,7 @@ public class Startup
         // Repositorios
         services.AddScoped<IUsuarioRepository, SQLUsuarioRepository>();
         services.AddScoped<ICiaAereaRepository, SQLCiaAereaRepository>();
-        services.AddScoped<IVooRepository, SQLVooRepository>();
+        services.AddScoped<IVooRepository, VooRepository>();
         services.AddScoped<IPortoIATARepository, SQLPortoIATARepository>();
         services.AddScoped<IMasterRepository, SqlMasterRepository>();
         services.AddScoped<IHouseRepository, SqlHouseRepository>();
@@ -136,7 +136,8 @@ public class Startup
         services.AddScoped<INcmRepository, SQLNcmRepository>();
         services.AddScoped<IMasterHouseAssociacaoRepository, SQLMasterHouseAssociacaoRepository>();
         services.AddScoped<IConfiguraRepository, SQLConfiguraRepository>();
-        services.AddScoped< ICacheService, CacheService>();
+        services.AddScoped<IMessageSubmitFileRepository, MessageSubmitFileRepository>();
+        services.AddScoped<ICacheService, CacheService>();
 
         services.AddScoped<ICertitificadoDigitalSupport, CertitificadoDigitalSupport>();
         services.AddScoped<IDownloadArquivoCertificado, DownloadArquivoCertificadoAzureStorage>();
@@ -146,7 +147,9 @@ public class Startup
         services.AddScoped<IMotorIataHouse, MotorIataHouse>();
 
         services.AddScoped<ISendEmail, SendEmail>();
-        services.AddScoped<IValidadorMaster, ValidadorMaster>(); 
+        services.AddScoped<IValidadorMaster, ValidadorMaster>();
+
+        services.AddSingleton<RefitHttpClientHandler>();
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

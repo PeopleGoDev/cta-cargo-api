@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Model;
 
-namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
+namespace CtaCargo.CctImportacao.Domain.Repositories
 {
     public interface IHouseRepository
     {

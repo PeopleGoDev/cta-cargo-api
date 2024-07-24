@@ -5,7 +5,7 @@ using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Exceptions;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;

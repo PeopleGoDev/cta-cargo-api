@@ -1,10 +1,9 @@
-﻿namespace CtaCargo.CctImportacao.Domain.Enums
+﻿namespace CtaCargo.CctImportacao.Domain.Enums;
+
+public enum CodigoNotificacao
 {
-    public enum CodigoNotificacao
-    {
-        BadRequest = 400,
-        RecursoNaoEncontrado = 404,
-        ErroInesperado = 500,
-        Business = 200
-    }
+    BadRequest = 400,
+    RecursoNaoEncontrado = 404,
+    ErroInesperado = 500,
+    Business = 200
 }

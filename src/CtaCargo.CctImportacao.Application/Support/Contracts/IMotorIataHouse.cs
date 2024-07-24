@@ -1,5 +1,6 @@
 ﻿using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Enums;
 using System;
 using System.Collections.Generic;
 

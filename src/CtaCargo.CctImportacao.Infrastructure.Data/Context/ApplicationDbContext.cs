@@ -36,6 +36,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Configura> Configuracoes { get; set; }
     public DbSet<FileImport> FileImport { get; set; }
     public DbSet<FileImportDetail> FileImportDetails { get; set; }
+    public DbSet<MessageSubmitFile> MessageSubmitFiles { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,7 +46,7 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Usuario>().ToTable("Usuario");
         modelBuilder.Entity<Usuario>()
-            .HasIndex(u => new { u.EmpresaId, u.EMail, u.DataExclusao } )
+            .HasIndex(u => new { u.EmpresaId, u.Account, u.DataExclusao } )
             .IsUnique()
             .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 
@@ -184,14 +185,26 @@ public class ApplicationDbContext : DbContext
             .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 
         modelBuilder.Entity<FileImport>()
-            .ToTable("FileImport")
             .HasIndex(x => new { x.EmpresaId, x.Type, x.DataExclusao })
+            .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
+
+        modelBuilder.Entity<MessageSubmitFile>()
+            .ToTable("MessageSubmitFile");
+
+        modelBuilder.Entity<MessageSubmitFile>()
+            .HasIndex(x => new { x.FilePurpose, x.SourceId })
+            .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
+
+        modelBuilder.Entity<MessageSubmitFile>()
+            .HasIndex(x => new { x.ProtocolNumber })
+            .IsUnique()
             .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 
         modelBuilder.Entity<ResumoVooUldView>(eb =>
         {
             eb.ToView("ResumoVooUldView");
         });
+
 
         foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
         {

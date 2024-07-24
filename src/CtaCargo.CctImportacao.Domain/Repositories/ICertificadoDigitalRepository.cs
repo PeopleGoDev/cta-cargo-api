@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts
+namespace CtaCargo.CctImportacao.Domain.Repositories
 {
     public interface ICertificadoDigitalRepository
     {

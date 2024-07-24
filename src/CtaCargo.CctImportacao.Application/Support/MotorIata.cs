@@ -1,5 +1,6 @@
 ﻿using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Enums;
 using CtaCargo.CctImportacao.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
@@ -12,22 +13,16 @@ using Waybill = CtaCargo.CctImportacao.Domain.Model.Iata.WaybillManifest;
 
 namespace CtaCargo.CctImportacao.Application.Support;
 
-public enum IataXmlPurposeCode
-{
-    Creation,
-    Update,
-    Deletion
-}
 public class MotorIata : IMotorIata
 {
     public string GenFlightManifest(Voo voo, int? trechoId = null, DateTime? actualDateTime = null, bool isScheduled = false)
     {
         try
         {
-            Flight.FlightManifestType manvoo = new Flight.FlightManifestType();
+            Flight.FlightManifestType manvoo = new();
 
             // MessageHeaderDocument
-            Flight.MessageHeaderDocumentType headerdoc = new Flight.MessageHeaderDocumentType
+            Flight.MessageHeaderDocumentType headerdoc = new()
             {
                 ID = new Flight.IDType() { Value = $"{voo.Numero}_{((DateTime)voo.DataHoraSaidaEstimada).ToString("ddMMMyyy_ddMMyyyyhhmmss")}" },
                 Name = new Flight.TextType() { Value = "Transport Loading Report" },
@@ -46,30 +41,35 @@ public class MotorIata : IMotorIata
             {
                 PrimaryID = new Flight.IDType { Value = "HDQTTKE", schemeID = "P" }
             };
-
             headerdoc.RecipientParty[0] = new Flight.RecipientPartyType
             {
                 PrimaryID = new Flight.IDType { Value = "BRCUSTOMS", schemeID = "C" }
             };
-        
+
             manvoo.MessageHeaderDocument = headerdoc;
 
             // BusinessHeaderDocument
-            Flight.BusinessHeaderDocumentType busdoc = new Flight.BusinessHeaderDocumentType();
-            busdoc.ID = new Flight.IDType { Value = $"{voo.Numero}{ ((DateTime)voo.DataHoraSaidaEstimada).ToString("yyyyMMdd") }{voo.PortoIataOrigemInfo.Codigo}" };
-            busdoc.IncludedHeaderNote = new Flight.HeaderNoteType[1];
-            busdoc.IncludedHeaderNote[0] = new Flight.HeaderNoteType();
-            busdoc.IncludedHeaderNote[0].Content = new Flight.TextType { Value = "FlightManifest" };
+            Flight.BusinessHeaderDocumentType busdoc = new()
+            {
+                ID = new Flight.IDType { Value = $"{voo.Numero}{((DateTime)voo.DataHoraSaidaEstimada).ToString("yyyyMMdd")}{voo.PortoIataOrigemInfo.Codigo}" },
+                IncludedHeaderNote = new Flight.HeaderNoteType[1]
+            };
+            busdoc.IncludedHeaderNote[0] = new Flight.HeaderNoteType
+            {
+                Content = new Flight.TextType { Value = "FlightManifest" }
+            };
             manvoo.BusinessHeaderDocument = busdoc;
 
             // LogisticsTransportMovement
-            Flight.LogisticsTransportMovementType logmov = new Flight.LogisticsTransportMovementType();
-            logmov.StageCode = new Flight.CodeType { Value = "Main-Carriage" };
-            logmov.ModeCode = new Flight.TransportModeCodeType { Value = Flight.TransportModeCodeContentType.Item4 };
-            logmov.Mode = new Flight.TextType { Value = "AIR TRANSPORT" };
-            logmov.ID = new Flight.IDType { Value = voo.Numero };
-            logmov.SequenceNumeric = 1;
-            if(voo.PrefixoAeronave != null)
+            Flight.LogisticsTransportMovementType logmov = new()
+            {
+                StageCode = new Flight.CodeType { Value = "Main-Carriage" },
+                ModeCode = new Flight.TransportModeCodeType { Value = Flight.TransportModeCodeContentType.Item4 },
+                Mode = new Flight.TextType { Value = "AIR TRANSPORT" },
+                ID = new Flight.IDType { Value = voo.Numero },
+                SequenceNumeric = 1
+            };
+            if (voo.PrefixoAeronave != null)
             {
                 logmov.UsedLogisticsTransportMeans = new Flight.LogisticsTransportMeansType
                 {
@@ -79,7 +79,7 @@ public class MotorIata : IMotorIata
 
             double totalWeightGross = voo.Masters.Sum(x => x.PesoTotalBruto);
             int totalPecas = voo.Masters.Sum(x => x.TotalPecas);
-            int totalPacotes = voo.Masters.Count();
+            int totalPacotes = voo.Masters.Count;
             logmov.TotalGrossWeightMeasure = new Flight.MeasureType
             {
                 unitCode = Flight.MeasurementUnitCommonCodeContentType.KGM,
@@ -138,14 +138,16 @@ public class MotorIata : IMotorIata
                     if (trecho.DataHoraSaidaEstimada != null)
                     {
                         arrevent.DepartureOccurrenceDateTime = trecho.DataHoraSaidaEstimada;
-                        arrevent.DepartureDateTimeTypeCode = new Flight.CodeType { Value = "S" };
+                        arrevent.DepartureDateTimeTypeCode = new() { Value = "S" };
                         arrevent.DepartureOccurrenceDateTimeSpecified = true;
                     }
                 }
-                arrevent.OccurrenceArrivalLocation = new Flight.ArrivalLocationType();
-                arrevent.OccurrenceArrivalLocation.ID = new Flight.IDType { Value = trecho.PortoIataDestinoInfo.Codigo };
-                arrevent.OccurrenceArrivalLocation.Name = new Flight.TextType { Value = trecho.PortoIataDestinoInfo.Nome };
-                arrevent.OccurrenceArrivalLocation.TypeCode = new Flight.CodeType { Value = "Airport" };
+                arrevent.OccurrenceArrivalLocation = new Flight.ArrivalLocationType
+                {
+                    ID = new() { Value = trecho.PortoIataDestinoInfo.Codigo },
+                    Name = new() { Value = trecho.PortoIataDestinoInfo.Nome },
+                    TypeCode = new() { Value = "Airport" }
+                };
 
                 List<Flight.TransportCargoType> transportes = new List<Flight.TransportCargoType>();
                 // adicionar masters
@@ -163,22 +165,32 @@ public class MotorIata : IMotorIata
                                             x.ULDId == item.ULDId &&
                                             x.ULDIdPrimario == item.ULDIdPrimario).ToList();
 
-                        Flight.TransportCargoType transpuld = new Flight.TransportCargoType();
+                        Flight.TransportCargoType transpuld = new()
+                        {
+                            TypeCode = new() { Value = "ULD" }
+                        };
 
-                        transpuld.TypeCode = new Flight.CodeType { Value = "ULD" };
-
-                        Enum.TryParse("KGM", out Flight.MeasurementUnitCommonCodeContentType pesoUN);
+                        _ = Enum.TryParse("KGM", out Flight.MeasurementUnitCommonCodeContentType pesoUN);
 
                         Flight.UnitLoadTransportEquipmentType unitequip = new Flight.UnitLoadTransportEquipmentType
                         {
-                            ID = new Flight.IDType { Value = item.ULDId },
-                            CharacteristicCode = new Flight.CodeType { Value = item.ULDCaracteristicaCodigo },
-                            OperatingParty = new Flight.OperatingPartyType
+                            ID = new()
                             {
-                                PrimaryID = new Flight.IDType { Value = item.ULDIdPrimario }
+                                Value = item.ULDId
                             },
-                            PieceQuantity = new Flight.QuantityType { Value = Convert.ToDecimal(item.Pecas) },
-                            GrossWeightMeasure = new Flight.MeasureType
+                            CharacteristicCode = new()
+                            {
+                                Value = item.ULDCaracteristicaCodigo
+                            },
+                            OperatingParty = new()
+                            {
+                                PrimaryID = new() { Value = item.ULDIdPrimario }
+                            },
+                            PieceQuantity = new() 
+                            { 
+                                Value = Convert.ToDecimal(item.Pecas) 
+                            },
+                            GrossWeightMeasure = new()
                             {
                                 Value = Convert.ToDecimal(item.Peso),
                                 unitCodeSpecified = true,
@@ -189,50 +201,49 @@ public class MotorIata : IMotorIata
                         transpuld.UtilizedUnitLoadTransportEquipment = unitequip;
 
                         // Monta a lista de Master
-                        List<Flight.MasterConsignmentType> masterConsigments = new List<Flight.MasterConsignmentType>();
+                        List<Flight.MasterConsignmentType> masterConsigments = new();
 
                         foreach (UldMaster uldMaster in ulds)
                         {
-                            Flight.MasterConsignmentType masterC = new Flight.MasterConsignmentType();
+                            Flight.MasterConsignmentType masterC = new();
 
-                            Enum.TryParse(uldMaster.PesoUN, out Flight.MeasurementUnitCommonCodeContentType pesoTotalUN);
+                            _ = Enum.TryParse(uldMaster.PesoUN, out Flight.MeasurementUnitCommonCodeContentType pesoTotalUN);
 
                             var isNonIataAwb = IsAwbNonIata(uldMaster.MasterNumero);
 
-                            masterC.GrossWeightMeasure = new Flight.MeasureType
+                            masterC.GrossWeightMeasure = new()
                             {
                                 Value = Convert.ToDecimal(uldMaster.Peso),
                                 unitCodeSpecified = true,
                                 unitCode = pesoTotalUN
                             };
 
-                            masterC.PackageQuantity = new Flight.QuantityType { Value = 1 };
-                            masterC.TotalPieceQuantity = new Flight.QuantityType { Value = Convert.ToDecimal(uldMaster.QuantidadePecas) };
-                            masterC.SummaryDescription = new Flight.TextType { Value = uldMaster.SummaryDescription };
-                            masterC.TransportSplitDescription = new Flight.TextType { Value = uldMaster.TotalParcial };
-                            masterC.TransportContractDocument = new Flight.TransportContractDocumentType();
-
-                            masterC.TransportContractDocument.ID = new Flight.IDType
+                            masterC.PackageQuantity = new() { Value = 1 };
+                            masterC.TotalPieceQuantity = new() { Value = Convert.ToDecimal(uldMaster.QuantidadePecas) };
+                            masterC.SummaryDescription = new() { Value = uldMaster.SummaryDescription };
+                            masterC.TransportSplitDescription = new() { Value = uldMaster.TotalParcial };
+                            masterC.TransportContractDocument = new()
                             {
-                                Value = isNonIataAwb ? uldMaster.MasterNumero : uldMaster.MasterNumero.Insert(3, "-")
+                                ID = new Flight.IDType
+                                {
+                                    Value = isNonIataAwb ? uldMaster.MasterNumero : uldMaster.MasterNumero.Insert(3, "-")
+                                }
                             };
 
-                            masterC.OriginLocation = new Flight.OriginLocationType
+                            masterC.OriginLocation = new()
                             {
                                 ID = new Flight.IDType { Value = uldMaster.PortOfOrign },
-                                // Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoOrigemInfo.Nome }
                             };
 
-                            masterC.FinalDestinationLocation = new Flight.FinalDestinationLocationType
+                            masterC.FinalDestinationLocation = new()
                             {
                                 ID = new Flight.IDType { Value = uldMaster.PortOfDestiny },
-                                // Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Nome }
                             };
 
                             if (isNonIataAwb)
                             {
                                 masterC.IncludedCustomsNote = new Flight.CustomsNoteType[1];
-                                masterC.IncludedCustomsNote[0] = new Flight.CustomsNoteType
+                                masterC.IncludedCustomsNote[0] = new()
                                 {
                                     Content = new Flight.TextType { Value = "NON-IATA" },
                                     ContentCode = new Flight.CodeType { Value = "DI" },
@@ -250,48 +261,47 @@ public class MotorIata : IMotorIata
                     }
                 }
 
-                if (blk.Count() > 0)
+                if (blk.Any())
                 {
-                    Flight.TransportCargoType transpuld = new Flight.TransportCargoType();
+                    Flight.TransportCargoType transpuld = new()
+                    {
+                        TypeCode = new Flight.CodeType { Value = "BLK" }
+                    };
 
-                    transpuld.TypeCode = new Flight.CodeType { Value = "BLK" };
-
-                    List<Flight.MasterConsignmentType> masterConsigments = new List<Flight.MasterConsignmentType>();
+                    List<Flight.MasterConsignmentType> masterConsigments = new();
 
                     foreach (UldMaster uldMaster in blk)
                     {
-                        Flight.MasterConsignmentType masterC = new Flight.MasterConsignmentType();
+                        Flight.MasterConsignmentType masterC = new();
 
-                        Enum.TryParse(uldMaster.PesoUN, out Flight.MeasurementUnitCommonCodeContentType pesoTotalUN);
+                        _ = Enum.TryParse(uldMaster.PesoUN, out Flight.MeasurementUnitCommonCodeContentType pesoTotalUN);
 
                         var isNonIataAwb = IsAwbNonIata(uldMaster.MasterNumero);
 
-                        masterC.GrossWeightMeasure = new Flight.MeasureType
+                        masterC.GrossWeightMeasure = new()
                         {
                             Value = Convert.ToDecimal(uldMaster.Peso),
                             unitCodeSpecified = true,
                             unitCode = pesoTotalUN
                         };
 
-                        masterC.PackageQuantity = new Flight.QuantityType { Value = 1 };
-                        masterC.TotalPieceQuantity = new Flight.QuantityType { Value = Convert.ToDecimal(uldMaster.QuantidadePecas) };
-                        masterC.SummaryDescription = new Flight.TextType { Value = uldMaster.SummaryDescription };
-                        masterC.TransportSplitDescription = new Flight.TextType { Value = uldMaster.TotalParcial };
-                        masterC.TransportContractDocument = new Flight.TransportContractDocumentType
+                        masterC.PackageQuantity = new() { Value = 1 };
+                        masterC.TotalPieceQuantity = new() { Value = Convert.ToDecimal(uldMaster.QuantidadePecas) };
+                        masterC.SummaryDescription = new() { Value = uldMaster.SummaryDescription };
+                        masterC.TransportSplitDescription = new() { Value = uldMaster.TotalParcial };
+                        masterC.TransportContractDocument = new()
                         {
                             ID = new Flight.IDType { Value = isNonIataAwb ? uldMaster.MasterNumero : uldMaster.MasterNumero.Insert(3, "-") }
                         };
 
-                        masterC.OriginLocation = new Flight.OriginLocationType
+                        masterC.OriginLocation = new()
                         {
                             ID = new Flight.IDType { Value = uldMaster.PortOfOrign },
-                            // Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoOrigemInfo.Nome }
                         };
 
-                        masterC.FinalDestinationLocation = new Flight.FinalDestinationLocationType
+                        masterC.FinalDestinationLocation = new()
                         {
                             ID = new Flight.IDType { Value = uldMaster.PortOfDestiny },
-                            // Name = new Flight.TextType { Value = uldMaster.MasterInfo.AeroportoDestinoInfo.Nome }
                         };
 
                         if (isNonIataAwb)
@@ -313,27 +323,28 @@ public class MotorIata : IMotorIata
                     transportes.Add(transpuld);
                 }
 
-                if(blk.Count() == 0 && uldsMaster.Count() == 0)
+                if (blk.Count() == 0 && uldsMaster.Count() == 0)
                 {
-                    Flight.TransportCargoType transpuld = new Flight.TransportCargoType();
-
-                    transpuld.TypeCode = new Flight.CodeType { Value = "NIL" };
+                    Flight.TransportCargoType transpuld = new()
+                    {
+                        TypeCode = new Flight.CodeType { Value = "NIL" }
+                    };
 
                     transportes.Add(transpuld);
                 }
-                
+
                 arrevent.AssociatedTransportCargo = transportes.ToArray();
 
                 arrivalEvents.Add(arrevent);
             }
-            
+
             manvoo.ArrivalEvent = arrivalEvents.ToArray();
 
             XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
             ns.Add("", "iata:datamodel:3");
             ns.Add("ns2", "iata:flightmanifest:1");
 
-            return SerializeFromStream<Flight.FlightManifestType>(manvoo, ns);
+            return SerializeFromStream(manvoo, ns);
         }
         catch (Exception ex)
         {
@@ -343,15 +354,17 @@ public class MotorIata : IMotorIata
 
     public string GenMasterManifest(Master master, IataXmlPurposeCode purposeCode)
     {
-        Waybill.WaybillType manmaster = new Waybill.WaybillType();
+        Waybill.WaybillType manmaster = new();
 
         #region MessageHeaderDocument
         if (master.XmlIssueDate == null)
             master.XmlIssueDate = DateTime.UtcNow;
 
-        Waybill.MessageHeaderDocumentType headerDocument = new Waybill.MessageHeaderDocumentType();
-        headerDocument.ID = new Waybill.IDType() { Value = $"{master.Numero}_{master.DataEmissaoXML.Value.ToString("ddMMyyyyhhmmss")}" };
-        headerDocument.Name = new Waybill.TextType() { Value = "MASTER AIR WAYBILL" };
+        Waybill.MessageHeaderDocumentType headerDocument = new()
+        {
+            ID = new Waybill.IDType() { Value = $"{master.Numero}_{master.DataEmissaoXML.Value.ToString("ddMMyyyyhhmmss")}" },
+            Name = new Waybill.TextType() { Value = "MASTER AIR WAYBILL" }
+        };
 
         if (master.CodigoConteudo != null && master.CodigoConteudo == "D")
             headerDocument.TypeCode = new Waybill.DocumentCodeType() { Value = Waybill.DocumentNameCodeContentType.Item740 }; // Direct
@@ -424,7 +437,7 @@ public class MotorIata : IMotorIata
         #region MasterConsignment
 
         Enum.TryParse(master.PesoTotalBrutoUN, out Waybill.MeasurementUnitCommonCodeContentType pesoTotalUN);
-        Waybill.MasterConsignmentType masterConsigment = new Waybill.MasterConsignmentType();
+        Waybill.MasterConsignmentType masterConsigment = new();
         masterConsigment.TotalPieceQuantity = new Waybill.QuantityType() { Value = master.TotalPecas };
         masterConsigment.IncludedTareGrossWeightMeasure = new Waybill.MeasureType()
         {
@@ -433,7 +446,7 @@ public class MotorIata : IMotorIata
             unitCode = pesoTotalUN
         };
         masterConsigment.ProductID = new Waybill.IDType { Value = "GEN" };
-        if(master.ValorFretePP > 0)
+        if (master.ValorFretePP > 0)
             masterConsigment.TotalChargePrepaidIndicator = true;
 
         #region MasterConsigment > ConsignorParty
@@ -515,11 +528,11 @@ public class MotorIata : IMotorIata
             }
         };
 
-        if (master.VooInfo.Trechos?.Count() > 0)
+        if (master.VooInfo.Trechos?.Count > 0)
         {
             var firstLag = (master.VooInfo.Trechos.FirstOrDefault(x => x.DataExclusao == null));
 
-            if (firstLag != null)
+            if (firstLag is not null)
             {
                 masterConsigment.SpecifiedLogisticsTransportMovement[0].ArrivalEvent = new Waybill.ArrivalEventType
                 {
@@ -540,7 +553,7 @@ public class MotorIata : IMotorIata
             ScheduledOccurrenceDateTime = (DateTime)master.VooInfo.DataHoraSaidaEstimada,
             OccurrenceDepartureLocation = new Waybill.DepartureLocationType
             {
-                ID = new Waybill.IDType { Value = master.AeroportoOrigemCodigo },
+                ID = new Waybill.IDType { Value = master.VooInfo.AeroportoOrigemCodigo },
                 Name = new Waybill.TextType { Value = master.VooInfo.PortoIataOrigemInfo?.Nome ?? null },
                 TypeCode = new Waybill.CodeType { Value = "Airport" }
             }
@@ -548,12 +561,12 @@ public class MotorIata : IMotorIata
         #endregion
 
         #region MasterConsigment > HandlingSPHInstructions
-        if(master.NaturezaCarga != null)
+        if (master.NaturezaCarga != null)
         {
             var naturezaCargas = master.NaturezaCarga.Split(",");
             List<Waybill.SPHInstructionsType> instructions = new List<Waybill.SPHInstructionsType>();
 
-            foreach(var nat in naturezaCargas)
+            foreach (var nat in naturezaCargas)
             {
                 instructions.Add(new Waybill.SPHInstructionsType
                 {
@@ -661,7 +674,8 @@ public class MotorIata : IMotorIata
                 unitCode = Waybill.MeasurementUnitCommonCodeContentType.MTQ,
                 Value = Convert.ToDecimal(master.Volume)
             };
-        } else
+        }
+        else
         {
             masterConsignmentItem.TransportLogisticsPackage = new Waybill.LogisticsPackageType[1];
 
@@ -720,12 +734,12 @@ public class MotorIata : IMotorIata
 
         var applicableTotalRating = new Waybill.TotalRatingType();
         applicableTotalRating.TypeCode = new Waybill.CodeType() { Value = "F" };
-        
+
         var sumArray = new List<Waybill.PrepaidCollectMonetarySummationType>();
 
-        if(master.ValorFretePP > 0)
+        if (master.ValorFretePP > 0)
         {
-            sumArray.Add( new Waybill.PrepaidCollectMonetarySummationType
+            sumArray.Add(new Waybill.PrepaidCollectMonetarySummationType
             {
                 WeightChargeTotalAmount = new Waybill.AmountType
                 {
@@ -743,7 +757,7 @@ public class MotorIata : IMotorIata
             });
         }
 
-        if(master.ValorFreteFC > 0)
+        if (master.ValorFreteFC > 0)
         {
             sumArray.Add(new Waybill.PrepaidCollectMonetarySummationType
             {

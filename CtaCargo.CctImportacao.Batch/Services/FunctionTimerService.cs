@@ -3,7 +3,7 @@ using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Model.Iata.FlightManifest;
 using CtaCargo.CctImportacao.Domain.Model.Iata.HouseManifest;
 using CtaCargo.CctImportacao.Domain.Model.Iata.WaybillManifest;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 using System.Xml.Serialization;
 

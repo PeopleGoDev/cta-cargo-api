@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CtaCargo.CctImportacao.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -7,16 +8,6 @@ namespace CtaCargo.CctImportacao.Domain.Entities;
 
 public class Master : BaseEntity
 {
-    public enum RFStatusEnvioType
-    {
-        NoSubmitted = 0,
-        Received = 1,
-        Processed = 2,
-        Rejected = 3,
-        ReceivedDeletion = 4,
-        ProcessedDeletion = 5
-    }
-
     [Key]
     [Required]
     public int Id { get; set; }
@@ -124,8 +115,8 @@ public class Master : BaseEntity
     // Campos de comunicação RFB
     [Column(TypeName = "varchar(30)")]
     public string NumeroDocumentoRFB { get; set; }
-    public int StatusId { get; set; } // "Aguardando Confirmação Saida Voo", "Pronto para Envio Receita"
-    public RFStatusEnvioType SituacaoRFBId { get; set; } // “Received” , “Rejected”, “Processed”
+    public int StatusId { get; set; }
+    public RFStatusEnvioType SituacaoRFBId { get; set; }
     [Column(TypeName = "varchar(50)")]
     public string ProtocoloRFB { get; set; }
     [Column(TypeName = "varchar(40)")]

@@ -1,6 +1,7 @@
 ﻿using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Model;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using CtaCargo.CctImportacao.Infrastructure.Data.Context;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -51,6 +52,7 @@ public class SqlHouseRepository : IHouseRepository
             .Include("AeroportoOrigemInfo")
             .Include("AeroportoDestinoInfo")
             .Where(param.ToPredicate())
+            .OrderBy(x => x.MasterNumeroXML)
             .ToList();
     }
 

@@ -10,4 +10,5 @@ public interface IReceitaHouseService
     Task<ApiResponse<string>> SubmeterAssociation(UserSession userSession, int associationId);
     Task<ApiResponse<HouseResponseDto>> SubmeterHouseExclusion(UserSession userSession, int houseId);
     Task<ApiResponse<string>> SubmeterHousesAgentesDeCarga(UserSession userSession, SubmeterRFBHouseRequest input);
+    Task<ApiResponse<string>> SubmeterHousesAgentesDeCargaAndIds(UserSession userSession, SubmeterRFBHouseByIdsRequest input);
 }

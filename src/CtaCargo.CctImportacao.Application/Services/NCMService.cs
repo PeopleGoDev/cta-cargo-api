@@ -1,6 +1,6 @@
 ﻿using CtaCargo.CctImportacao.Application.Services.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using System.Collections.Generic;
 
 namespace CtaCargo.CctImportacao.Application.Services;

@@ -1,10 +1,10 @@
 ﻿using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Model.Iata.WaybillManifest;
 using CtaCargo.CctImportacao.Application.Validator;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Diagnostics.Metrics;
 using System.Text.RegularExpressions;
+using CtaCargo.CctImportacao.Domain.Repositories;
 
 namespace CtaCargo.CctImportacao.Batch.Services;
 

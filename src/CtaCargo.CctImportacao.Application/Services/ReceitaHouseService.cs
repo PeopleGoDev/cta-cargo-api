@@ -6,13 +6,13 @@ using CtaCargo.CctImportacao.Application.Services.Contracts;
 using CtaCargo.CctImportacao.Application.Support;
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Enums;
 using CtaCargo.CctImportacao.Domain.Exceptions;
-using CtaCargo.CctImportacao.Infrastructure.Data;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
+using CtaCargo.CctImportacao.Domain.Model;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
@@ -100,26 +100,31 @@ public class ReceitaHouseService : IReceitaHouseService
         };
     }
 
-    public async Task<ApiResponse<string>> SubmeterAssociacaoHousesMaster(
+    public async Task<ApiResponse<string>> SubmeterHousesAgentesDeCargaAndIds(
         UserSession userSession,
-        SubmeterRFBMasterHouseRequest input)
+        SubmeterRFBHouseByIdsRequest input)
     {
-        var masterNumbers = input.Masters.Select(x => x.MasterNumber).ToArray();
+        var processDate =
+            new DateTime(input.DataProcessamento.Year,
+            input.DataProcessamento.Month,
+            input.DataProcessamento.Day, 0, 0, 0, 0, DateTimeKind.Unspecified);
 
-        QueryJunction<House> param = new QueryJunction<House>();
-        param.Add(x => masterNumbers.Contains(x.MasterNumeroXML));
+        QueryJunction<House> param = new();
+        param.Add(x => x.DataProcessamento == processDate);
         param.Add(x => x.AgenteDeCargaId == input.FreightFowarderId);
+        param.Add(x => input.HouseIds.Contains(x.Id));
         param.Add(x => x.DataExclusao == null);
 
+        var naturezaCargas = await _naturezaCargaRepository.GetAllNaturezaCarga(userSession.CompanyId);
         var houses = _houseRepository.GetHouseForUploading(param);
 
         if (houses == null)
-            throw new BusinessException("Não há houses a serem enviados !");
+            throw new BusinessException("Não foi possivel selecionar Houses para o upload!");
 
         if (houses.Count == 0)
             throw new BusinessException("Nenhum house selecionado !");
 
-        var certificate = await 
+        var certificate = await
             _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession, input.FreightFowarderId);
 
         if (certificate.HasError)
@@ -127,7 +132,72 @@ public class ReceitaHouseService : IReceitaHouseService
 
         TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate, "AGECARGA");
 
-        await SubmeterAssociacaoHouseMasterList(userSession, input.Masters, houses, certificate.Certificate, token);
+        var result = await SubmeterHousesAutomatico(houses, naturezaCargas, certificate.Certificate, token);
+
+        if (result != null && result.Count > 0)
+            return new ApiResponse<string>()
+            {
+                Sucesso = false,
+                Dados = null,
+                Notificacoes = result
+            };
+
+        return new ApiResponse<string>()
+        {
+            Sucesso = true,
+            Dados = "Enviado com sucesso !",
+            Notificacoes = null
+        };
+    }
+
+    public async Task<ApiResponse<string>> SubmeterAssociacaoHousesMaster(
+        UserSession userSession,
+        SubmeterRFBMasterHouseRequest input)
+    {
+        #region Prepara os houses para associação
+
+        var houseIds = input.Masters.SelectMany(x => x.HouseIds).ToArray();
+
+        QueryJunction<House> param = new();
+        param.Add(x => x.AgenteDeCargaId == input.FreightFowarderId);
+        param.Add(x => houseIds.Contains(x.Id));
+        param.Add(x => x.DataExclusao == null);
+
+        var houses = _houseRepository.GetHouseForUploading(param) ??
+            throw new BusinessException("Não há houses a serem enviados !");
+
+        if (houses.Count == 0)
+            throw new BusinessException("Nenhum house selecionado !");
+
+        #endregion
+
+        #region Prepara os masters para associação
+
+        var masterNumbers = input.Masters.Select(x => x.MasterNumber).ToArray();
+        QueryJunction<MasterHouseAssociacao> paramAssocicao = new();
+        paramAssocicao.Add(x => masterNumbers.Contains(x.MasterNumber));
+        paramAssocicao.Add(x => x.DataExclusao == null);
+
+        var associacao = await _masterHouseAssociacaoRepository
+            .SelectMasterHouseAssociacaoParam(paramAssocicao);
+
+        #endregion
+
+        var certificate = await 
+            _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession, input.FreightFowarderId);
+
+        if (certificate.HasError)
+            throw new BusinessException(certificate.Error);
+
+        var token = await 
+            _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate, "AGECARGA");
+
+        await SubmeterAssociacaoHouseMasterList(
+            userSession, 
+            input.Masters, 
+            houses, 
+            certificate.Certificate, 
+            token);
 
         return new ApiResponse<string>()
         {
@@ -178,7 +248,7 @@ public class ReceitaHouseService : IReceitaHouseService
 
         if (association.SituacaoDeletionAssociacaoRFBId == 1)
         {
-            var res = _uploadReceitaFederal.CheckFileProtocol(association.ProtocoloDeletionAssociacaoRFB, token);
+            var res = await _uploadReceitaFederal.CheckFileProtocol(association.ProtocoloDeletionAssociacaoRFB, token);
             await ProcessaRetornoChecagemAssociacaoHouseMaster(res, association, houses);
         }
         else
@@ -224,7 +294,7 @@ public class ReceitaHouseService : IReceitaHouseService
 
         if (house.SituacaoDeletionRFBId == 1)
         {
-            var res = _uploadReceitaFederal.CheckFileProtocol(house.ProtocoloDeletionRFB, token);
+            var res = await _uploadReceitaFederal.CheckFileProtocol(house.ProtocoloDeletionRFB, token);
             await ProcessaRetornoChecagemCancelarHouse(res, house);
         }
         else
@@ -257,7 +327,7 @@ public class ReceitaHouseService : IReceitaHouseService
                 switch (house.SituacaoRFBId)
                 {
                     case 1:
-                        var res = _uploadReceitaFederal.CheckFileProtocol(house.ProtocoloRFB, token);
+                        var res = await _uploadReceitaFederal.CheckFileProtocol(house.ProtocoloRFB, token);
 
                         var listaErros = await ProcessaRetornoChecagemArquivoHouse(res, house);
 
@@ -276,7 +346,7 @@ public class ReceitaHouseService : IReceitaHouseService
                         else
                             xml = _motorIataHouse.GenHouseManifest(house, naturezaCargas, IataXmlPurposeCode.Creation);
 
-                        var response = _uploadReceitaFederal.SubmitHouse(house.AgenteDeCargaInfo.CNPJ, xml, token, certificado);
+                        var response = await _uploadReceitaFederal.SubmitHouse(house.AgenteDeCargaInfo.CNPJ, xml, token, certificado);
 
                         bool processa = await ProcessarRetornoEnvioArquivoHouse(response, house);
                         if (!processa)
@@ -383,7 +453,7 @@ public class ReceitaHouseService : IReceitaHouseService
         TokenResponse token)
     {
         var xml = _motorIataHouse.GenHouseManifest(house, naturezaCargas, IataXmlPurposeCode.Deletion);
-        var response = _uploadReceitaFederal.SubmitHouse(house.AgenteDeCargaInfo.CNPJ, xml, token, certificado);
+        var response = await _uploadReceitaFederal.SubmitHouse(house.AgenteDeCargaInfo.CNPJ, xml, token, certificado);
         await ProcessaRetornoEnvioCancelarHouse(response, house);
 
         if (response.StatusCode == "Rejected")
@@ -474,12 +544,11 @@ public class ReceitaHouseService : IReceitaHouseService
         X509Certificate2 certificado,
         TokenResponse token)
     {
-        houses.OrderBy(x => x.MasterNumeroXML);
-        string curMaster = houses.FirstOrDefault().MasterNumeroXML;
+        string curMaster = houses[0].MasterNumeroXML;
         var masterInfo = Masters.FirstOrDefault(x => x.MasterNumber == curMaster);
         string freightFowarderCnpj = houses.FirstOrDefault().AgenteDeCargaInfo.CNPJ;
 
-        List<House> houseList = new List<House>();
+        List<House> houseList = new();
         foreach (House house in houses.OrderBy(x => x.MasterNumeroXML))
         {
             if (house.MasterNumeroXML == curMaster)
@@ -552,7 +621,7 @@ public class ReceitaHouseService : IReceitaHouseService
         {
             if (associacao.SituacaoAssociacaoRFBId == 1)
             {
-                var res = _uploadReceitaFederal.CheckFileProtocol(associacao.ProtocoloAssociacaoRFB, token);
+                var res = await _uploadReceitaFederal.CheckFileProtocol(associacao.ProtocoloAssociacaoRFB, token);
                 await ProcessaRetornoChecagemArquivoHouseMaster(res, associacao, houses);
                 return;
             }
@@ -567,7 +636,7 @@ public class ReceitaHouseService : IReceitaHouseService
         string xmlAssociacao = _motorIataHouse
             .GenMasterHouseManifest(masterInfo, houses, operation, associacao.CreatedDateTimeUtc);
 
-        var responseAssociacao = _uploadReceitaFederal
+        var responseAssociacao = await _uploadReceitaFederal
             .SubmitHouseMaster(FreightFowarderTaxId, xmlAssociacao, token, certificado);
 
         await ProcessarRetornoEnvioArquivoHouseMaster(responseAssociacao, associacao, houses);
@@ -588,7 +657,7 @@ public class ReceitaHouseService : IReceitaHouseService
         string xmlAssociacao = _motorIataHouse
             .GenMasterHouseManifest(masterInfo, houses, operation, associacao.CreatedDateTimeUtc);
 
-        var responseAssociacao = _uploadReceitaFederal
+        var responseAssociacao = await _uploadReceitaFederal
             .SubmitHouseMaster(FreightFowarderTaxId, xmlAssociacao, token, certificado);
 
         await ProcessarRetornoExclusaoAssociacao(responseAssociacao, associacao, houses);
@@ -820,5 +889,6 @@ public class ReceitaHouseService : IReceitaHouseService
         await _houseRepository.SaveChanges();
     }
     #endregion
+
     #endregion
 }

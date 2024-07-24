@@ -1,7 +1,7 @@
 ﻿using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;

@@ -7,16 +7,16 @@ using CtaCargo.CctImportacao.Application.Support;
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Application.Validator;
 using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Enums;
 using CtaCargo.CctImportacao.Domain.Exceptions;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using CtaCargo.CctImportacao.Domain.Validator;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using FluentValidation.Results;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
-using static CtaCargo.CctImportacao.Domain.Entities.Master;
 
 namespace CtaCargo.CctImportacao.Application.Services;
 
@@ -25,8 +25,6 @@ public class SubmeterReceitaService : ISubmeterReceitaService
     private readonly ICertitificadoDigitalSupport _certificadoDigitalSupport;
     private readonly IVooRepository _vooRepository;
     private readonly IMasterRepository _masterRepository;
-    private readonly IHouseRepository _houseRepository;
-    private readonly IMasterHouseAssociacaoRepository _masterHouseAssociacaoRepository;
     private readonly IAutenticaReceitaFederal _autenticaReceitaFederal;
     private readonly IUploadReceitaFederal _uploadReceitaFederal;
     private readonly IValidadorMaster _validadorMaster;
@@ -38,8 +36,6 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         IVooRepository vooRepository,
         IAutenticaReceitaFederal autenticaReceitaFederal,
         IMasterRepository masterRepository,
-        IHouseRepository houseRepository,
-        IMasterHouseAssociacaoRepository masterHouseAssociacaoRepository,
         IUploadReceitaFederal flightUploadReceitaFederal,
         IMotorIata motorIata, 
         IValidadorMaster validadorMaster,
@@ -49,11 +45,9 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         _vooRepository = vooRepository;
         _autenticaReceitaFederal = autenticaReceitaFederal;
         _masterRepository = masterRepository;
-        _houseRepository = houseRepository;
         _uploadReceitaFederal = flightUploadReceitaFederal;
         _motorIata = motorIata;
         _validadorMaster = validadorMaster;
-        _masterHouseAssociacaoRepository = masterHouseAssociacaoRepository;
         _mapper = mapper;
     }
     #endregion
@@ -71,19 +65,19 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         switch (situacaoRFBvoo.SituacaoRFB)
         {
-            case Master.RFStatusEnvioType.Received:
+            case RFStatusEnvioType.Received:
 
                 return await VerificarVooEntregue(userSession, input);
 
-            case Master.RFStatusEnvioType.Processed:
+            case RFStatusEnvioType.Processed:
 
                 if (situacaoRFBvoo.Reenviar)
                     return await SubmeterVooInterno(userSession, input, true);
 
                 throw new BusinessException("Voo já foi submetido!");
 
-            case Master.RFStatusEnvioType.NoSubmitted:
-            case Master.RFStatusEnvioType.Rejected:
+            case RFStatusEnvioType.NoSubmitted:
+            case RFStatusEnvioType.Rejected:
 
                 return await SubmeterVooInterno(userSession, input);
 
@@ -98,16 +92,16 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         switch (situacaoRFBvoo.ScheduleSituationRFB)
         {
-            case Master.RFStatusEnvioType.Received:
+            case RFStatusEnvioType.Received:
                 return await CheckScheduleFlightProtocol(userSession, input);
 
-            case Master.RFStatusEnvioType.Processed:
+            case RFStatusEnvioType.Processed:
                 if (situacaoRFBvoo.Reenviar)
                     return await SubmitScheduleFlightInternal(userSession, input, true);
 
                 throw new BusinessException("Voo já foi submetido!");
-            case Master.RFStatusEnvioType.NoSubmitted:
-            case Master.RFStatusEnvioType.Rejected:
+            case RFStatusEnvioType.NoSubmitted:
+            case RFStatusEnvioType.Rejected:
                 return await SubmitScheduleFlightInternal(userSession, input);
 
             default:
@@ -130,7 +124,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         if (voo == null)
             throw new BusinessException("Voo não encontrado !");
 
-        if (voo.SituacaoRFBId == Master.RFStatusEnvioType.Processed)
+        if (voo.SituacaoRFBId == RFStatusEnvioType.Processed)
         {
             bool found = false;
             voo.DataEmissaoXML = voo.DataEmissaoXML.Value.AddMinutes(1);
@@ -158,7 +152,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
             string xml = _motorIata.GenFlightManifest(voo, input.ItineraryId, input.DepartureTime);
 
-            var response = _uploadReceitaFederal.SubmitFlight(voo.CompanhiaAereaInfo.CNPJ, xml, token, certificate.Certificate);
+            var response = await _uploadReceitaFederal.SubmitFlight(voo.CompanhiaAereaInfo.CNPJ, xml, token, certificate.Certificate);
 
             return await ProcessarRetornoEnvioArquivoVoo(response, voo);
         }
@@ -169,7 +163,28 @@ public class SubmeterReceitaService : ISubmeterReceitaService
     }
     public async Task<ApiResponse<IEnumerable<FileUploadResponse>>> SubmeterVooMaster(UserSession userSession, FlightUploadRequest input)
     {
-        return await EnviarMastersAutomatico(userSession, input);
+        var masters = await _masterRepository.GetMastersForUploadByVooId(userSession.CompanyId, input.FlightId.Value);
+
+        if (masters == null)
+            throw new BusinessException("Não foi possivel selecionar Masters durante o upload!");
+
+        int ciaId = masters[0].VooInfo.CiaAereaId;
+
+        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession, ciaId);
+
+        if (certificate.HasError)
+            throw new BusinessException(certificate.Error);
+
+        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
+
+        var result = await SubmeterMastersAutomatico(masters, certificate.Certificate, token);
+
+        return new()
+        {
+            Sucesso = true,
+            Dados = result,
+            Notificacoes = null
+        };
     }
     public async Task<ApiResponse<IEnumerable<FileUploadResponse>>> SubmeterMasterSelecionado(UserSession userSession, FlightUploadRequest input)
     {
@@ -217,7 +232,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
             TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificado);
 
-            ProtocoloReceitaCheckFile response = _uploadReceitaFederal.CheckFileProtocol(protolo, token);
+            ProtocoloReceitaCheckFile response = await _uploadReceitaFederal.CheckFileProtocol(protolo, token);
 
             if (await ProcessaRetornoChecagemArquivoVoo(response, voo))
             {
@@ -298,7 +313,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         if (master.SituacaoDeletionRFBId == 1)
         {
-            var res = _uploadReceitaFederal.CheckFileProtocol(master.ProtocoloDeletionRFB, token);
+            var res = await _uploadReceitaFederal.CheckFileProtocol(master.ProtocoloDeletionRFB, token);
             await ProcessaRetornoChecagemCancelarMaster(res, master);
         }
         else
@@ -344,7 +359,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         string xml = _motorIata.GenFlightManifest(voo);
 
-        var response = _uploadReceitaFederal.SubmitFlight(voo.CompanhiaAereaInfo.CNPJ, xml, token, certificate.Certificate);
+        var response = await _uploadReceitaFederal.SubmitFlight(voo.CompanhiaAereaInfo.CNPJ, xml, token, certificate.Certificate);
 
         return await ProcessarRetornoEnvioArquivoVoo(response, voo);
         
@@ -380,7 +395,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         string xml = _motorIata.GenFlightManifest(voo,null,null,true);
 
-        var response = _uploadReceitaFederal.SubmitFlight(voo.CompanhiaAereaInfo.CNPJ, xml, token, certificate.Certificate);
+        var response = await _uploadReceitaFederal.SubmitFlight(voo.CompanhiaAereaInfo.CNPJ, xml, token, certificate.Certificate);
 
         return await ProcessScheduleFlight(response, voo);
 
@@ -398,7 +413,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
-        var res = _uploadReceitaFederal.CheckFileProtocol(voo.ProtocoloRFB, token);
+        var res = await _uploadReceitaFederal.CheckFileProtocol(voo.ProtocoloRFB, token);
 
         if (await ProcessaRetornoChecagemArquivoVoo(res, voo))
         {
@@ -433,7 +448,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
 
-        var res = _uploadReceitaFederal.CheckFileProtocol(voo.ProtocoloScheduleRFB, token);
+        var res = await _uploadReceitaFederal.CheckFileProtocol(voo.ProtocoloScheduleRFB, token);
 
         if (await ProcessCheckScheduleFlight(res, voo))
             return new ApiResponse<string>()
@@ -491,9 +506,9 @@ public class SubmeterReceitaService : ISubmeterReceitaService
             {
                 string xml = "";
 
-                if (master.SituacaoRFBId == Master.RFStatusEnvioType.Received)
+                if (master.SituacaoRFBId == RFStatusEnvioType.Received)
                 {
-                    var res = _uploadReceitaFederal.CheckFileProtocol(master.ProtocoloRFB, token);
+                    var res = await _uploadReceitaFederal.CheckFileProtocol(master.ProtocoloRFB, token);
                     var responseChecagem = await ProcessaRetornoChecagemArquivoMaster(res, master);
                     result.Add(responseChecagem);
                     continue;
@@ -511,7 +526,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
                         xml = _motorIata.GenMasterManifest(master, purposeCode);
                         break;
                 }
-                var response = _uploadReceitaFederal.SubmitWaybill(master.VooInfo.CompanhiaAereaInfo.CNPJ, xml, token, certificado);
+                var response = await _uploadReceitaFederal.SubmitWaybill(master.VooInfo.CompanhiaAereaInfo.CNPJ, xml, token, certificado);
                 var responseSubmit = await ProcessarRetornoEnvioArquivoMaster(response, master);
                 result.Add(responseSubmit);
                 continue;
@@ -524,42 +539,17 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         };
         return result;
     }
-    private async Task<ApiResponse<IEnumerable<FileUploadResponse>>> EnviarMastersAutomatico(UserSession userSession, FlightUploadRequest input)
-    {
-        var masters = await _masterRepository.GetMastersForUploadByVooId(userSession.CompanyId, input.FlightId.Value);
-
-        if (masters == null)
-            throw new BusinessException("Não foi possivel selecionar Masters durante o upload!");
-
-        int ciaId = masters[0].VooInfo.CiaAereaId;
-
-        var certificate = await _certificadoDigitalSupport.GetCertificateForAirCompany(userSession, ciaId);
-
-        if (certificate.HasError)
-            throw new BusinessException(certificate.Error);
-
-        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate);
-
-        var result = await SubmeterMastersAutomatico(masters, certificate.Certificate, token);
-
-        return new ()
-        {
-            Sucesso = true,
-            Dados = result,
-            Notificacoes = null
-        };
-    }
     private async Task<IEnumerable<FileUploadResponse>> SubmeterMastersAutomatico(List<Master> masters, X509Certificate2 certificado, TokenResponse token)
     {
-        List<FileUploadResponse> respList = new List<FileUploadResponse>();
+        List<FileUploadResponse> respList = new();
 
         foreach (Master master in masters)
         {
             try
             {
-                if (master.SituacaoRFBId == Master.RFStatusEnvioType.Received)
+                if (master.SituacaoRFBId == RFStatusEnvioType.Received)
                 {
-                    var res = _uploadReceitaFederal.CheckFileProtocol(master.ProtocoloRFB, token);
+                    var res = await _uploadReceitaFederal.CheckFileProtocol(master.ProtocoloRFB, token);
                     var responseStatus = await ProcessaRetornoChecagemArquivoMaster(res, master);
                     respList.Add(responseStatus);
                     continue;
@@ -567,23 +557,23 @@ public class SubmeterReceitaService : ISubmeterReceitaService
                 if(master.Reenviar)
                 {
                     string xml = _motorIata.GenMasterManifest(master, IataXmlPurposeCode.Update);
-                    var response = _uploadReceitaFederal.SubmitWaybill(master.VooInfo.CompanhiaAereaInfo.CNPJ, xml, token, certificado);
+                    var response = await _uploadReceitaFederal.SubmitWaybill(master.VooInfo.CompanhiaAereaInfo.CNPJ, xml, token, certificado);
                     var responseStatus = await ProcessarRetornoEnvioArquivoMaster(response, master);
 
                     respList.Add(responseStatus);
                     continue;
                 }
-                if(master.SituacaoRFBId == Master.RFStatusEnvioType.NoSubmitted || master.SituacaoRFBId == Master.RFStatusEnvioType.Rejected)
+                if(master.SituacaoRFBId == RFStatusEnvioType.NoSubmitted || master.SituacaoRFBId == RFStatusEnvioType.Rejected)
                 {
                     string xml = _motorIata.GenMasterManifest(master, IataXmlPurposeCode.Creation);
-                    var response = _uploadReceitaFederal.SubmitWaybill(master.VooInfo.CompanhiaAereaInfo.CNPJ, xml, token, certificado);
+                    var response = await _uploadReceitaFederal.SubmitWaybill(master.VooInfo.CompanhiaAereaInfo.CNPJ, xml, token, certificado);
                     var responseStatus = await ProcessarRetornoEnvioArquivoMaster(response, master);
                     respList.Add(responseStatus);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         };
         return respList;
@@ -601,21 +591,21 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         switch (response.StatusCode)
         {
             case ("Received"):
-                master.SituacaoRFBId = Master.RFStatusEnvioType.Received;
+                master.SituacaoRFBId = RFStatusEnvioType.Received;
                 master.CodigoErroRFB = null;
                 master.DescricaoErroRFB = null;
                 master.ProtocoloRFB = response.Reason;
                 master.DataProtocoloRFB = response.IssueDateTime;
                 break;
             case "Rejected":
-                master.SituacaoRFBId = Master.RFStatusEnvioType.Rejected;
+                master.SituacaoRFBId = RFStatusEnvioType.Rejected;
                 master.DescricaoErroRFB = response.Reason;
                 master.DataProtocoloRFB = response.IssueDateTime;
                 resp.Status = response.StatusCode;
                 _validadorMaster.InserirErrosMaster(master);
                 break;
             case "Processed":
-                master.SituacaoRFBId = Master.RFStatusEnvioType.Processed;
+                master.SituacaoRFBId = RFStatusEnvioType.Processed;
                 master.Reenviar = false;
                 master.CodigoErroRFB = null;
                 master.DescricaoErroRFB = null;
@@ -648,7 +638,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         switch (response.status)
         {
             case "Rejected":
-                master.SituacaoRFBId = Master.RFStatusEnvioType.Rejected;
+                master.SituacaoRFBId = RFStatusEnvioType.Rejected;
                 _validadorMaster.InserirErrosMaster(master);
                 resp.ErrorCode = response.errorList[0].code;
                 resp.Message = response.errorList[0].description;
@@ -662,7 +652,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
                 await _masterRepository.SaveChanges();
                 break;
             case "Processed":
-                master.SituacaoRFBId = Master.RFStatusEnvioType.Processed;
+                master.SituacaoRFBId = RFStatusEnvioType.Processed;
                 master.Reenviar = false;
                 master.CodigoErroRFB = null;
                 master.DescricaoErroRFB = null;
@@ -880,7 +870,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
         TokenResponse token)
     {
         var xml = _motorIata.GenMasterManifest(master, IataXmlPurposeCode.Deletion);
-        var response = _uploadReceitaFederal.SubmitWaybill(master.CiaAereaInfo.CNPJ, xml, token, certificado);
+        var response = await _uploadReceitaFederal.SubmitWaybill(master.CiaAereaInfo.CNPJ, xml, token, certificado);
         await ProcessaRetornoEnvioCancelarMaster(response, master);
 
         if (response.StatusCode == "Rejected")

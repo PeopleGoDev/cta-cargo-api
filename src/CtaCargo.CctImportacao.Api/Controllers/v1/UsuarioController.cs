@@ -41,7 +41,7 @@ public class UsuarioController : Controller
     [Route("InserirUsuario")]
     public async Task<ApiResponse<UsuarioResponseDto>> InserirUsuario([FromBody]UsuarioInsertRequest input)
     {
-        return await _usuarioService.InserirUsuario(input);
+        return await _usuarioService.InserirUsuario(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
