@@ -2,58 +2,67 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace CtaCargo.CctImportacao.Domain.Entities
+namespace CtaCargo.CctImportacao.Domain.Entities;
+
+public class UldMasterNumeroQuery
 {
-    public class UldMasterNumeroQuery
+    public string ULDCaracteristicaCodigo { get; set; }
+    public string ULDId { get; set; }
+    public string ULDIdPrimario { get; set; }
+    public string ULDLinha
     {
-        public string ULDCaracteristicaCodigo { get; set; }
-        public string ULDId { get; set; }
-        public string ULDIdPrimario { get; set; }
-        public string ULDLinha
+        get
         {
-            get
-            {
-                return ULDCaracteristicaCodigo + ULDId + ULDIdPrimario;
-            }
+            return ULDCaracteristicaCodigo + ULDId + ULDIdPrimario;
         }
-        public IEnumerable<UldMasterNumeroQueryChildren> ULDs { get; set; }
     }
+    public IEnumerable<UldMasterNumeroQueryChildren> ULDs { get; set; }
+}
 
-    public class UldMasterNumeroQueryChildren
-    {
-        public int MasterId { get; set; }
-        public string MasterNumero { get; set; }
-        public string UldId { get; set; }
-        public string UldCaracteristicaCodigo { get; set; }
-        public string UldIdPrimario { get; set; }
-        public int? QuantidadePecas { get; set; }
-        public decimal? Peso { get; set; }
-        public string PesoUnidade { get; set; }
-        public int Id { get; set; }
-        public string UsuarioCriacao { get; set; }
-        public DateTime DataCricao { get; set; }
-        public string TotalParcial { get; set; }
-    }
+public class UldMasterNumeroPatchQuery: UldMasterNumeroQuery
+{
+    public string? OriginalULDCaracteristicaCodigo { get; set; }
+    public string? OriginalULDId { get; set; }
+    public string? OriginalULDIdPrimario { get; set; }
+}
+public class UldMasterNumeroQueryChildren
+{
+    public int? MasterId { get; set; }
+    public string MasterNumero { get; set; }
+    public string UldId { get; set; }
+    public string UldCaracteristicaCodigo { get; set; }
+    public string UldIdPrimario { get; set; }
+    public int? QuantidadePecas { get; set; }
+    public decimal? Peso { get; set; }
+    public string PesoUnidade { get; set; }
+    public int Id { get; set; }
+    public string UsuarioCriacao { get; set; }
+    public DateTime DataCricao { get; set; }
+    public string TotalParcial { get; set; }
+    public bool Transferencia { get; set; }
+    public string AeroportoOrigem { get; set; }
+    public string AeroportoDestino { get; set; }
+    public string DescricaoMercadoria { get; set; }
+}
 
-    public class MasterNumeroUldSumario
-    {
-        public string MasterNumero { get; set; }
-        public int? MasterPecas { get; set; }
-        public double? MasterPeso { get; set; }
-        public string MasterPesoUnidade { get; set; }
-        public List<MasterNumeroUldSumarioChildren> Ulds { get; set; }
-    }
+public class MasterNumeroUldSumario
+{
+    public string MasterNumero { get; set; }
+    public int? MasterPecas { get; set; }
+    public double? MasterPeso { get; set; }
+    public string MasterPesoUnidade { get; set; }
+    public List<MasterNumeroUldSumarioChildren> Ulds { get; set; }
+}
 
-    public class MasterNumeroUldSumarioChildren
-    {
-        public string UldNumero { get; set; }
-        public int QuantidadePecas { get; set; }
-        public double Peso { get; set; }
-        public string PesoUnidade { get; set; }
-        public string TotalParcial { get; set; }
-        public bool MesmoVoo { get; set; }
-        public string VooNumero { get; set; }
-        public DateTime? DataHoraChegadaEstimada { get; set; }
-        public DateTime? DataHoraChegadaReal { get; set; }
-    }
+public class MasterNumeroUldSumarioChildren
+{
+    public string UldNumero { get; set; }
+    public int QuantidadePecas { get; set; }
+    public double Peso { get; set; }
+    public string PesoUnidade { get; set; }
+    public string TotalParcial { get; set; }
+    public bool MesmoVoo { get; set; }
+    public string VooNumero { get; set; }
+    public DateTime? DataHoraChegadaEstimada { get; set; }
+    public DateTime? DataHoraChegadaReal { get; set; }
 }

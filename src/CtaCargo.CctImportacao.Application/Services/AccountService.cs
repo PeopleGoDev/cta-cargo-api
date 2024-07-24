@@ -2,100 +2,80 @@
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
-using CtaCargo.CctImportacao.Application.Validators;
 using CtaCargo.CctImportacao.Domain.Entities;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
-using System.Collections.Generic;
-using System.Linq;
+using CtaCargo.CctImportacao.Domain.Exceptions;
+using CtaCargo.CctImportacao.Domain.Repositories;
+using CtaCargo.CctImportacao.Domain.Validator;
 using System.Threading.Tasks;
 
-namespace CtaCargo.CctImportacao.Application.Services
+namespace CtaCargo.CctImportacao.Application.Services;
+
+public class AccountService : IAccountService
 {
-    public class AccountService : IAccountService
+    private readonly IUsuarioRepository _usuarioRepository;
+    private readonly ICertificadoDigitalRepository _certificadoDigitalRepository;
+    private readonly ITokenService _tokenSerice;
+    private readonly IMapper _mapper;
+    public AccountService(
+        IUsuarioRepository usuarioRepository,
+        IMapper mapper,
+        ITokenService tokenSerice,
+        ICertificadoDigitalRepository certificadoDigitalRepository = null)
     {
-        private readonly IUsuarioRepository _usuarioRepository;
-        private readonly ITokenService _tokenSerice;
-        private readonly IMapper _mapper;
-        public AccountService(IUsuarioRepository usuarioRepository, IMapper mapper, ITokenService tokenSerice)
+        _usuarioRepository = usuarioRepository;
+        _mapper = mapper;
+        _tokenSerice = tokenSerice;
+        _certificadoDigitalRepository = certificadoDigitalRepository;
+    }
+
+    public async Task<UsuarioLoginResponse> AutenticarUsuario(UsuarioLoginRequest usuarioLogin)
+    {
+        UsuarioLoginRequestValidator validator = new UsuarioLoginRequestValidator();
+        var result = validator.Validate(usuarioLogin);
+
+        if (!result.IsValid)
+            throw new BusinessException(result.Errors[0].ErrorMessage);
+
+        Usuario user = 
+            await _usuarioRepository.GetUsuarioByAuthentication(usuarioLogin.Email, usuarioLogin.Senha) ?? 
+            throw new BusinessException("Usuário/Senha Invalido!");
+
+        UsuarioInfoResponse userReaddto = _mapper.Map<UsuarioInfoResponse>(user);
+
+        string token = null;
+        bool alteraSenha = user.AlterarSenha;
+        if (!user.AlterarSenha)
         {
-            _usuarioRepository = usuarioRepository;
-            _mapper = mapper;
-            _tokenSerice = tokenSerice;
+            userReaddto.UserProfile = user.Perfil.ToString();
+            token = _tokenSerice.GenerateToken(user);
         }
 
-        public async Task<ApiResponse<UsuarioLoginResponse>> AutenticarUsuario(UsuarioLoginRequest usuarioLogin)
+        if (usuarioLogin.AlterarSenhar)
         {
-            UsuarioLoginRequestValidator validator = new UsuarioLoginRequestValidator();
-            var result = validator.Validate(usuarioLogin);
-
-            if (!result.IsValid)
-            {
-                List<Notificacao> notificacoes = (from c in result.Errors
-                                                  select new Notificacao
-                                                  {
-                                                      Codigo = "9999",
-                                                      Mensagem = c.ErrorMessage
-                                                  }).ToList();
-
-                return new ApiResponse<UsuarioLoginResponse>
-                {
-                    Dados = null,
-                    Sucesso = false,
-                    Notificacoes = notificacoes
-                };
-            }
-
-            Usuario user = await _usuarioRepository.GetUsuarioByAuthentication(usuarioLogin.Email, usuarioLogin.Senha);
-            if (user == null)
-                return (
-                    new ApiResponse<UsuarioLoginResponse>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = "Usuário ou Senha invalidos!"
-                                }
-                        }
-                    });
-
-            string token = null;
-            UsuarioInfoResponse userReaddto = null;
-
-            bool alteraSenha = user.AlterarSenha;
-            if (user.AlterarSenha == false)
-            {
-                token = _tokenSerice.GenerateToken(user);
-                userReaddto = _mapper.Map<UsuarioInfoResponse>(user);
-            }
-
-            if (usuarioLogin.AlterarSenhar)
-            {
-                user.Senha = usuarioLogin.NovaSenha;
-                user.AlterarSenha = false;
-                _usuarioRepository.UpdateUsuario(user);
-                await _usuarioRepository.SaveChanges();
-                token = _tokenSerice.GenerateToken(user);
-                userReaddto = _mapper.Map<UsuarioInfoResponse>(user);
-                alteraSenha = false;
-            }
-
-            return
-            new ApiResponse<UsuarioLoginResponse>
-            {
-                Dados = new UsuarioLoginResponse
-                {
-                    AccessToken = token,
-                    UsuarioInfo = userReaddto,
-                    AlterarSenha = alteraSenha
-                },
-                Sucesso = true,
-                Notificacoes = null
-            };
-
+            user.Senha = usuarioLogin.NovaSenha;
+            user.AlterarSenha = false;
+            _usuarioRepository.UpdateUsuario(user);
+            await _usuarioRepository.SaveChanges();
+            alteraSenha = false;
+            token = _tokenSerice.GenerateToken(user);
         }
 
+        if (user.CertificadoId is not null)
+        {
+            var certificate = await _certificadoDigitalRepository.GetCertificadoDigitalById(user.CertificadoId.Value);
+            if (certificate is not null)
+            {
+                userReaddto.CertificateExpiration = certificate.DataVencimento;
+                userReaddto.CertificateOwner = certificate.Owner;
+                userReaddto.CertificateOwnerId = certificate.OwnerId;
+            }
+        }
+        
+        return new()
+        {
+            AccessToken = token,
+            UsuarioInfo = userReaddto,
+            AlterarSenha = alteraSenha
+        };
     }
 }

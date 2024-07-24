@@ -1,31 +1,37 @@
-﻿using System;
-using System.Threading.Tasks;
-using CtaCargo.CctImportacao.Application.Dtos.Request;
+﻿using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
-namespace CtaCargo.CctImportacao.Api.Controllers
+namespace CtaCargo.CctImportacao.Api.Controllers;
+
+[ApiController]
+[ApiVersion("1.0")]
+[Route("api/v1/[controller]")]
+public class AccountController : Controller
 {
-    [ApiController]
-    [ApiVersion("1.0")]
-    [Route("api/v1/[controller]")]
-    public class AccountController : Controller
+    private readonly IAccountService _accountService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public AccountController(IHttpContextAccessor httpContextAccessor,
+        IAccountService accountService)
     {
+        _accountService = accountService;
+        this._httpContextAccessor = httpContextAccessor;
+    }
 
-        private readonly IAccountService _accountService;
-
-        public AccountController(IAccountService accountService)
+    [HttpPost("Autenticar")]
+    [AllowAnonymous]
+    public async Task<ApiResponse<UsuarioLoginResponse>> Login([FromBody] UsuarioLoginRequest usuarioLogin)
+    {
+        var response = await _accountService.AutenticarUsuario(usuarioLogin);
+        return new()
         {
-            _accountService = accountService;
-        }
-
-        [HttpPost("Autenticar")]
-        [AllowAnonymous]
-        public async Task<ApiResponse<UsuarioLoginResponse>> Login([FromBody]UsuarioLoginRequest usuarioLogin)
-        {
-            return await _accountService.AutenticarUsuario(usuarioLogin);
-        }
+            Dados = response,
+            Sucesso = true
+        };
     }
 }

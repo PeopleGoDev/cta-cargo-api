@@ -3,10 +3,11 @@ using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
-using CtaCargo.CctImportacao.Application.Validators;
 using CtaCargo.CctImportacao.Domain.Entities;
-using CtaCargo.CctImportacao.Infrastructure.Data;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
+using CtaCargo.CctImportacao.Domain.Exceptions;
+using CtaCargo.CctImportacao.Domain.Model;
+using CtaCargo.CctImportacao.Domain.Repositories;
+using CtaCargo.CctImportacao.Domain.Validator;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -21,7 +22,6 @@ public class HouseService : IHouseService
     public const int SqlServerViolationOfUniqueIndex = 2601;
     public const int SqlServerViolationOfUniqueConstraint = 2627;
     private readonly IHouseRepository _houseRepository;
-    private readonly IMasterRepository _masterRepository;
     private readonly IAgenteDeCargaRepository _agenteDeCargaRepository;
     private readonly IPortoIATARepository _portoIATARepository;
     private readonly IMapper _mapper;
@@ -29,7 +29,6 @@ public class HouseService : IHouseService
 
     public HouseService(IMapper mapper,
         IHouseRepository houseRepository,
-        IMasterRepository masterRepository,
         IPortoIATARepository portoIATARepository,
         IAgenteDeCargaRepository agenteDeCargaRepository,
         IMasterHouseAssociacaoRepository masterHouseAssociacaoRepository)
@@ -37,123 +36,50 @@ public class HouseService : IHouseService
         _houseRepository = houseRepository;
         _portoIATARepository = portoIATARepository;
         _mapper = mapper;
-        _masterRepository = masterRepository;
         _agenteDeCargaRepository = agenteDeCargaRepository;
         _masterHouseAssociacaoRepository = masterHouseAssociacaoRepository;
     }
     public async Task<ApiResponse<HouseResponseDto>> HousePorId(UserSession userSession, int houseId)
     {
-        try
-        {
-            var lista = await _houseRepository.GetHouseById(houseId);
-            if (lista == null)
-            {
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "House não encontrado !"
-                            }
-                        }
-                    };
-            }
-            var dto = _mapper.Map<HouseResponseDto>(lista);
-            return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = dto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-        }
-        catch (Exception ex)
-        {
-            return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Erro na aplicação! {ex.Message} !"
-                            }
-                        }
-                    };
-        }
+        var lista = await _houseRepository.GetHouseById(userSession.CompanyId, houseId);
 
+        if (lista == null)
+            throw new BusinessException("House não encontrado !");
+
+        var dto = _mapper.Map<HouseResponseDto>(lista);
+
+        return new ApiResponse<HouseResponseDto>
+        {
+            Dados = dto,
+            Sucesso = true,
+            Notificacoes = null
+        };
     }
     public async Task<ApiResponse<IEnumerable<HouseResponseDto>>> ListarHouses(UserSession userSession, HouseListarRequest input)
     {
-        try
-        {
-            var param = GeneratePredicateParam(userSession, input);
+        var param = GeneratePredicateParam(userSession, input);
 
-            var lista = await _houseRepository.GetAllHouses(param.ToPredicate()); ;
-            var dto = _mapper.Map<IEnumerable<HouseResponseDto>>(lista);
-            return
-                    new ApiResponse<IEnumerable<HouseResponseDto>>
-                    {
-                        Dados = dto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-        }
-        catch (Exception ex)
-        {
-            return
-                    new ApiResponse<IEnumerable<HouseResponseDto>>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Erro na aplicação! {ex.Message} !"
-                            }
-                        }
-                    };
-        }
-
+        var lista = await _houseRepository.GetAllHouses(param.ToPredicate()); ;
+        var dto = _mapper.Map<IEnumerable<HouseResponseDto>>(lista);
+        return
+                new ApiResponse<IEnumerable<HouseResponseDto>>
+                {
+                    Dados = dto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
     }
     public async Task<ApiResponse<IEnumerable<HouseResponseDto>>> ListarHousesPorDataCriacao(UserSession userSession, MasterHousePorDataCriacaoRequest input)
     {
-        try
-        {
-            var lista = await _houseRepository.GetAllHousesByDataCriacao(userSession.CompanyId, input.DataCriacao);
-            var dto = _mapper.Map<IEnumerable<HouseResponseDto>>(lista);
-            return
-                    new ApiResponse<IEnumerable<HouseResponseDto>>
-                    {
-                        Dados = dto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-        }
-        catch (Exception ex)
-        {
-            return
-                    new ApiResponse<IEnumerable<HouseResponseDto>>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Erro na aplicação! {ex.Message} !"
-                            }
-                        }
-                    };
-        }
-
+        var lista = await _houseRepository.GetAllHousesByDataCriacao(userSession.CompanyId, input.DataCriacao);
+        var dto = _mapper.Map<IEnumerable<HouseResponseDto>>(lista);
+        return
+                new ApiResponse<IEnumerable<HouseResponseDto>>
+                {
+                    Dados = dto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
     }
     public async Task<List<MasterHouseAssociationUploadResponse>> SelectHouseAssociationForUpload(UserSession userSession, HouseListarRequest input)
     {
@@ -182,6 +108,7 @@ public class HouseService : IHouseService
                 Houses = (from c in findHouses
                           select new MasterHouseAssociationHouseItemResponse
                           {
+                              Id = c.Id,
                               Number = c.Numero,
                               AssociationCheckDate = c.DataChecagemAssociacaoRFB,
                               AssociationDate = c.DataProtocoloAssociacaoRFB,
@@ -205,6 +132,7 @@ public class HouseService : IHouseService
             {
                 resp.Summary = new MasterHouseAssociationSummaryUploadResponse
                 {
+                    Id = findSummary.Id,
                     ConsignmentItemQuantity = findSummary.ConsigmentItemQuantity,
                     DestinationLocation = findSummary.FinalDestinationLocation,
                     DocumentId = findSummary.MessageHeaderDocumentId,
@@ -213,7 +141,11 @@ public class HouseService : IHouseService
                     PackageQuantity = findSummary.PackageQuantity,
                     TotalPieceQuantity = findSummary.TotalPieceQuantity,
                     TotalWeight = findSummary.GrossWeight,
-                    TotalWeightUnit = findSummary.GrossWeightUnit
+                    TotalWeightUnit = findSummary.GrossWeightUnit,
+                    RFBCreationStatus = findSummary.SituacaoAssociacaoRFBId,
+                    RFBCreationProtocol = findSummary.ProtocoloAssociacaoRFB,
+                    RFBCancelationStatus = findSummary.SituacaoDeletionAssociacaoRFBId,
+                    RFBCancelationProtocol = findSummary.ProtocoloDeletionAssociacaoRFB
                 };
             }
 
@@ -222,377 +154,186 @@ public class HouseService : IHouseService
 
         return response;
     }
-    public async Task<ApiResponse<HouseResponseDto>> InserirHouse(UserSession userSession, HouseInsertRequestDto input)
+    public async Task<ApiResponse<HouseResponseDto>> InserirHouse(UserSession userSession, HouseInsertRequestDto houseRequest, string inputMode = "Manual")
     {
-        try
+        houseRequest.Numero = houseRequest.Numero.Trim();
+        var limiteDate = DateTime.Now.AddYears(-1);
+
+        var houseId = await _houseRepository.GetHouseIdByNumberValidate(userSession.CompanyId, houseRequest.Numero, limiteDate);
+
+        if (houseId > 0)
+            throw new BusinessException($"Já existe um House número {houseRequest.Numero} dentro dos últimos 365 dias!");
+
+        houseRequest.DataProcessamento = new DateTime(
+                houseRequest.DataProcessamento.Year,
+                houseRequest.DataProcessamento.Month,
+                houseRequest.DataProcessamento.Day,
+                0, 0, 0,DateTimeKind.Unspecified);
+
+        var house = _mapper.Map<House>(houseRequest);
+
+        house.CreatedDateTimeUtc = DateTime.UtcNow;
+
+        HouseEntityValidator validator = new HouseEntityValidator();
+
+        var agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaByIataCode(userSession.CompanyId, houseRequest.AgenteDeCargaNumero);
+        if (agenteDeCarga == null)
+            throw new BusinessException("Agente de carga não cadastrado!");
+
+        var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(houseRequest.AeroportoOrigem);
+        var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(houseRequest.AeroportoDestino);
+
+        house.AeroportoOrigemId = null;
+        house.AeroportoDestinoId = null;
+
+        if (codigoOrigemId > 0)
+            house.AeroportoOrigemId = codigoOrigemId;
+
+        if (codigoDestinoId > 0)
+            house.AeroportoDestinoId = codigoDestinoId;
+
+        house.AgenteDeCargaId = agenteDeCarga.Id;
+        house.CriadoPeloId = userSession.UserId;
+        house.EmpresaId = userSession.CompanyId;
+        house.Environment = userSession.Environment;
+        house.InputMode = inputMode;
+
+        var result = validator.Validate(house);
+
+        house.StatusId = result.IsValid ? 1 : 0;
+
+        _houseRepository.CreateHouse(house);
+
+        if (await _houseRepository.SaveChanges())
         {
-            input.DataProcessamento = new DateTime(
-                    input.DataProcessamento.Year,
-                    input.DataProcessamento.Month,
-                    input.DataProcessamento.Day,
-                    0, 0, 0, 0);
-
-            var house = _mapper.Map<House>(input);
-
-            house.CreatedDateTimeUtc = DateTime.UtcNow;
-
-            HouseEntityValidator validator = new HouseEntityValidator();
-
-            var agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaByIataCode(userSession.CompanyId, input.AgenteDeCargaNumero);
-            var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoOrigem);
-            var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoDestino);
-
-            house.AeroportoOrigemId = null;
-            house.AeroportoDestinoId = null;
-            house.AgenteDeCargaId = null;
-
-            if (codigoOrigemId > 0)
-                house.AeroportoOrigemId = codigoOrigemId;
-
-            if (codigoDestinoId > 0)
-                house.AeroportoDestinoId = codigoDestinoId;
-
-            if (agenteDeCarga == null)
-                throw new Exception("Agente de carga não cadastrado!");
-
-            house.AgenteDeCargaId = agenteDeCarga.Id;
-            house.CriadoPeloId = userSession.UserId;
-            house.EmpresaId = userSession.CompanyId;
-
-            var result = validator.Validate(house);
-
-            if (result.IsValid)
-                house.StatusId = 1;
-            else
-                house.StatusId = 0;
-
-            _houseRepository.CreateHouse(house);
-
-            if (await _houseRepository.SaveChanges())
-            {
-                var HouseResponseDto = _mapper.Map<HouseResponseDto>(house);
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = HouseResponseDto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            else
-            {
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = true,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não Foi possível adicionar o House: Erro Desconhecido!"
-                            }
-                        }
-                    };
-            }
-
-        }
-        catch (DbUpdateException e)
-        {
-            return ErrorHandling(e);
-        }
-        catch (Exception ex)
-        {
+            var HouseResponseDto = _mapper.Map<HouseResponseDto>(house);
             return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Não Foi possível adicionar o House: {ex.Message} !"
-                            }
-                        }
-                    };
+                new ApiResponse<HouseResponseDto>
+                {
+                    Dados = HouseResponseDto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
         }
 
+        throw new BusinessException("Não Foi possível adicionar o House: Erro Desconhecido!");
     }
     public async Task<ApiResponse<HouseResponseDto>> AtualizarHouse(UserSession userSession, HouseUpdateRequestDto input)
     {
-        try
+
+        var house = await _houseRepository.GetHouseById(userSession.CompanyId, input.HouseId);
+
+        if (house == null)
+            throw new BusinessException("Não foi possível atualizar o House: House não encontrado !");
+
+        _mapper.Map(input, house);
+
+        var agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaByIataCode(house.EmpresaId, input.AgenteDeCargaNumero);
+        var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoOrigem);
+        var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoDestino);
+
+        house.AeroportoOrigemId = null;
+        house.AeroportoDestinoId = null;
+        house.AgenteDeCargaId = null;
+
+        if (codigoOrigemId > 0)
+            house.AeroportoOrigemId = codigoOrigemId;
+
+        if (codigoDestinoId > 0)
+            house.AeroportoDestinoId = codigoDestinoId;
+
+        if (agenteDeCarga == null)
+            throw new Exception("Agente de carga não cadastrado!");
+
+        house.AgenteDeCargaId = agenteDeCarga.Id;
+        house.ModifiedDateTimeUtc = DateTime.UtcNow;
+        house.ModificadoPeloId = userSession.UserId;
+
+        HouseEntityValidator validator = new HouseEntityValidator();
+
+        var result = validator.Validate(house);
+        if (result.IsValid)
+            house.StatusId = 1;
+        else
+            house.StatusId = 0;
+        _houseRepository.UpdateHouse(house);
+
+        if (await _houseRepository.SaveChanges())
         {
-            var house = await _houseRepository.GetHouseById(input.HouseId);
-            if (house == null)
-            {
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível atualiza o House: House não encontrado !"
-                            }
-                        }
-                    };
-            }
-
-            _mapper.Map(input, house);
-
-            var agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaByIataCode(house.EmpresaId, input.AgenteDeCargaNumero);
-            var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoOrigem);
-            var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoDestino);
-
-            house.AeroportoOrigemId = null;
-            house.AeroportoDestinoId = null;
-            house.AgenteDeCargaId = null;
-
-            if (codigoOrigemId > 0)
-                house.AeroportoOrigemId = codigoOrigemId;
-
-            if (codigoDestinoId > 0)
-                house.AeroportoDestinoId = codigoDestinoId;
-
-            if (agenteDeCarga == null)
-                throw new Exception("Agente de carga não cadastrado!");
-
-            house.AgenteDeCargaId = agenteDeCarga.Id;
-            house.ModifiedDateTimeUtc = DateTime.UtcNow;
-            house.ModificadoPeloId = userSession.UserId;
-
-            HouseEntityValidator validator = new HouseEntityValidator();
-            
-            var result = validator.Validate(house);
-            if (result.IsValid)
-                house.StatusId = 1;
-            else
-                house.StatusId = 0;
-            _houseRepository.UpdateHouse(house);
-
-            if (await _houseRepository.SaveChanges())
-            {
-                var HouseResponseDto = _mapper.Map<HouseResponseDto>(house);
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = HouseResponseDto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            else
-            {
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível atualiza o House: Erro Desconhecido!"
-                            }
-                        }
-                    };
-            }
-
-        }
-        catch (DbUpdateException e)
-        {
-            return ErrorHandling(e);
-        }
-        catch (Exception ex)
-        {
+            var HouseResponseDto = _mapper.Map<HouseResponseDto>(house);
             return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Não foi possível atualiza o House: {ex.Message} !"
-                            }
-                        }
-                    };
-        }
+                new ApiResponse<HouseResponseDto>
+                {
+                    Dados = HouseResponseDto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
+        };
 
+        throw new BusinessException("Não foi possível atualiza o House: Erro Desconhecido!");
     }
     public async Task<ApiResponse<HouseResponseDto>> AtualizarReenviarHouse(UserSession userSession, int houseId)
     {
-        try
+        var house = await _houseRepository.GetHouseById(userSession.CompanyId, houseId);
+
+        if (house == null)
+            throw new BusinessException("House não encontrado !");
+
+        house.Reenviar = true;
+
+        HouseEntityValidator validator = new HouseEntityValidator();
+
+        var result = validator.Validate(house);
+
+        house.StatusId = result.IsValid ? 1 : 0;
+
+        _houseRepository.UpdateHouse(house);
+
+        if (await _houseRepository.SaveChanges())
         {
-            var house = await _houseRepository.GetHouseById(houseId);
-
-            if (house == null)
-            {
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "House não encontrado !"
-                            }
-                        }
-                    };
-            }
-
-            house.Reenviar = true;
-
-            HouseEntityValidator validator = new HouseEntityValidator();
-
-            var result = validator.Validate(house);
-            if (result.IsValid)
-                house.StatusId = 1;
-            else
-                house.StatusId = 0;
-
-            _houseRepository.UpdateHouse(house);
-
-            if (await _houseRepository.SaveChanges())
-            {
-                var HouseResponseDto = _mapper.Map<HouseResponseDto>(house);
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = HouseResponseDto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            else
-            {
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível atualiza o House: Erro Desconhecido!"
-                            }
-                        }
-                    };
-            }
-
-        }
-        catch (DbUpdateException e)
-        {
-            return ErrorHandling(e);
-        }
-        catch (Exception ex)
-        {
+            var HouseResponseDto = _mapper.Map<HouseResponseDto>(house);
             return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Não foi possível atualiza o House: {ex.Message} !"
-                            }
-                        }
-                    };
-        }
+                new ApiResponse<HouseResponseDto>
+                {
+                    Dados = HouseResponseDto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
+        };
+
+        throw new BusinessException("Não foi possível atualiza o House: Erro Desconhecido!");
 
     }
     public async Task<ApiResponse<HouseResponseDto>> AtualizarReenviarAssociacaoHouse(UserSession userSession, int houseId)
     {
-        try
+        var house = await _houseRepository.GetHouseById(userSession.CompanyId, houseId);
+
+        if (house == null)
+            throw new BusinessException("House não encontrado !");
+
+        house.ReenviarAssociacao = true;
+
+        _houseRepository.UpdateHouse(house);
+
+        if (await _houseRepository.SaveChanges())
         {
-            var house = await _houseRepository.GetHouseById(houseId);
-
-            if (house == null)
-            {
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "House não encontrado !"
-                            }
-                        }
-                    };
-            }
-
-            house.ReenviarAssociacao = true;
-
-            _houseRepository.UpdateHouse(house);
-
-            if (await _houseRepository.SaveChanges())
-            {
-                var HouseResponseDto = _mapper.Map<HouseResponseDto>(house);
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = HouseResponseDto,
-                        Sucesso = true,
-                        Notificacoes = null
-                    };
-            }
-            else
-            {
-                return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = "Não foi possível atualiza o House: Erro Desconhecido!"
-                            }
-                        }
-                    };
-            }
-
-        }
-        catch (DbUpdateException e)
-        {
-            return ErrorHandling(e);
-        }
-        catch (Exception ex)
-        {
+            var HouseResponseDto = _mapper.Map<HouseResponseDto>(house);
             return
-                    new ApiResponse<HouseResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = "9999",
-                                Mensagem = $"Não foi possível atualiza o House: {ex.Message} !"
-                            }
-                        }
-                    };
+                new ApiResponse<HouseResponseDto>
+                {
+                    Dados = HouseResponseDto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
         }
-
+        else
+            throw new BusinessException("Não foi possível atualiza o House: Erro Desconhecido!");
     }
     public async Task<ApiResponse<HouseResponseDto>> ExcluirHouse(UserSession userSession, int houseId)
     {
         try
         {
-            var houseRepo = await _houseRepository.GetHouseById(houseId);
+            var houseRepo = await _houseRepository.GetHouseById(userSession.CompanyId, houseId);
             if (houseRepo == null)
             {
                 return

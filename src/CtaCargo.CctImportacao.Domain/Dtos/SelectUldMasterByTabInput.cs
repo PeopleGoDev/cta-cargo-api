@@ -14,7 +14,7 @@ namespace CtaCargo.CctImportacao.Domain.Dtos
 
     public class UldMasterDeleteByIdInput
     {
-        public int VooId { get; set; }
+        public int TrechoId { get; set; }
         public List<int> ListaIds { get; set; }
     }
 }

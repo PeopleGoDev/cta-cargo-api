@@ -12,6 +12,13 @@ public class SubmeterRFBHouseRequest
     public int AgenteDeCargaId { get; set; }
 }
 
+public class SubmeterRFBHouseByIdsRequest
+{
+    public DateTime DataProcessamento { get; set; }
+    public int FreightFowarderId { get; set; }
+    public List<int> HouseIds { get; set; }
+}
+
 public class SubmeterRFBMasterHouseRequest
 {
     public int FreightFowarderId { get; set; }
@@ -28,8 +35,7 @@ public class SubmeterRFBMasterHouseItemRequest
     public string TotalWeightUnit { get; set; }
     public int PackageQuantity { get; set; }
     public int TotalPiece { get; set; }
-    public DateTime IssueDate { get; set; }
-    public string DocumentId { get; set; }
+    public int[] HouseIds { get; set; }
 }
 
 public class MasterHouseAssociationUploadResponse
@@ -41,6 +47,7 @@ public class MasterHouseAssociationUploadResponse
 
 public class MasterHouseAssociationSummaryUploadResponse
 {
+    public int Id { get; set; }
     public string OriginLocation { get; set; }
     public string DestinationLocation { get; set; }
     public double TotalWeight { get; set; }
@@ -50,10 +57,15 @@ public class MasterHouseAssociationSummaryUploadResponse
     public int TotalPieceQuantity { get; set; }
     public DateTime IssueDate { get; set; }
     public string DocumentId { get; set; }
+    public int RFBCreationStatus { get; set; }
+    public string RFBCreationProtocol { get; set; }
+    public int RFBCancelationStatus { get; set; }
+    public string RFBCancelationProtocol { get; set; }
 }
 
 public class MasterHouseAssociationHouseItemResponse
 {
+    public int Id { get; set; }
     public string Number { get; set; }
     public string OriginLocation { get; set; }
     public string DestinationLocation { get; set; }

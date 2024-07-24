@@ -4,9 +4,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Context
 {
     public class ResumoVooUldView
     {
-        public int MasterId { get; set; }
+        public int? MasterId { get; set; }
         public int VooId { get; set; }
-        public int  ULDMasterId {get;set;} 
+        public int?  ULDMasterId {get;set;} 
         public int Id { get; set; }
         public int VooId2 { get; set; }
         public string ULDCaracteristicaCodigo { get; set; }

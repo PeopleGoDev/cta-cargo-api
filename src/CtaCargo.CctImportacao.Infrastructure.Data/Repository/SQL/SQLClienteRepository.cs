@@ -1,4 +1,5 @@
 ﻿using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using CtaCargo.CctImportacao.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using System;

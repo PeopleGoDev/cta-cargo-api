@@ -1,6 +1,6 @@
 ﻿using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using CtaCargo.CctImportacao.Infrastructure.Data.Context;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -20,21 +20,11 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
 
         public void CreateCertificadoDigital(CertificadoDigital certificado)
         {
-            if (certificado == null)
-            {
-                throw new ArgumentNullException(nameof(certificado));
-            }
-
             _context.Certificados.Add(certificado);
         }
 
         public void DeleteCertificadoDigital(CertificadoDigital certificado)
         {
-            if (certificado == null)
-            {
-                throw new ArgumentNullException(nameof(certificado));
-            }
-
             _context.Certificados.Remove(certificado);
         }
 
@@ -47,15 +37,23 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<CertificadoDigital>> GetAllCertificadosDigitalWithExpiration(int empresaId)
+        {
+            return await _context.Certificados
+                .Where(x => x.EmpresaId == empresaId && x.DataExclusao == null)
+                .ToListAsync();
+        }
+
         public async Task<CertificadoDigital> GetCertificadoDigitalById(int id)
         {
-            return await _context.Certificados.FindAsync(id);
+            return await _context.Certificados.FirstOrDefaultAsync(x => x.Id == id && x.DataExclusao == null);
         }
 
         public async Task<CertificadoDigital> GetCertificadoDigitalBySerialNumber(int empresaId, string serialNumber)
         {
             return await _context.Certificados
-                .FirstOrDefaultAsync(x => x.EmpresaId == empresaId && x.SerialNumber == serialNumber && x.DataExclusao == null);
+                .FirstOrDefaultAsync(x => x.EmpresaId == empresaId && 
+                x.SerialNumber == serialNumber && x.DataExclusao == null);
         }
 
         public void UpdateCertificadoDigital(CertificadoDigital certificado)

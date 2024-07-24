@@ -9,94 +9,84 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace CtaCargo.CctImportacao.Api.Controllers.v1
+namespace CtaCargo.CctImportacao.Api.Controllers.v1;
+
+[ApiController]
+[ApiVersion("1.0")]
+[Route("api/v1/[controller]")]
+public class UldController: Controller
 {
-    [ApiController]
-    [ApiVersion("1.0")]
-    [Route("api/v1/[controller]")]
-    public class UldController: Controller
+    private readonly IUldMasterService _uldMasterService;
+
+    public UldController(IUldMasterService uldMasterService)
     {
-        private readonly IUldMasterService _uldMasterService;
-
-        public UldController(IUldMasterService uldMasterService)
-        {
-            _uldMasterService = uldMasterService;
-        }
-
-        [HttpGet]
-        [Authorize]
-        [Route("PegarUldMasterPorId")]
-        public async Task<ApiResponse<UldMasterResponseDto>> PegarUldMasterPorId(int uldId)
-        {
-            return await _uldMasterService.PegarUldMasterPorId(uldId);
-        }
-
-        [HttpGet]
-        [Authorize]
-        [Route("ListarUldMasterPorMasterId")]
-        public async Task<ApiResponse<List<UldMasterResponseDto>>> ListarUldMasterPorMasterId(int masterId)
-        {
-            return await _uldMasterService.ListarUldMasterPorMasterId(masterId);
-        }
-
-        [HttpGet]
-        [Authorize]
-        [Route("ListarUldMasterPorVooId")]
-        public async Task<ApiResponse<IEnumerable<UldMasterNumeroQuery>>> ListarUldMasterPorVooId(int vooId)
-        {
-            return await _uldMasterService.ListarUldMasterPorVooId(vooId);
-        }
-
-        [HttpPost]
-        [Authorize]
-        [Route("ListarUldMasterPorLinha")]
-        public async Task<ApiResponse<IEnumerable<UldMasterResponseDto>>> ListarUldMasterPorLinha(ListaUldMasterRequest input)
-        {
-            return await _uldMasterService.ListarUldMasterPorLinha(input);
-        }
-
-        [HttpPost]
-        [Authorize]
-        [Route("ListarMasterUldSumario")]
-        public async Task<ApiResponse<IEnumerable<MasterNumeroUldSumario>>> ListarMasterUldSumario([FromBody] ListaUldMasterRequest input)
-        {
-            return await _uldMasterService.ListarMasterUldSumarioPorVooId(input);
-        }
-
-        [HttpPost]
-        [Authorize]
-        [Route("InserirUldMaster")]
-        public async Task<ApiResponse<List<UldMasterResponseDto>>> InserirUldMaster(List<UldMasterInsertRequest> input)
-        {
-            var userSession = HttpContext.GetUserSession();
-            return await _uldMasterService.InserirUldMaster(userSession, input);
-        }
-
-        [HttpPost]
-        [Authorize]
-        [Route("AtualizarUldMaster")]
-        public async Task<ApiResponse<List<UldMasterResponseDto>>> AtualizarUldMaster(List<UldMasterUpdateRequest> input)
-        {
-            return await _uldMasterService.AtualizarUldMaster(input);
-        }
-
-        [HttpPost]
-        [Authorize]
-        [Route("ExcluirUldMaster")]
-        public async Task<ApiResponse<string>> ExcluirUldMaster(UldMasterDeleteByIdInput input)
-        {
-            var userSession = HttpContext.GetUserSession();
-            return await _uldMasterService.ExcluirUldMaster(userSession, input);
-        }
-
-        [HttpPost]
-        [Authorize]
-        [Route("ExcluirUld")]
-        public async Task<ApiResponse<string>> ExcluirUld(UldMasterDeleteByTagInput input)
-        {
-            var userSession = HttpContext.GetUserSession();
-            return await _uldMasterService.ExcluirUld(userSession, input);
-        }
-
+        _uldMasterService = uldMasterService;
     }
+
+    [HttpGet]
+    [Authorize]
+    [Route("PegarUldMasterPorId")]
+    public async Task<ApiResponse<UldMasterResponseDto>> PegarUldMasterPorId(int uldId) =>
+        await _uldMasterService.PegarUldMasterPorId(HttpContext.GetUserSession(), uldId);
+
+    [HttpGet]
+    [Authorize]
+    [Route("ListarUldMasterPorMasterId")]
+    public async Task<ApiResponse<List<UldMasterResponseDto>>> ListarUldMasterPorMasterId(int masterId) =>
+        await _uldMasterService.ListarUldMasterPorMasterId(HttpContext.GetUserSession(), masterId);
+
+    [HttpGet]
+    [Authorize]
+    [Route("ListarUldMasterPorVooId")]
+    public async Task<ApiResponse<IEnumerable<UldMasterNumeroQuery>>> ListarUldMasterPorVooId(int vooId) =>
+        await _uldMasterService.ListarUldMasterPorVooId(HttpContext.GetUserSession(), vooId);
+
+    [HttpGet]
+    [Authorize]
+    [Route("ListarUldMasterPorTrechoId")]
+    public async Task<ApiResponse<IEnumerable<UldMasterNumeroQuery>>> ListarUldMasterPorTrechoId(int trechoId) =>
+        await _uldMasterService.ListarUldMasterPorTrechoId(HttpContext.GetUserSession(), trechoId);
+
+    [HttpPost]
+    [Authorize]
+    [Route("ListarUldMasterPorLinha")]
+    public async Task<ApiResponse<IEnumerable<UldMasterResponseDto>>> ListarUldMasterPorLinha(ListaUldMasterRequest input) =>
+        await _uldMasterService.ListarUldMasterPorLinha(HttpContext.GetUserSession(), input);
+
+    [HttpPost]
+    [Authorize]
+    [Route("ListarMasterUldSumario")]
+    public async Task<ApiResponse<IEnumerable<MasterNumeroUldSumario>>> ListarMasterUldSumario([FromBody] ListaUldMasterRequest input) =>
+        await _uldMasterService.ListarMasterUldSumarioPorVooId(HttpContext.GetUserSession(), input);
+
+    [HttpPost]
+    [Authorize]
+    [Route("InserirUldMaster")]
+    public async Task<ApiResponse<List<UldMasterResponseDto>>> InserirUldMaster(List<UldMasterInsertRequest> input) =>
+        await _uldMasterService.InserirUldMaster(HttpContext.GetUserSession(), input);
+
+    [HttpPatch]
+    [Authorize]
+    [Route("PatchUldMaster")]
+    public async Task<ApiResponse<UldMasterNumeroPatchQuery>> PatchUldMaster(UldMasterPatchRequest input) =>
+        await _uldMasterService.PatchUldMaster(HttpContext.GetUserSession(), input);
+
+    [HttpPost]
+    [Authorize]
+    [Route("AtualizarUldMaster")]
+    public async Task<ApiResponse<List<UldMasterResponseDto>>> AtualizarUldMaster(List<UldMasterUpdateRequest> input) =>
+        await _uldMasterService.AtualizarUldMaster(HttpContext.GetUserSession(), input);
+
+    [HttpPost]
+    [Authorize]
+    [Route("ExcluirUldMaster")]
+    public async Task<ApiResponse<string>> ExcluirUldMaster(UldMasterDeleteByIdInput input) =>
+        await _uldMasterService.ExcluirUldMaster(HttpContext.GetUserSession(), input);
+
+    [HttpPost]
+    [Authorize]
+    [Route("ExcluirUld")]
+    public async Task<ApiResponse<string>> ExcluirUld(UldMasterDeleteByTagInput input) =>
+        await _uldMasterService.ExcluirUld(HttpContext.GetUserSession(), input);
+
 }

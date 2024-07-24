@@ -1,7 +1,6 @@
-﻿namespace CtaCargo.CctImportacao.Application.Dtos.Request
+﻿namespace CtaCargo.CctImportacao.Application.Dtos.Request;
+
+public class HouseUpdateRequestDto: HouseBaseDto
 {
-    public class HouseUpdateRequestDto: HouseBaseDto
-    {
-        public int HouseId { get; set; }
-    }
+    public int HouseId { get; set; }
 }

@@ -1,11 +1,12 @@
-﻿using CtaCargo.CctImportacao.Application.Dtos.Response;
+﻿using CtaCargo.CctImportacao.Application.Dtos;
+using CtaCargo.CctImportacao.Application.Dtos.Response;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace CtaCargo.CctImportacao.Application.Services.Contracts
+namespace CtaCargo.CctImportacao.Application.Services.Contracts;
+
+public interface ICertificadoDigitalService
 {
-    public interface ICertificadoDigitalService
-    {
-        Task<ApiResponse<IEnumerable<CertificadoDigitalResponseDto>>> ListarCertificadosDigitais(int empresaId);
-    }
+    Task<ApiResponse<IEnumerable<CertificadoDigitalResponseDto>>> ListarCertificadosDigitais(int empresaId);
+    Task<ApiResponse<DigitalCertificateUserRelatedResponse>> GetCertificateOwner(UserSession userSession);
 }

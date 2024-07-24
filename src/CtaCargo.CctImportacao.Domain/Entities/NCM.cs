@@ -21,5 +21,7 @@ namespace CtaCargo.CctImportacao.Domain.Entities
         [Column(TypeName = "TEXT")]
         public string DescricaoConcatenada { get; set; }
         public bool Seleciona { get; set; }
+        [Column(TypeName = "VARCHAR(8)")]
+        public string CodigoNumero { get; set; }
     }
 }

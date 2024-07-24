@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30611.23
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33801.468
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1 - API", "1 - API", "{D304FB62-CCCA-4F61-B845-883C2ECDB1E2}"
 EndProject
@@ -11,17 +11,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3 - Infrastructure", "3 - I
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "9 - Tests", "9 - Tests", "{1EC31BF2-E699-47CB-8979-4816D550CFED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CtaCargo.CctImportacao.Api", "src\CtaCargo.CctImportacao.Api\CtaCargo.CctImportacao.Api.csproj", "{6F81065C-B511-4400-9074-E0EBA32E3B9D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CtaCargo.CctImportacao.Api", "src\CtaCargo.CctImportacao.Api\CtaCargo.CctImportacao.Api.csproj", "{6F81065C-B511-4400-9074-E0EBA32E3B9D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CtaCargo.CctImportacao.Application", "src\CtaCargo.CctImportacao.Application\CtaCargo.CctImportacao.Application.csproj", "{22694D1E-9F17-4ACC-BC1F-1009DDE90D03}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CtaCargo.CctImportacao.Application", "src\CtaCargo.CctImportacao.Application\CtaCargo.CctImportacao.Application.csproj", "{22694D1E-9F17-4ACC-BC1F-1009DDE90D03}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CtaCargo.CctImportacao.Domain", "src\CtaCargo.CctImportacao.Domain\CtaCargo.CctImportacao.Domain.csproj", "{0F7976FA-54D0-4018-8165-BBD7B1CDF411}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CtaCargo.CctImportacao.Domain", "src\CtaCargo.CctImportacao.Domain\CtaCargo.CctImportacao.Domain.csproj", "{0F7976FA-54D0-4018-8165-BBD7B1CDF411}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CtaCargo.CctImportacao.Infrastructure.Data", "src\CtaCargo.CctImportacao.Infrastructure.Data\CtaCargo.CctImportacao.Infrastructure.Data.csproj", "{E4A2DEAD-E14D-488F-BF69-42B1C2A7D3F5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CtaCargo.CctImportacao.Infrastructure.Data", "src\CtaCargo.CctImportacao.Infrastructure.Data\CtaCargo.CctImportacao.Infrastructure.Data.csproj", "{E4A2DEAD-E14D-488F-BF69-42B1C2A7D3F5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CtaCargo.CctImportacao.Infrastructure.CrossCutting", "src\CtaCargo.CctImportacao.Infrastructure.CrossCutting\CtaCargo.CctImportacao.Infrastructure.CrossCutting.csproj", "{D9FB7EBE-F42E-41B2-90DD-5BBA375E1373}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CtaCargo.CctImportacao.Infrastructure.CrossCutting", "src\CtaCargo.CctImportacao.Infrastructure.CrossCutting\CtaCargo.CctImportacao.Infrastructure.CrossCutting.csproj", "{D9FB7EBE-F42E-41B2-90DD-5BBA375E1373}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CtaCargo.CctImportacao.Test", "tests\CtaCargo.CctImportacao.Test\CtaCargo.CctImportacao.Test.csproj", "{CE0D89C5-7B07-471D-BF08-3B0D57CFEBCE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CtaCargo.CctImportacao.Test", "tests\CtaCargo.CctImportacao.Test\CtaCargo.CctImportacao.Test.csproj", "{CE0D89C5-7B07-471D-BF08-3B0D57CFEBCE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CtaCargo.CctImportacao.Batch", "CtaCargo.CctImportacao.Batch\CtaCargo.CctImportacao.Batch.csproj", "{4A3D3F7E-B8ED-4331-83B7-B143DC329310}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -53,6 +55,10 @@ Global
 		{CE0D89C5-7B07-471D-BF08-3B0D57CFEBCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CE0D89C5-7B07-471D-BF08-3B0D57CFEBCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CE0D89C5-7B07-471D-BF08-3B0D57CFEBCE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A3D3F7E-B8ED-4331-83B7-B143DC329310}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A3D3F7E-B8ED-4331-83B7-B143DC329310}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A3D3F7E-B8ED-4331-83B7-B143DC329310}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A3D3F7E-B8ED-4331-83B7-B143DC329310}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -64,6 +70,7 @@ Global
 		{E4A2DEAD-E14D-488F-BF69-42B1C2A7D3F5} = {538E1388-1B72-4E31-860B-47648DBC59AE}
 		{D9FB7EBE-F42E-41B2-90DD-5BBA375E1373} = {538E1388-1B72-4E31-860B-47648DBC59AE}
 		{CE0D89C5-7B07-471D-BF08-3B0D57CFEBCE} = {1EC31BF2-E699-47CB-8979-4816D550CFED}
+		{4A3D3F7E-B8ED-4331-83B7-B143DC329310} = {D304FB62-CCCA-4F61-B845-883C2ECDB1E2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CE0E8FA2-A45F-41D0-B9A2-C7CCEA4FA61F}

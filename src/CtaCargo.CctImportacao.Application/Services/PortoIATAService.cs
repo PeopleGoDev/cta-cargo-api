@@ -1,375 +1,127 @@
 ﻿using AutoMapper;
+using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
+using CtaCargo.CctImportacao.Domain.Exceptions;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace CtaCargo.CctImportacao.Application.Services
+namespace CtaCargo.CctImportacao.Application.Services;
+
+public class PortoIATAService : IPortoIataService
 {
-    public class PortoIATAService : IPortoIATAService
+    public const int SqlServerViolationOfUniqueIndex = 2601;
+    public const int SqlServerViolationOfUniqueConstraint = 2627;
+
+    private readonly IPortoIATARepository _portoIATARepository;
+    private readonly IMapper _mapper;
+    public PortoIATAService(IPortoIATARepository portoIATARepository, IMapper mapper)
     {
-        public const int SqlServerViolationOfUniqueIndex = 2601;
-        public const int SqlServerViolationOfUniqueConstraint = 2627;
+        _portoIATARepository = portoIATARepository;
+        _mapper = mapper;
+    }
+    public async Task<ApiResponse<PortoIataResponseDto>> PortoIataPorId(UserSession userSession, int portoIataId)
+    {
+        var lista = await _portoIATARepository.GetPortoIATAById(userSession.CompanyId, portoIataId);
+        if (lista == null)
+            throw new BusinessException("Porto IATA não encontrado");
 
-        private readonly IPortoIATARepository _portoIATARepository;
-        private readonly IMapper _mapper;
-        public PortoIATAService(IPortoIATARepository portoIATARepository, IMapper mapper)
+        var dto = _mapper.Map<PortoIataResponseDto>(lista);
+        return
+                new ApiResponse<PortoIataResponseDto>
+                {
+                    Dados = dto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
+    }
+    public async Task<ApiResponse<IEnumerable<PortoIataResponseDto>>> ListarPortosIata(UserSession userSession)
+    {
+        var lista = await _portoIATARepository.GetAllPortosIATA(userSession.CompanyId);
+        var dto = _mapper.Map<IEnumerable<PortoIataResponseDto>>(lista);
+        return
+                new ApiResponse<IEnumerable<PortoIataResponseDto>>
+                {
+                    Dados = dto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
+    }
+    public async Task<ApiResponse<PortoIataResponseDto>> InserirPortoIata(UserSession userSession, PortoIataInsertRequestDto portoIataRequest)
+    {
+        var portoIata = _mapper.Map<PortoIata>(portoIataRequest);
+        portoIata.CriadoPeloId = userSession.UserId;
+        portoIata.EmpresaId = userSession.CompanyId;
+        portoIata.CreatedDateTimeUtc = DateTime.UtcNow;
+
+        _portoIATARepository.CreatePortoIATA(portoIata);
+
+        if (await _portoIATARepository.SaveChanges())
         {
-            _portoIATARepository = portoIATARepository;
-            _mapper = mapper;
+            var PortoIATAResponseDto = _mapper.Map<PortoIataResponseDto>(portoIata);
+            return
+                new ApiResponse<PortoIataResponseDto>
+                {
+                    Dados = PortoIATAResponseDto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
         }
-        public async Task<ApiResponse<PortoIATAResponseDto>> PortoIATAPorId(int portoIATAId)
-        {
-            try
-            {
-                var lista = await _portoIATARepository.GetPortoIATAById(portoIATAId);
-                if (lista == null)
-                {
-                    return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = "Porto IATA não encontrado !"
-                                }
-                            }
-                        };
-                }
-                var dto = _mapper.Map<PortoIATAResponseDto>(lista);
-                return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = dto,
-                            Sucesso = true,
-                            Notificacoes = null
-                        };
-            }
-            catch (Exception ex)
-            {
-                return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = $"Erro na aplicação: {ex.Message}"
-                                }
-                            }
-                        };
-            }
+        else
+            throw new BusinessException("Não Foi possível adicionar Porto IATA: Erro Desconhecido");
 
+    }
+    public async Task<ApiResponse<PortoIataResponseDto>> AtualizarPortoIata(UserSession userSession, PortoIataUpdateRequestDto portoIataRequest)
+    {
+        var portoIata = await _portoIATARepository.GetPortoIATAById(userSession.CompanyId, portoIataRequest.PortoIataId);
+        if (portoIata == null)
+            throw new BusinessException("Não foi possível atualizar Porto IATA: Porto IATA não encontrado");
+
+        _mapper.Map(portoIataRequest, portoIata);
+        portoIata.ModifiedDateTimeUtc = DateTime.UtcNow;
+        portoIata.ModificadoPeloId = userSession.UserId;
+
+        _portoIATARepository.UpdatePortoIATA(portoIata);
+
+        if (await _portoIATARepository.SaveChanges())
+        {
+            var PortoIATAResponseDto = _mapper.Map<PortoIataResponseDto>(portoIata);
+            return
+                new ApiResponse<PortoIataResponseDto>
+                {
+                    Dados = PortoIATAResponseDto,
+                    Sucesso = true,
+                    Notificacoes = null
+                };
         }
-        public async Task<ApiResponse<IEnumerable<PortoIATAResponseDto>>> ListarPortosIATA(int empresaId)
+        else
+            throw new BusinessException("Não foi possível atualizar Porto IATA: Erro Desconhecido");
+
+    }
+    public async Task<ApiResponse<PortoIataResponseDto>> ExcluirPortoIata(UserSession userSession, int portoIataId)
+    {
+        var portoIATARepo = await _portoIATARepository.GetPortoIATAById(userSession.CompanyId, portoIataId);
+        if (portoIATARepo == null)
+            throw new BusinessException("Não foi possível excluir Porto Iata: Porto Iata não encontrado!");
+
+        _portoIATARepository.DeletePortoIATA(portoIATARepo);
+
+        if (await _portoIATARepository.SaveChanges())
         {
-            try
-            {
-                var lista = await _portoIATARepository.GetAllPortosIATA(empresaId); ;
-                var dto = _mapper.Map<IEnumerable<PortoIATAResponseDto>>(lista);
-                return
-                        new ApiResponse<IEnumerable<PortoIATAResponseDto>>
-                        {
-                            Dados = dto,
-                            Sucesso = true,
-                            Notificacoes = null
-                        };
-            }
-            catch (Exception ex)
-            {
-                return
-                        new ApiResponse<IEnumerable<PortoIATAResponseDto>>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = $"Erro na aplicação: {ex.Message}"
-                                }
-                            }
-                        };
-            }
-
-        }
-        public async Task<ApiResponse<PortoIATAResponseDto>> InserirPortoIATA(PortoIATAInsertRequestDto portoIATARequest)
-        {
-            try
-            {
-                var portoIATAModel = _mapper.Map<PortoIata>(portoIATARequest);
-                portoIATAModel.CreatedDateTimeUtc = DateTime.UtcNow;
-
-                _portoIATARepository.CreatePortoIATA(portoIATAModel);
-
-                if (await _portoIATARepository.SaveChanges())
-                {
-                    var PortoIATAResponseDto = _mapper.Map<PortoIATAResponseDto>(portoIATAModel);
-                    return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = PortoIATAResponseDto,
-                            Sucesso = true,
-                            Notificacoes = null
-                        };
-                }
-                else
-                {
-                    return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = null,
-                            Sucesso = true,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = "Não Foi possível adicionar Porto IATA: Erro Desconhecido!"
-                                }
-                            }
-                        };
-                }
-
-            }
-            catch (DbUpdateException e)
-            {
-                return ErrorHandling(e);
-            }
-            catch (Exception ex)
-            {
-                return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = $"Não Foi possível adicionar Porto IATA: {ex.Message}"
-                                }
-                            }
-                        };
-            }
-
-        }
-        public async Task<ApiResponse<PortoIATAResponseDto>> AtualizarPortoIATA(PortoIATAUpdateRequestDto portoIATARequest)
-        {
-            try
-            {
-                var portoIATARepo = await _portoIATARepository.GetPortoIATAById(portoIATARequest.PortoIATAId);
-                if (portoIATARepo == null)
-                {
-                    return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = "Não foi possível atualizar Porto IATA: Porto IATA não encontrado!"
-                                }
-                            }
-                        };
-                }
-
-                _mapper.Map(portoIATARequest, portoIATARepo);
-                portoIATARepo.ModifiedDateTimeUtc = DateTime.UtcNow;
-                _portoIATARepository.UpdatePortoIATA(portoIATARepo);
-
-                if (await _portoIATARepository.SaveChanges())
-                {
-                    var PortoIATAResponseDto = _mapper.Map<PortoIATAResponseDto>(portoIATARepo);
-                    return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = PortoIATAResponseDto,
-                            Sucesso = true,
-                            Notificacoes = null
-                        };
-                }
-                else
-                {
-                    return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = "Não foi possível atualizar Porto IATA: Erro Desconhecido!"
-                                }
-                            }
-                        };
-                }
-
-            }
-            catch (DbUpdateException e)
-            {
-                return ErrorHandling(e);
-            }
-            catch (Exception ex)
-            {
-                return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = $"Não foi possível atualizar Porto IATA: {ex.Message}"
-                                }
-                            }
-                        };
-            }
-
-        }
-        public async Task<ApiResponse<PortoIATAResponseDto>> ExcluirPortoIATA(int portoIATAId)
-        {
-            try
-            {
-                var portoIATARepo = await _portoIATARepository.GetPortoIATAById(portoIATAId);
-                if (portoIATARepo == null)
-                {
-                    return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = "Não foi possível excluir Porto IATA: Porto IATA não encontrado!"
-                                }
-                            }
-                        };
-                }
-
-                _portoIATARepository.DeletePortoIATA(portoIATARepo);
-
-                if (await _portoIATARepository.SaveChanges())
-                {
-                    return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = null,
-                            Sucesso = true,
-                            Notificacoes = null
-                        };
-                }
-                else
-                {
-                    return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = "Não foi possível excluir Porto IATA: Erro Desconhecido!"
-                                }
-                            }
-                        };
-                }
-
-            }
-            catch (DbUpdateException e)
-            {
-                return ErrorHandling(e);
-            }
-            catch (Exception ex)
-            {
-                return
-                        new ApiResponse<PortoIATAResponseDto>
-                        {
-                            Dados = null,
-                            Sucesso = false,
-                            Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = "9999",
-                                    Mensagem = $"Não foi possível excluir Porto IATA: {ex.Message}"
-                                }
-                            }
-                        };
-            }
-
-        }
-        private ApiResponse<PortoIATAResponseDto> ErrorHandling(Exception exception)
-        {
-            var sqlEx = exception?.InnerException as SqlException;
-            if (sqlEx != null)
-            {
-                //This is a DbUpdateException on a SQL database
-
-                if (sqlEx.Number == SqlServerViolationOfUniqueIndex)
-                {
-                    //We have an error we can process
-                    return new ApiResponse<PortoIATAResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = $"SQL{sqlEx.Number.ToString()}",
-                                    Mensagem = $"Já existe um porto IATA cadastrado com o mesmo código!"
-                                }
-                        }
-                    };
-                }
-                else
-                {
-                    return new ApiResponse<PortoIATAResponseDto>
-                    {
-                        Dados = null,
-                        Sucesso = false,
-                        Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = $"SQL{sqlEx.Number.ToString()}",
-                                    Mensagem = $"{sqlEx.Message}"
-                                }
-                        }
-                    };
-                }
-            }
-            else
-            {
-                return new ApiResponse<PortoIATAResponseDto>
+            return
+                new ApiResponse<PortoIataResponseDto>
                 {
                     Dados = null,
-                    Sucesso = false,
-                    Notificacoes = new List<Notificacao>() {
-                                new Notificacao
-                                {
-                                    Codigo = $"9999",
-                                    Mensagem = $"{exception.Message}"
-                                }
-                        }
+                    Sucesso = true,
+                    Notificacoes = null
                 };
-            }
-
         }
+        else
+            throw new BusinessException("Não foi possível excluir Porto IATA: Erro Desconhecido");
+
     }
 }

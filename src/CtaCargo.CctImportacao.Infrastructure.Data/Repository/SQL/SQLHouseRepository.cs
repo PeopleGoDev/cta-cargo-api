@@ -1,6 +1,7 @@
 ﻿using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Model;
+using CtaCargo.CctImportacao.Domain.Repositories;
 using CtaCargo.CctImportacao.Infrastructure.Data.Context;
-using CtaCargo.CctImportacao.Infrastructure.Data.Repository.Contracts;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -10,11 +11,11 @@ using System.Threading.Tasks;
 
 namespace CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL;
 
-public class SQLHouseRepository : IHouseRepository
+public class SqlHouseRepository : IHouseRepository
 {
     private readonly ApplicationDbContext _context;
 
-    public SQLHouseRepository(ApplicationDbContext context)
+    public SqlHouseRepository(ApplicationDbContext context)
     {
         _context = context;
     }
@@ -51,6 +52,7 @@ public class SQLHouseRepository : IHouseRepository
             .Include("AeroportoOrigemInfo")
             .Include("AeroportoDestinoInfo")
             .Where(param.ToPredicate())
+            .OrderBy(x => x.MasterNumeroXML)
             .ToList();
     }
 
@@ -73,10 +75,19 @@ public class SQLHouseRepository : IHouseRepository
        x.CreatedDateTimeUtc <= dataFinal).ToListAsync();
     }
 
-    public async Task<House> GetHouseById(int houseId)
+    public async Task<House> GetHouseById(int ciaId, int houseId)
     {
-        return await _context.Houses.FirstOrDefaultAsync(x => x.Id == houseId &&
+        return await _context.Houses.FirstOrDefaultAsync(x => x.EmpresaId == ciaId && x.Id == houseId &&
         x.DataExclusao == null);
+    }
+
+    public async Task<House> GetHouseByIdForExclusionUpload(int ciaId, int houseId)
+    {
+        return await _context.Houses
+            .Include("AgenteDeCargaInfo")
+            .Include("AeroportoOrigemInfo")
+            .Include("AeroportoDestinoInfo")
+            .FirstOrDefaultAsync(x => x.EmpresaId == ciaId && x.Id == houseId && x.DataExclusao == null);
     }
 
     public string[] GetMastersByParam(QueryJunction<House> param)
@@ -94,6 +105,13 @@ public class SQLHouseRepository : IHouseRepository
             .Where(x => masters.Contains(x.MasterNumeroXML) &&  x.DataExclusao == null);
     }
 
+    public async Task<int?> GetHouseIdByNumberValidate(int ciaId, string numero, DateTime dataLimite)
+    {
+        return await _context.Houses
+            .Where(x => x.EmpresaId == ciaId && x.Numero == numero && x.CreatedDateTimeUtc >= dataLimite && x.DataExclusao == null)
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync();
+    }
     public async Task<bool> SaveChanges()
     {
         return (await _context.SaveChangesAsync() >= 0);
