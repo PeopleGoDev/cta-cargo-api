@@ -92,9 +92,13 @@ public class HouseService : IHouseService
         var houses = _houseRepository
             .GetHouseByMasterList(masters);
 
+        QueryJunction<MasterHouseAssociacao> paramAssociacao = new();
+        paramAssociacao.Add(x => x.EmpresaId == userSession.CompanyId);
+        paramAssociacao.Add(x => x.DataExclusao == null);
+        paramAssociacao.Add(x => masters.Contains(x.MasterNumber));
+
         var association = await _masterHouseAssociacaoRepository
-            .SelectMasterHouseAssociacaoParam(x => x.EmpresaId == userSession.CompanyId && 
-                x.DataExclusao == null && masters.Contains(x.MasterNumber));
+            .SelectMasterHouseAssociacaoParam(paramAssociacao);
 
         var response = new List<MasterHouseAssociationUploadResponse>();
         foreach (var master in masters)

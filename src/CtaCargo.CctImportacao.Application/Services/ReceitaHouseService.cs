@@ -155,12 +155,12 @@ public class ReceitaHouseService : IReceitaHouseService
         SubmeterRFBMasterHouseRequest input)
     {
         #region Prepara os houses para associação
-
-        var houseIds = input.Masters.SelectMany(x => x.HouseIds).ToArray();
+        //var houseIds = input.Masters.SelectMany(x => x.HouseIds).ToArray();
+        var masterNumbers = input.Masters.Select(x => x.MasterNumber).ToArray();
 
         QueryJunction<House> param = new();
         param.Add(x => x.AgenteDeCargaId == input.FreightFowarderId);
-        param.Add(x => houseIds.Contains(x.Id));
+        param.Add(x => masterNumbers.Contains(x.MasterNumeroXML));
         param.Add(x => x.DataExclusao == null);
 
         var houses = _houseRepository.GetHouseForUploading(param) ??
@@ -168,19 +168,15 @@ public class ReceitaHouseService : IReceitaHouseService
 
         if (houses.Count == 0)
             throw new BusinessException("Nenhum house selecionado !");
-
         #endregion
 
         #region Prepara os masters para associação
-
-        var masterNumbers = input.Masters.Select(x => x.MasterNumber).ToArray();
         QueryJunction<MasterHouseAssociacao> paramAssocicao = new();
         paramAssocicao.Add(x => masterNumbers.Contains(x.MasterNumber));
         paramAssocicao.Add(x => x.DataExclusao == null);
 
-        var associacao = await _masterHouseAssociacaoRepository
+        var associacoes = await _masterHouseAssociacaoRepository
             .SelectMasterHouseAssociacaoParam(paramAssocicao);
-
         #endregion
 
         var certificate = await 
@@ -193,10 +189,11 @@ public class ReceitaHouseService : IReceitaHouseService
             _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate, "AGECARGA");
 
         await SubmeterAssociacaoHouseMasterList(
-            userSession, 
-            input.Masters, 
-            houses, 
-            certificate.Certificate, 
+            userSession,
+            input.Masters,
+            associacoes,
+            houses,
+            certificate.Certificate,
             token);
 
         return new ApiResponse<string>()
@@ -539,17 +536,21 @@ public class ReceitaHouseService : IReceitaHouseService
 
     #region Upload Associação House x Master
     private async Task SubmeterAssociacaoHouseMasterList(UserSession userSession,
-        List<SubmeterRFBMasterHouseItemRequest> Masters,
+        List<SubmeterRFBMasterHouseItemRequest> masters,
+        List<MasterHouseAssociacao> associacoes,
         List<House> houses,
         X509Certificate2 certificado,
         TokenResponse token)
     {
+        houses = houses.OrderBy(x => x.MasterNumeroXML).ToList();
+
         string curMaster = houses[0].MasterNumeroXML;
-        var masterInfo = Masters.FirstOrDefault(x => x.MasterNumber == curMaster);
+        var associacao = associacoes.FirstOrDefault(x => x.MasterNumber == curMaster);
+        var masterInfo = masters.FirstOrDefault(x => x.MasterNumber == curMaster);
         string freightFowarderCnpj = houses.FirstOrDefault().AgenteDeCargaInfo.CNPJ;
 
         List<House> houseList = new();
-        foreach (House house in houses.OrderBy(x => x.MasterNumeroXML))
+        foreach (House house in houses)
         {
             if (house.MasterNumeroXML == curMaster)
             {
@@ -559,14 +560,17 @@ public class ReceitaHouseService : IReceitaHouseService
 
             if (house.MasterNumeroXML != curMaster)
             {
-                await SubmeterHouseMasterAssociacao(userSession, freightFowarderCnpj, masterInfo, houseList, token, certificado);
-                houseList = new List<House>();
-                houseList.Add(house);
+                await SubmeterHouseMasterAssociacao(userSession, freightFowarderCnpj, masterInfo, houseList, associacao, token, certificado);
+                houseList = new List<House>
+                {
+                    house
+                };
                 curMaster = house.MasterNumeroXML;
-                masterInfo = Masters.FirstOrDefault(x => x.MasterNumber == curMaster);
+                associacao = associacoes.FirstOrDefault(x => x.MasterNumber == curMaster);
+                masterInfo = masters.FirstOrDefault(x => x.MasterNumber == curMaster);
             }
         }
-        await SubmeterHouseMasterAssociacao(userSession, freightFowarderCnpj, masterInfo, houseList, token, certificado);
+        await SubmeterHouseMasterAssociacao(userSession, freightFowarderCnpj, masterInfo, houseList, associacao, token, certificado);
     }
 
     private async Task CancelarAssociacaoHouseMasterList(MasterHouseAssociacao associacao,
@@ -591,12 +595,10 @@ public class ReceitaHouseService : IReceitaHouseService
         string FreightFowarderTaxId,
         SubmeterRFBMasterHouseItemRequest masterInfo,
         List<House> houses,
+        MasterHouseAssociacao associacao,
         TokenResponse token,
         X509Certificate2 certificado)
     {
-        var associacao = await _masterHouseAssociacaoRepository
-            .SelectMasterHouseAssociacaoByMaster(masterInfo.MasterNumber);
-
         var operation = IataXmlPurposeCode.Creation;
 
         if (associacao == null)
@@ -651,7 +653,6 @@ public class ReceitaHouseService : IReceitaHouseService
         TokenResponse token,
         X509Certificate2 certificado)
     {
-
         var operation = IataXmlPurposeCode.Deletion;
 
         string xmlAssociacao = _motorIataHouse
