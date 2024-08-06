@@ -85,7 +85,7 @@ public class HouseService : IHouseService
     {
         var param = GeneratePredicateParam(userSession, input);
         var masters = _houseRepository.GetMastersByParam(param);
-     
+
         if (masters is null) return default;
         if (masters.Length == 0) return default;
 
@@ -109,26 +109,28 @@ public class HouseService : IHouseService
             var resp = new MasterHouseAssociationUploadResponse
             {
                 Number = master,
-                Houses = (from c in findHouses
+                Houses = (from house in findHouses
                           select new MasterHouseAssociationHouseItemResponse
                           {
-                              Id = c.Id,
-                              Number = c.Numero,
-                              AssociationCheckDate = c.DataChecagemAssociacaoRFB,
-                              AssociationDate = c.DataProtocoloAssociacaoRFB,
-                              AssociationErrorCode = c.CodigoErroAssociacaoRFB,
-                              AssociationErrorDescription = c.DescricaoErroAssociacaoRFB,
-                              AssociationProtocol = c.ProtocoloAssociacaoRFB,
-                              AssociationStatusId = c.SituacaoAssociacaoRFBId,
-                              DestinationLocation = c.AeroportoDestinoCodigo,
-                              OriginLocation = c.AeroportoOrigemCodigo,
+                              Id = house.Id,
+                              Number = house.Numero,
+                              AssociationCheckDate = house.DataChecagemAssociacaoRFB,
+                              AssociationDate = house.DataProtocoloAssociacaoRFB,
+                              AssociationErrorCode = house.CodigoErroAssociacaoRFB,
+                              AssociationErrorDescription = house.DescricaoErroAssociacaoRFB,
+                              AssociationProtocol = house.ProtocoloAssociacaoRFB,
+                              AssociationStatusId = house.SituacaoAssociacaoRFBId,
+                              DestinationLocation = house.AeroportoDestinoCodigo,
+                              OriginLocation = house.AeroportoOrigemCodigo,
                               DocumentId = findSummary?.MessageHeaderDocumentId,
-                              PackageQuantity = c.TotalVolumes,
-                              ResendAssociation = c.ReenviarAssociacao,
-                              TotalPieceQuantity = c.TotalVolumes,
-                              TotalWeight = c.PesoTotalBruto,
-                              TotalWeightUnit = c.PesoTotalBrutoUN,
-                              ProcessDate = c.DataProcessamento
+                              PackageQuantity = house.TotalVolumes,
+                              ResendAssociation = house.ReenviarAssociacao,
+                              TotalPieceQuantity = house.TotalVolumes,
+                              TotalWeight = house.PesoTotalBruto,
+                              TotalWeightUnit = house.PesoTotalBrutoUN,
+                              ProcessDate = house.DataProcessamento,
+                              RFBStatus = house.SituacaoRFBId,
+                              Resend = house.Reenviar
                           }).ToList()
             };
 
@@ -172,7 +174,7 @@ public class HouseService : IHouseService
                 houseRequest.DataProcessamento.Year,
                 houseRequest.DataProcessamento.Month,
                 houseRequest.DataProcessamento.Day,
-                0, 0, 0,DateTimeKind.Unspecified);
+                0, 0, 0, DateTimeKind.Unspecified);
 
         var house = _mapper.Map<House>(houseRequest);
 

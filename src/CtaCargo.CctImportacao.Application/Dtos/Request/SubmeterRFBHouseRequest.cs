@@ -82,4 +82,6 @@ public class MasterHouseAssociationHouseItemResponse
     public DateTime? AssociationCheckDate { get; set; }
     public bool ResendAssociation { get; set; }
     public DateTime? ProcessDate { get; set; }
+    public int RFBStatus { get; set; }
+    public bool Resend { get; set; }
 }
