@@ -60,4 +60,8 @@ public class Usuario
     [Required]
     [Column(TypeName = "varchar(150)")]
     public string Account { get; set; }
+
+    [Required]
+    [Column(TypeName = "bit")]
+    public bool MultiCompany { get; set; }
 }

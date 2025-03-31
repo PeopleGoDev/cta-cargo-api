@@ -112,6 +112,7 @@ public class SqlHouseRepository : IHouseRepository
             .Select(x => x.Id)
             .FirstOrDefaultAsync();
     }
+
     public async Task<bool> SaveChanges()
     {
         return (await _context.SaveChangesAsync() >= 0);

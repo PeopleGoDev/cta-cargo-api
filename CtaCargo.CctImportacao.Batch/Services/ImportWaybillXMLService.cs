@@ -1,10 +1,9 @@
-﻿using CtaCargo.CctImportacao.Domain.Entities;
+﻿using CtaCargo.CctImportacao.Application.Validator;
+using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Enums;
 using CtaCargo.CctImportacao.Domain.Model.Iata.WaybillManifest;
-using CtaCargo.CctImportacao.Application.Validator;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using System.Diagnostics.Metrics;
-using System.Text.RegularExpressions;
 using CtaCargo.CctImportacao.Domain.Repositories;
+using System.Text.RegularExpressions;
 
 namespace CtaCargo.CctImportacao.Batch.Services;
 
@@ -220,7 +219,7 @@ public class ImportWaybillXMLService
         {
             DateTime dataMin = DateTime.UtcNow.AddDays(-30);
             DateTime dataMax = DateTime.UtcNow.AddDays(1);
-            if (master.CreatedDateTimeUtc >= dataMin && master.CreatedDateTimeUtc <= dataMax && master.SituacaoRFBId == Master.RFStatusEnvioType.NoSubmitted)
+            if (master.CreatedDateTimeUtc >= dataMin && master.CreatedDateTimeUtc <= dataMax && master.SituacaoRFBId == RFStatusEnvioType.NoSubmitted)
             {
                 if (masterXML.BusinessHeaderDocument?.SignatoryCarrierAuthentication != null)
                 {

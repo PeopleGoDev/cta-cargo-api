@@ -7,11 +7,6 @@ namespace CtaCargo.CctImportacao.Domain.Entities;
 
 public class MasterHouseAssociacao : BaseEntity
 {
-    public MasterHouseAssociacao()
-    {
-        Houses = new HashSet<House>();
-    }
-
     [Key]
     [Required]
     public int Id { get; set; }
@@ -36,7 +31,8 @@ public class MasterHouseAssociacao : BaseEntity
     public DateTime? DataProtocoloAssociacaoRFB { get; set; }
     public DateTime? DataChecagemAssociacaoRFB { get; set; }
     public bool ReenviarAssociacao { get; set; }
-    public virtual ICollection<House> Houses { get; set; }
+    public ICollection<MasterHouseAssociationChild> MasterHouseAssociationChildren { get; set; }
+
     [Column(TypeName = "datetime")]
     public DateTime? DataExclusao { get; set; }
     public double GrossWeight { get; set; }
@@ -46,8 +42,6 @@ public class MasterHouseAssociacao : BaseEntity
     public string InputMode { get; set; }
     [Column(TypeName = "varchar(30)")]
     public string Environment { get; set; }
-
-
     [Column(TypeName = "varchar(50)")]
     public string ProtocoloDeletionAssociacaoRFB { get; set; }
     [Column(TypeName = "varchar(40)")]
@@ -59,4 +53,10 @@ public class MasterHouseAssociacao : BaseEntity
     public DateTime? DataChecagemDeletionAssociacaoRFB { get; set; }
     [Column(TypeName = "datetime")]
     public DateTime? XmlIssueDate { get; set; }
+    [Column(TypeName = "datetime")]
+    public DateTime? CarrierDeclarationDate { get; set; }
+    public int? AgenteDeCargaId { get; set; }
+    [ForeignKey("AgenteDeCargaId")]
+    public virtual AgenteDeCarga AgenteDeCargaInfo { get; set; }
+    public DateTime? ProcessDate { get; set; }
 }

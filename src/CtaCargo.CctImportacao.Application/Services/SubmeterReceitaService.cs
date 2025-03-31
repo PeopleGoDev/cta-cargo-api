@@ -341,7 +341,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
             return GeraErrorValidator(resultValidator);
 
         if (reenviar || voo.ScheduleSituationRFB == RFStatusEnvioType.Processed)
-            voo.DataEmissaoXML = voo.DataEmissaoXML.Value.AddMinutes(1);
+            voo.DataEmissaoXML = voo.DataEmissaoXML?.AddMinutes(1);
 
         voo.Reenviar = false;
 
@@ -697,7 +697,6 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         return apiResponseError;
     }
-    #endregion
 
     #region Verificação Arquivo Voo
     private async Task<ApiResponse<string>> ProcessarRetornoEnvioArquivoVoo(ReceitaRetornoProtocol response, Voo voo)
@@ -952,5 +951,7 @@ public class SubmeterReceitaService : ISubmeterReceitaService
 
         await _masterRepository.SaveChanges();
     }
+    #endregion
+
     #endregion
 }

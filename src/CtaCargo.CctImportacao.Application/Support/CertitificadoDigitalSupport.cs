@@ -1,6 +1,7 @@
 ﻿using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
+using CtaCargo.CctImportacao.Domain.Exceptions;
 using CtaCargo.CctImportacao.Domain.Repositories;
 using System;
 using System.Security.Cryptography.X509Certificates;
@@ -35,7 +36,7 @@ public class CertitificadoDigitalSupport : ICertitificadoDigitalSupport
         bool hasCompanyExpired = false;
 
         var certificate = await GetCertificateUsuarioAsync(userSession.UserId);
-        if(certificate != null && certificate.NotAfter > DateTime.Now)
+        if (certificate != null && certificate.NotAfter > DateTime.Now)
             return new CctCertificate(CctCertificate.CertificateOriginType.User, certificate, false, null);
 
         if (certificate is not null)
@@ -51,7 +52,7 @@ public class CertitificadoDigitalSupport : ICertitificadoDigitalSupport
         if (hasUserExpired)
             return new CctCertificate(CctCertificate.CertificateOriginType.User, null, true, "Certificado do usuário expirado!");
 
-        if(hasCompanyExpired)
+        if (hasCompanyExpired)
             return new CctCertificate(CctCertificate.CertificateOriginType.User, null, true, "Certificado da companhia aérea expirado!");
 
         return new CctCertificate(CctCertificate.CertificateOriginType.Unknown, null, true, "Não há certificados disponivel para Usuario/Companhia Aérea");
@@ -59,30 +60,17 @@ public class CertitificadoDigitalSupport : ICertitificadoDigitalSupport
 
     public async Task<CctCertificate> GetCertificateForFreightFowarder(UserSession userSession, int freightForwarderId)
     {
-        bool hasUserExpired = false;
-        bool hasCompanyExpired = false;
-
         var certificate = await GetCertificateUsuarioAsync(userSession.UserId);
+
         if (certificate?.NotAfter > DateTime.Now)
             return new CctCertificate(CctCertificate.CertificateOriginType.User, certificate, false, null);
 
-        if (certificate != null)
-            hasUserExpired = true;
-
         certificate = await GetCertificateAgenteDeCargaAsync(userSession.CompanyId, freightForwarderId);
+
         if (certificate?.NotAfter > DateTime.Now)
             return new CctCertificate(CctCertificate.CertificateOriginType.Company, certificate, false, null);
 
-        if (certificate is not null)
-            hasCompanyExpired = true;
-
-        if (hasUserExpired)
-            return new CctCertificate(CctCertificate.CertificateOriginType.User, null, true, "Certificado do usuário expirado!");
-
-        if (hasCompanyExpired)
-            return new CctCertificate(CctCertificate.CertificateOriginType.User, null, true, "Certificado do agente de carga expirado!");
-
-        return null;
+        throw new BusinessException("Certificado do usuário expirado!");
     }
 
     public async Task<X509Certificate2> GetCertificateCiaAereaAsync(UserSession userSession, int ciaAereaId)
@@ -156,7 +144,7 @@ public class CctCertificate
     public enum CertificateOriginType
     {
         Unknown = 0,
-        User =1,
+        User = 1,
         Company = 2,
     }
 
@@ -169,7 +157,7 @@ public class CctCertificate
     }
 
     public CertificateOriginType Origin { get; }
-    public X509Certificate2 Certificate { get;}
-    public bool HasError { get;}
-    public string Error { get;}
+    public X509Certificate2 Certificate { get; }
+    public bool HasError { get; }
+    public string Error { get; }
 }

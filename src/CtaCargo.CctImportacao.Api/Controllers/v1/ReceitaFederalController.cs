@@ -2,6 +2,8 @@
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
+using CtaCargo.CctImportacao.Application.Services.ReceitaFederal.Associacao;
+using CtaCargo.CctImportacao.Application.Services.ReceitaFederal.Associacao.Request;
 using CtaCargo.CctImportacao.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -19,11 +21,13 @@ public class ReceitaFederalController : Controller
 {
     private readonly ISubmeterReceitaService _submeterRFB;
     private readonly IReceitaHouseService _receitaHouseService;
+    private readonly IRemoveAssociationService _removeAssociationService;
 
-    public ReceitaFederalController(ISubmeterReceitaService submeterRFB, IReceitaHouseService receitaHouseService)
+    public ReceitaFederalController(ISubmeterReceitaService submeterRFB, IReceitaHouseService receitaHouseService, IRemoveAssociationService removeAssociationService)
     {
         _submeterRFB = submeterRFB;
         _receitaHouseService = receitaHouseService;
+        _removeAssociationService = removeAssociationService;
     }
 
     [HttpPost]
@@ -113,24 +117,61 @@ public class ReceitaFederalController : Controller
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SubmeterAssociacaoHousesMaster(SubmeterRFBMasterHouseRequest input)
     {
-        if(input == null) return BadRequest();
-        if(input.Masters is null) return BadRequest();
-        if(input.Masters.Count == 0)  return BadRequest();
+        if (input == null) return BadRequest();
+        if (input.Masters is null) return BadRequest();
+        if (input.Masters.Count == 0) return BadRequest();
 
         return Ok(await _receitaHouseService.SubmeterAssociacaoHousesMaster(HttpContext.GetUserSession(), input));
     }
 
-    [HttpGet]
+    [HttpPost]
     [Authorize]
-    [Route("CancelarAssociacaoHouseMaster")]
+    [Route("submit-house-master-association")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<string>))]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> CancelarAssociacaoHousesMaster(int? associationId)
+    public async Task<IActionResult> SubmitHouseMasterAssociationAsync(SubmitRFBMasterHouseRequest input)
     {
-        if (associationId == null) return BadRequest();
-        if (associationId <= 0) return BadRequest();
+        if (input == null) return BadRequest();
+        if (input.AssociationIds is null) return BadRequest();
+        if (input.AssociationIds.Length == 0) return BadRequest();
 
-        return Ok(await _receitaHouseService.SubmeterAssociation(HttpContext.GetUserSession(), associationId.Value));
+        return Ok(await _receitaHouseService.SubmitHouseMasterAssociationAsync(HttpContext.GetUserSession(), input));
+    }
+
+    [HttpPost]
+    [Authorize]
+    [Route("submit-association-remove")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<MasterHouseAssociationUploadResponse>>))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SubmitAssociationRemoveAsync([FromBody] SubmitAssociatonRequest request)
+    {
+        if (request.freightFowarderId <= 0) return BadRequest();
+
+        var response = await _removeAssociationService.RemoveAssociationAsync(HttpContext.GetUserSession(), request);
+
+        return Ok(new ApiResponse<List<MasterHouseAssociationUploadResponse>>
+        {
+            Dados = response,
+            Sucesso = true
+        });
+    }
+
+    [HttpPost]
+    [Authorize]
+    [Route("check-association-remove")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<MasterHouseAssociationUploadResponse>>))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelarAssociacaoHousesMaster([FromBody] SubmitAssociatonRequest request)
+    {
+        if (request.freightFowarderId <= 0) return BadRequest();
+
+        var response = await _removeAssociationService.CheckRemoveAssociationAsync(HttpContext.GetUserSession(), request);
+
+        return Ok(new ApiResponse<List<MasterHouseAssociationUploadResponse>>
+        {
+            Dados = response,
+            Sucesso = true
+        });
     }
 
     [HttpGet]

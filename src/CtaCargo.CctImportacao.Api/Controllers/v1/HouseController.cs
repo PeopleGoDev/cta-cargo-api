@@ -42,7 +42,7 @@ public class HouseController : Controller
     [Route("listhouseassociationupload")]
     public async Task<List<MasterHouseAssociationUploadResponse>> SelectHouseAssociationForUpload(HouseListarRequest input)
     {
-        return await _houseService.SelectHouseAssociationForUpload(HttpContext.GetUserSession(), input);
+        return await _houseService.SelectHouseAssociationForUploadAsync(HttpContext.GetUserSession(), input);
     }
 
     [HttpPost]
@@ -91,5 +91,55 @@ public class HouseController : Controller
     public async Task<ApiResponse<HouseResponseDto>> ExcluirHouse(int houseId)
     {
         return await _houseService.ExcluirHouse(HttpContext.GetUserSession(), houseId);
+    }
+
+    [HttpPost]
+    [Authorize]
+    [Route("adicionar-master-house-associacao")]
+    public async Task<ApiResponse<List<MasterHouseAssociationResponse>>> AdicionarMAsterHouseAssociacao([FromBody] AddMasterHouseAssociationRequest request)
+    {
+        var response = await _houseService.IncluirAssociacaoMasterHouse(HttpContext.GetUserSession(), request);
+
+        return new ApiResponse<List<MasterHouseAssociationResponse>>
+        {
+            Dados = response,
+            Sucesso = true
+        };
+    }
+
+    [HttpPost]
+    [Authorize]
+    [Route("atualizar-master-house-associacao")]
+    public async Task<ApiResponse<List<MasterHouseAssociationResponse>>> UpdateMasterHouseAssociacao([FromBody] UpdateMasterHouseAssociationRequest request)
+    {
+        var response = await _houseService.AtualizarAssociacaoMasterHouse(HttpContext.GetUserSession(), request);
+
+        return new ApiResponse<List<MasterHouseAssociationResponse>>
+        {
+            Dados = response,
+            Sucesso = true
+        };
+    }
+
+    [HttpPost]
+    [Authorize]
+    [Route("desfazer-master-house-associacao")]
+    public async Task<ApiResponse<List<MasterHouseAssociationResponse>>> DesfazerMasterHouseAssociacao([FromBody] RemoveMasterHouseAssociationRequest request)
+    {
+        var response = await _houseService.DesfazerAssociacaoMasterHouse(HttpContext.GetUserSession(), request);
+
+        return new ApiResponse<List<MasterHouseAssociationResponse>>
+        {
+            Dados = response,
+            Sucesso = true
+        };
+    }
+
+    [HttpPost]
+    [Authorize]
+    [Route("for-upload-list")]
+    public async Task<MasterHouseAssoationForUploadResponse> SelectHouseAssociationForUploadAsync(HouseListarRequest input)
+    {
+        return await _houseService.SelectHouseAssociationAsync(HttpContext.GetUserSession(), input);
     }
 }

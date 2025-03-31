@@ -2,6 +2,7 @@
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Enums;
+using CtaCargo.CctImportacao.Domain.Exceptions;
 using CtaCargo.CctImportacao.Domain.Model.Iata.HouseManifest;
 using System;
 using System.Collections.Generic;
@@ -224,7 +225,7 @@ public class MotorIataHouse : IMotorIataHouse
             {
                 Identification = new TextType { Value = house.DescricaoMercadoria }
             },
-            ApplicableFreightRateServiceCharge = new FreightRateServiceChargeType[1]
+            ApplicableFreightRateServiceCharge = new FreightRateServiceChargeType[1],
         };
         if (house.NCMLista != null)
         {
@@ -271,8 +272,86 @@ public class MotorIataHouse : IMotorIataHouse
                     unitCodeSpecified = true
                 },
                 AppliedRate = (house.ValorFretePP + house.ValorFreteFC),
-                AppliedAmount = new AmountType { currencyID = valorPPUN, Value = (house.ValorFretePP + house.ValorFreteFC) }
+                AppliedAmount = new AmountType
+                {
+                    currencyID = valorPPUN,
+                    currencyIDSpecified = true,
+                    Value = (house.ValorFretePP + house.ValorFreteFC)
+                }
             };
+
+        manhouse.MasterConsignment.IncludedHouseConsignment.SummaryDescription = new TextType { Value = "HA8" };
+        manhouse.MasterConsignment.IncludedHouseConsignment.WeightTotalChargeAmount = new AmountType
+        {
+            currencyID = valorPPUN,
+            currencyIDSpecified = true,
+            Value = house.ValorFretePP + house.ValorFreteFC
+        };
+
+        manhouse.MasterConsignment.IncludedHouseConsignment.IncludedHouseConsignmentItem[0].NatureIdentificationTransportCargo =
+            new TransportCargoType
+            {
+                Identification = new TextType { Value = "HA8" }
+            };
+
+        manhouse.MasterConsignment.IncludedHouseConsignment.ApplicableOriginCurrencyExchange = new OriginCurrencyExchangeType
+        {
+            SourceCurrencyCode = new CurrencyCodeType { Value = valorPPUN }
+        };
+
+        //manhouse.MasterConsignment.IncludedHouseConsignment.IncludedHouseConsignmentItem[1] = new HouseConsignmentItemType
+        //{
+        //    TypeCode = new CodeType[1],
+        //    SequenceNumeric = 1,
+        //    GrossWeightMeasure = new MeasureType
+        //    {
+        //        Value = Convert.ToDecimal(house.PesoTotalBruto),
+        //        unitCode = (MeasurementUnitCommonCodeContentType)
+        //        Enum.Parse(typeof(MeasurementUnitCommonCodeContentType), house.PesoTotalBrutoUN),
+        //        unitCodeSpecified = true
+        //    },
+        //    TotalChargeAmount = new AmountType
+        //    {
+        //        Value = house.ValorFretePP + house.ValorFreteFC,
+        //        currencyIDSpecified = true,
+        //        currencyID = (ISO3AlphaCurrencyCodeContentType)
+        //            Enum.Parse(typeof(ISO3AlphaCurrencyCodeContentType), house.ValorFretePPUN)
+        //    },
+        //    PieceQuantity = new QuantityType { Value = house.TotalVolumes },
+        //    NatureIdentificationTransportCargo = new TransportCargoType
+        //    {
+        //        Identification = new TextType { Value = house.DescricaoMercadoria }
+        //    },
+        //    ApplicableFreightRateServiceCharge = new FreightRateServiceChargeType[1],
+        //};
+
+        //manhouse.MasterConsignment.IncludedHouseConsignment.IncludedHouseConsignmentItem[1].NatureIdentificationTransportCargo =
+        //    new TransportCargoType
+        //    {
+        //        Identification = new TextType { Value = "NA8" }
+        //    };
+
+        //manhouse.MasterConsignment.IncludedHouseConsignment.IncludedHouseConsignmentItem[1].ApplicableFreightRateServiceCharge[0]
+        //    = new FreightRateServiceChargeType
+        //    {
+        //        ChargeableWeightMeasure = new MeasureType
+        //        {
+        //            Value = Convert.ToDecimal(house.PesoTotalBruto),
+        //            unitCode = (MeasurementUnitCommonCodeContentType)
+        //        Enum.Parse(typeof(MeasurementUnitCommonCodeContentType), house.PesoTotalBrutoUN),
+        //            unitCodeSpecified = true
+        //        },
+        //        AppliedRate = (house.ValorFretePP + house.ValorFreteFC),
+        //        AppliedAmount = new AmountType { currencyID = valorPPUN, Value = (house.ValorFretePP + house.ValorFreteFC) }
+        //    };
+
+        //manhouse.MasterConsignment.IncludedHouseConsignment.ValuationTotalChargeAmount = new AmountType
+        //{
+        //    currencyID = (ISO3AlphaCurrencyCodeContentType)
+        //            Enum.Parse(typeof(ISO3AlphaCurrencyCodeContentType), house.ValorFretePPUN),
+        //    currencyIDSpecified = true,
+        //    Value = house.ValorFretePP + house.ValorFreteFC
+        //};
 
         var customsNoteType = new List<CustomsNoteType>();
 
@@ -358,7 +437,7 @@ public class MotorIataHouse : IMotorIataHouse
         manhouse.BusinessHeaderDocument = new HouseMasterManifest.BusinessHeaderDocumentType { ID = new HouseMasterManifest.IDType { Value = masterInfo.MasterNumber } };
         #endregion
 
-        #region MasterHeaderDocument
+        #region MasterConsignment
         manhouse.MasterConsignment = new HouseMasterManifest.MasterConsignmentType
         {
             IncludedTareGrossWeightMeasure = new HouseMasterManifest.MeasureType
@@ -374,14 +453,14 @@ public class MotorIataHouse : IMotorIataHouse
             FinalDestinationLocation = portDestiny,
         };
 
-        List<HouseMasterManifest.HouseConsignmentType> includedHouseCOnsigmentType = new List<HouseMasterManifest.HouseConsignmentType>();
+        List<HouseMasterManifest.HouseConsignmentType> includedHouseConsigmentType = new List<HouseMasterManifest.HouseConsignmentType>();
 
         houses.ForEach(house =>
         {
             var portOrigin = new HouseMasterManifest.OriginLocationType { ID = new HouseMasterManifest.IDType { Value = house.AeroportoOrigemCodigo } };
             var portDestiny = new HouseMasterManifest.FinalDestinationLocationType { ID = new HouseMasterManifest.IDType { Value = house.AeroportoDestinoCodigo } };
             Enum.TryParse(house.PesoTotalBrutoUN, out HouseMasterManifest.MeasurementUnitCommonCodeContentType pesoTotalUN);
-            includedHouseCOnsigmentType.Add(new HouseMasterManifest.HouseConsignmentType
+            includedHouseConsigmentType.Add(new HouseMasterManifest.HouseConsignmentType
             {
                 SequenceNumeric = 1,
                 GrossWeightMeasure = new HouseMasterManifest.MeasureType
@@ -398,15 +477,190 @@ public class MotorIataHouse : IMotorIataHouse
             });
         });
 
-        manhouse.MasterConsignment.IncludedHouseConsignment = includedHouseCOnsigmentType.ToArray();
-        #endregion
+        manhouse.MasterConsignment.IncludedHouseConsignment = includedHouseConsigmentType.ToArray();
 
+        if (masterInfo.CarrierDeclarationDate is not null)
+        {
+            List<HouseMasterManifest.CustomsNoteType> customsNoteLista = new List<HouseMasterManifest.CustomsNoteType>();
+            customsNoteLista.Add(new HouseMasterManifest.CustomsNoteType
+            {
+                Content = new HouseMasterManifest.TextType { Value = $"CARRIERDECLARATIONDATE{masterInfo.CarrierDeclarationDate.Value.ToString("aaaaMMdd")}" },
+                SubjectCode = new HouseMasterManifest.CodeType { Value = "WBI" },
+                CountryID = new HouseMasterManifest.CountryIDType { Value = HouseMasterManifest.ISOTwoletterCountryCodeIdentifierContentType.BR },
+            });
+            manhouse.MasterConsignment.IncludedCustomsNote = customsNoteLista.ToArray();
+        }
+        #endregion
 
         XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
         ns.Add("", "iata:datamodel:3");
         ns.Add("ns2", "iata:waybill:1");
         ns.Add("q1", "iata:housewaybill:1");
         return SerializeFromStream<HouseMasterManifest.HouseManifestType>(manhouse, ns);
+    }
+
+    public string GenMasterHouseManifest(IEnumerable<MasterHouseAssociacao> associationList, IataXmlPurposeCode purposeCode)
+    {
+        var associationBase = associationList.First();
+
+        var portOrigin = new HouseMasterManifest.OriginLocationType
+        {
+            ID = new HouseMasterManifest.IDType
+            {
+                Value = associationBase.OriginLocation
+            }
+        };
+
+        var portDestiny = new HouseMasterManifest.FinalDestinationLocationType
+        {
+            ID = new HouseMasterManifest.IDType
+            {
+                Value = associationBase.FinalDestinationLocation
+            }
+        };
+
+        if (!Enum.TryParse(associationBase.GrossWeightUnit, out HouseMasterManifest.MeasurementUnitCommonCodeContentType totalWeightUN))
+            throw new BusinessException($"Unidade de Peso {associationBase.GrossWeightUnit} não encontrado na associação {associationBase.MessageHeaderDocumentId}!");
+
+        HouseMasterManifest.HouseManifestType manhouse = new();
+
+        #region MessageHeaderDocument
+        manhouse.MessageHeaderDocument = new HouseMasterManifest.MessageHeaderDocumentType
+        {
+            ID = new HouseMasterManifest.IDType { Value = $"{associationBase.MessageHeaderDocumentId}" },
+            Name = new HouseMasterManifest.TextType { Value = "Cargo Manifest" },
+            IssueDateTime = associationBase.CreatedDateTimeUtc,
+            TypeCode = new HouseMasterManifest.DocumentCodeType { Value = HouseMasterManifest.DocumentNameCodeContentType.Item785 },
+            PurposeCode = new HouseMasterManifest.CodeType { Value = purposeCode.ToString() },
+            VersionID = new HouseMasterManifest.IDType { Value = "2.00" },
+            SenderParty = new HouseMasterManifest.SenderPartyType[2],
+            RecipientParty = new HouseMasterManifest.RecipientPartyType[1]
+        };
+        manhouse.MessageHeaderDocument.SenderParty[0] = new HouseMasterManifest.SenderPartyType
+        {
+            PrimaryID = new HouseMasterManifest.IDType { schemeID = "C", Value = "HDQTTKE" }
+        };
+        manhouse.MessageHeaderDocument.SenderParty[1] = new HouseMasterManifest.SenderPartyType
+        {
+            PrimaryID = new HouseMasterManifest.IDType { schemeID = "P", Value = "HDQTTKE" }
+        };
+        manhouse.MessageHeaderDocument.RecipientParty[0] = new HouseMasterManifest.RecipientPartyType
+        {
+            PrimaryID = new HouseMasterManifest.IDType { schemeID = "C", Value = "BRCUSTOMS" }
+        };
+        #endregion
+
+        #region BusinessHeaderDocument
+        manhouse.BusinessHeaderDocument =
+            new HouseMasterManifest.BusinessHeaderDocumentType
+            {
+                ID = new HouseMasterManifest.IDType
+                {
+                    Value = associationBase.MasterNumber
+                }
+            };
+        #endregion
+
+        #region MasterConsignment
+        manhouse.MasterConsignment = new HouseMasterManifest.MasterConsignmentType
+        {
+            IncludedTareGrossWeightMeasure = new HouseMasterManifest.MeasureType
+            {
+                unitCode = totalWeightUN,
+                Value = Convert.ToDecimal(associationList.Sum(x => x.GrossWeight))
+            },
+            TotalPieceQuantity = new HouseMasterManifest.QuantityType
+            {
+                Value = associationList.Sum(x => x.TotalPieceQuantity)
+            },
+            TransportContractDocument = new HouseMasterManifest.TransportContractDocumentType
+            {
+                ID = new HouseMasterManifest.IDType
+                {
+                    Value = associationBase.MasterNumber.Insert(3, "-")
+                }
+            },
+            OriginLocation = portOrigin,
+            FinalDestinationLocation = portDestiny,
+        };
+
+        List<HouseMasterManifest.HouseConsignmentType> includedHouseConsigmentType = new();
+
+        associationList.SelectMany(x => x.MasterHouseAssociationChildren).ToList().ForEach(masterHouseAssociationChild =>
+        {
+            var portOrigin = new HouseMasterManifest.OriginLocationType
+            {
+                ID = new HouseMasterManifest.IDType
+                {
+                    Value = masterHouseAssociationChild.House.AeroportoOrigemCodigo
+                }
+            };
+
+            var portDestiny = new HouseMasterManifest.FinalDestinationLocationType
+            {
+                ID = new HouseMasterManifest.IDType
+                {
+                    Value = masterHouseAssociationChild.House.AeroportoDestinoCodigo
+                }
+            };
+
+            if(!Enum.TryParse(masterHouseAssociationChild.House.PesoTotalBrutoUN, out HouseMasterManifest.MeasurementUnitCommonCodeContentType pesoTotalUN))
+                throw new BusinessException($"Unidade de Peso {masterHouseAssociationChild.House.PesoTotalBrutoUN} do house não encontrado no documento {masterHouseAssociationChild.House.Numero}!");
+
+            includedHouseConsigmentType.Add(new HouseMasterManifest.HouseConsignmentType
+            {
+                SequenceNumeric = 1,
+                GrossWeightMeasure = new HouseMasterManifest.MeasureType
+                {
+                    unitCode = pesoTotalUN,
+                    Value = Convert.ToDecimal(masterHouseAssociationChild.House.PesoTotalBruto)
+                },
+                PackageQuantity = new HouseMasterManifest.QuantityType
+                {
+                    Value = masterHouseAssociationChild.House.TotalVolumes
+                },
+                TotalPieceQuantity = new HouseMasterManifest.QuantityType
+                {
+                    Value = masterHouseAssociationChild.House.TotalVolumes
+                },
+                SummaryDescription = new HouseMasterManifest.TextType
+                {
+                    Value = masterHouseAssociationChild.House.DescricaoMercadoria
+                },
+                TransportContractDocument = new HouseMasterManifest.TransportContractDocumentType
+                {
+                    ID = new HouseMasterManifest.IDType
+                    {
+                        Value = masterHouseAssociationChild.House.Numero
+                    }
+                },
+                OriginLocation = portOrigin,
+                FinalDestinationLocation = portDestiny
+            });
+        });
+
+        manhouse.MasterConsignment.IncludedHouseConsignment = includedHouseConsigmentType.ToArray();
+
+        if (associationBase.CarrierDeclarationDate is not null)
+        {
+            List<HouseMasterManifest.CustomsNoteType> customsNoteLista = new()
+            {
+                new HouseMasterManifest.CustomsNoteType
+                {
+                    Content = new HouseMasterManifest.TextType { Value = $"CARRIERDECLARATIONDATE{associationBase.CarrierDeclarationDate.Value:aaaaMMdd}" },
+                    SubjectCode = new HouseMasterManifest.CodeType { Value = "WBI" },
+                    CountryID = new HouseMasterManifest.CountryIDType { Value = HouseMasterManifest.ISOTwoletterCountryCodeIdentifierContentType.BR },
+                }
+            };
+            manhouse.MasterConsignment.IncludedCustomsNote = customsNoteLista.ToArray();
+        }
+        #endregion
+
+        XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
+        ns.Add("", "iata:datamodel:3");
+        ns.Add("ns2", "iata:waybill:1");
+        ns.Add("q1", "iata:housewaybill:1");
+        return SerializeFromStream(manhouse, ns);
     }
 
     private string SerializeFromStream<T>(T tr, XmlSerializerNamespaces ns)

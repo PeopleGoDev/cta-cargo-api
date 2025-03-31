@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace CtaCargo.CctImportacao.Application.Support
 {
-	public class ProtocoloReceitaCheckFile
+    public class ProtocoloReceitaCheckFile
 	{
 		public string protocolNumber { get; set; }
 		public DateTime dateTime { get; set; }

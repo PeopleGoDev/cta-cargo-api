@@ -22,4 +22,18 @@ public static class ControllerExtensions
         }
         return null;
     }
+
+    public static UserSession GetUserSwitchCompanySession(this HttpContext context)
+    {
+        var identity = context.User?.Identity as ClaimsIdentity;
+        if (identity != null)
+        {
+            return new UserSession()
+            {
+                UserId = int.Parse(identity.FindFirst("UserId").Value),
+                Environment = identity.FindFirst("Environment").Value
+            };
+        }
+        return null;
+    }
 }

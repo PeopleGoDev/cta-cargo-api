@@ -9,4 +9,5 @@ namespace CtaCargo.CctImportacao.Application.Services.Contracts;
 public interface IAccountService
 {
     Task<UsuarioLoginResponse> AutenticarUsuario(UsuarioLoginRequest usuarioLogin);
+    Task<UsuarioLoginResponse> SwitchCompany(UserSession userSession, int companyId);
 }

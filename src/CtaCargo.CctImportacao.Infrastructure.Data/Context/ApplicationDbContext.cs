@@ -37,6 +37,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<FileImport> FileImport { get; set; }
     public DbSet<FileImportDetail> FileImportDetails { get; set; }
     public DbSet<MessageSubmitFile> MessageSubmitFiles { get; set; }
+    public DbSet<MasterHouseAssociationChild> MasterHouseAssociationChildren { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -197,6 +198,11 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<MessageSubmitFile>()
             .HasIndex(x => new { x.ProtocolNumber })
+            .IsUnique()
+            .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
+
+        modelBuilder.Entity<MasterHouseAssociationChild>()
+            .HasIndex(x => new { x.EmpresaId, x.MasterHouseAssociationId, x.HouseId, x.DataExclusao })
             .IsUnique()
             .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 

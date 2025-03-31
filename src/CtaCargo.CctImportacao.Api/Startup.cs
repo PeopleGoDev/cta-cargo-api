@@ -5,6 +5,7 @@ using CtaCargo.CctImportacao.Application.Handlers;
 using CtaCargo.CctImportacao.Application.Refit;
 using CtaCargo.CctImportacao.Application.Services;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
+using CtaCargo.CctImportacao.Application.Services.ReceitaFederal.Associacao;
 using CtaCargo.CctImportacao.Application.Support;
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Application.Validator;
@@ -120,6 +121,7 @@ public class Startup
         services.AddScoped<INaturezaCargaService, NaturezaCargaService>();
         services.AddScoped<IAgenteDeCargaService, AgenteDeCargaService>();
         services.AddScoped<INcmService, NcmService>();
+        services.AddScoped<IRemoveAssociationService, RemoveAssociationService>();
 
         // Repositorios
         services.AddScoped<IUsuarioRepository, SQLUsuarioRepository>();
@@ -134,9 +136,12 @@ public class Startup
         services.AddScoped<INaturezaCargaRepository, SQLNaturezaCargaRepository>();
         services.AddScoped<IAgenteDeCargaRepository, SQLAgenteDeCargaRepository>();
         services.AddScoped<INcmRepository, SQLNcmRepository>();
-        services.AddScoped<IMasterHouseAssociacaoRepository, SQLMasterHouseAssociacaoRepository>();
+        services.AddScoped<IAssociacaoRepository, SQLAssociacaoRepository>();
         services.AddScoped<IConfiguraRepository, SQLConfiguraRepository>();
+        services.AddScoped<IEmpresaRepository, SQLEmpresaRepository>();
+
         services.AddScoped<IMessageSubmitFileRepository, MessageSubmitFileRepository>();
+
         services.AddScoped<ICacheService, CacheService>();
 
         services.AddScoped<ICertitificadoDigitalSupport, CertitificadoDigitalSupport>();

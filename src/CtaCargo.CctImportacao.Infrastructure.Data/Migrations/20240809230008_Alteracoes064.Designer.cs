@@ -4,6 +4,7 @@ using CtaCargo.CctImportacao.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240809230008_Alteracoes064")]
+    partial class Alteracoes064
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1343,9 +1345,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
-                    b.Property<int?>("AgenteDeCargaId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("CarrierDeclarationDate")
                         .HasColumnType("datetime");
 
@@ -1421,9 +1420,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<int>("PackageQuantity")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("ProcessDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("ProtocoloAssociacaoRFB")
                         .HasColumnType("varchar(50)");
 
@@ -1450,8 +1446,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AgenteDeCargaId");
-
                     b.HasIndex("CriadoPeloId");
 
                     b.HasIndex("EmpresaId");
@@ -1463,59 +1457,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.HasIndex("DataExclusao", "MasterNumber");
 
                     b.ToTable("MasterHouseAssociacao", (string)null);
-                });
-
-            modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.MasterHouseAssociationChild", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<DateTime>("CreatedDateTimeUtc")
-                        .HasColumnType("datetime");
-
-                    b.Property<int>("CriadoPeloId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("DataExclusao")
-                        .HasColumnType("datetime");
-
-                    b.Property<int>("EmpresaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("HouseId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MasterHouseAssociationId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ModificadoPeloId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ModifiedDateTimeUtc")
-                        .HasColumnType("datetime");
-
-                    b.Property<int?>("SubmetidoPeloId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CriadoPeloId");
-
-                    b.HasIndex("HouseId");
-
-                    b.HasIndex("MasterHouseAssociationId");
-
-                    b.HasIndex("ModificadoPeloId");
-
-                    b.HasIndex("SubmetidoPeloId");
-
-                    b.HasIndex("EmpresaId", "MasterHouseAssociationId", "HouseId", "DataExclusao")
-                        .IsUnique();
-
-                    b.ToTable("MasterHouseAssociationChildren");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.MasterInstrucaoManuseio", b =>
@@ -2005,9 +1946,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
                     b.Property<DateTime?>("ModifiedDateTimeUtc")
                         .HasColumnType("datetime");
-
-                    b.Property<bool>("MultiCompany")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Nome")
                         .IsRequired()
@@ -2722,7 +2660,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.HasOne("CtaCargo.CctImportacao.Domain.Entities.MasterHouseAssociacao", "MasterHouseAssociacaoIdInfo")
-                        .WithMany()
+                        .WithMany("Houses")
                         .HasForeignKey("MasterHouseAssociacaoId")
                         .OnDelete(DeleteBehavior.Restrict);
 
@@ -2824,11 +2762,6 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.MasterHouseAssociacao", b =>
                 {
-                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.AgenteDeCarga", "AgenteDeCargaInfo")
-                        .WithMany()
-                        .HasForeignKey("AgenteDeCargaId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioCriacaoInfo")
                         .WithMany()
                         .HasForeignKey("CriadoPeloId")
@@ -2851,58 +2784,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                         .HasForeignKey("SubmetidoPeloId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("AgenteDeCargaInfo");
-
                     b.Navigation("Empresa");
-
-                    b.Navigation("UsuarioCriacaoInfo");
-
-                    b.Navigation("UsuarioModificacaoInfo");
-
-                    b.Navigation("UsuarioSubmetidoInfo");
-                });
-
-            modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.MasterHouseAssociationChild", b =>
-                {
-                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioCriacaoInfo")
-                        .WithMany()
-                        .HasForeignKey("CriadoPeloId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Empresa", "Empresa")
-                        .WithMany()
-                        .HasForeignKey("EmpresaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.House", "House")
-                        .WithMany()
-                        .HasForeignKey("HouseId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.MasterHouseAssociacao", "MasterHouseAssociacao")
-                        .WithMany("MasterHouseAssociationChildren")
-                        .HasForeignKey("MasterHouseAssociationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioModificacaoInfo")
-                        .WithMany()
-                        .HasForeignKey("ModificadoPeloId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("CtaCargo.CctImportacao.Domain.Entities.Usuario", "UsuarioSubmetidoInfo")
-                        .WithMany()
-                        .HasForeignKey("SubmetidoPeloId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Empresa");
-
-                    b.Navigation("House");
-
-                    b.Navigation("MasterHouseAssociacao");
 
                     b.Navigation("UsuarioCriacaoInfo");
 
@@ -3255,7 +3137,7 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.MasterHouseAssociacao", b =>
                 {
-                    b.Navigation("MasterHouseAssociationChildren");
+                    b.Navigation("Houses");
                 });
 
             modelBuilder.Entity("CtaCargo.CctImportacao.Domain.Entities.Voo", b =>

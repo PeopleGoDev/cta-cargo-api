@@ -1,9 +1,9 @@
 ﻿using CtaCargo.CctImportacao.Domain.Entities;
 
-namespace CtaCargo.CctImportacao.Application.Services.Contracts
+namespace CtaCargo.CctImportacao.Application.Services.Contracts;
+
+public interface ITokenService
 {
-    public interface ITokenService
-    {
-        string GenerateToken(Usuario user);
-    }
+    string GenerateToken(Usuario user);
+    string GenerateMultiCompanyToken(Usuario user);
 }

@@ -8,6 +8,8 @@ public class UsuarioLoginResponse
     public string AccessToken { get; set; }
     public UsuarioInfoResponse UsuarioInfo { get; set; }
     public bool AlterarSenha { get; set; }
+    public bool SelectCompany { get; set; }
+    public IEnumerable<UserSelectCompany> SelectCompanies { get; set; } = null;
 }
 
 public class UsuarioInfoResponse
@@ -41,4 +43,10 @@ public class UsuarioClaim
 {
     public string Value { get; set; }
     public string Type { get; set; }
+}
+
+public record UserSelectCompany
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
 }

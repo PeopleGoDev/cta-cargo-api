@@ -22,7 +22,7 @@ public class ReceitaHouseService : IReceitaHouseService
 {
     private readonly ICertitificadoDigitalSupport _certificadoDigitalSupport;
     private readonly IHouseRepository _houseRepository;
-    private readonly IMasterHouseAssociacaoRepository _masterHouseAssociacaoRepository;
+    private readonly IAssociacaoRepository _masterHouseAssociacaoRepository;
     private readonly INaturezaCargaRepository _naturezaCargaRepository;
     private readonly IAutenticaReceitaFederal _autenticaReceitaFederal;
     private readonly IUploadReceitaFederal _uploadReceitaFederal;
@@ -33,7 +33,7 @@ public class ReceitaHouseService : IReceitaHouseService
     public ReceitaHouseService(ICertitificadoDigitalSupport certificadoDigitalSupport,
         IAutenticaReceitaFederal autenticaReceitaFederal,
         IHouseRepository houseRepository,
-        IMasterHouseAssociacaoRepository masterHouseAssociacaoRepository,
+        IAssociacaoRepository masterHouseAssociacaoRepository,
         IUploadReceitaFederal flightUploadReceitaFederal,
         IMapper mapper,
         IMotorIataHouse motorIataHouse,
@@ -152,17 +152,17 @@ public class ReceitaHouseService : IReceitaHouseService
 
     public async Task<ApiResponse<string>> SubmeterAssociacaoHousesMaster(
         UserSession userSession,
-        SubmeterRFBMasterHouseRequest input)
+        SubmeterRFBMasterHouseRequest request)
     {
         #region Prepara os houses para associação
-        var houseIds = input.Masters.SelectMany(x =>
+        var houseIds = request.Masters.SelectMany(x =>
         {
             return x.HouseIds ?? Array.Empty<int>();
         });
-        var masterNumbers = input.Masters.Select(x => x.MasterNumber).ToArray();
+        var masterNumbers = request.Masters.Select(x => x.MasterNumber).ToArray();
 
         QueryJunction<House> param = new();
-        param.Add(x => x.AgenteDeCargaId == input.FreightFowarderId);
+        param.Add(x => x.AgenteDeCargaId == request.FreightFowarderId);
         if (houseIds?.Count() > 0)
             param.Add(x => houseIds.Contains(x.Id));
         else
@@ -186,7 +186,7 @@ public class ReceitaHouseService : IReceitaHouseService
         #endregion
 
         var certificate = await
-            _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession, input.FreightFowarderId);
+            _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession, request.FreightFowarderId);
 
         if (certificate.HasError)
             throw new BusinessException(certificate.Error);
@@ -196,9 +196,9 @@ public class ReceitaHouseService : IReceitaHouseService
 
         await SubmeterAssociacaoHouseMasterList(
             userSession,
-            input.Masters,
             associacoes,
             houses,
+            request,
             certificate.Certificate,
             token);
 
@@ -210,61 +210,25 @@ public class ReceitaHouseService : IReceitaHouseService
         };
     }
 
-    public async Task<ApiResponse<string>> SubmeterAssociation(
+    public async Task<ApiResponse<string>> SubmitHouseMasterAssociationAsync(
         UserSession userSession,
-        int associationId)
+        SubmitRFBMasterHouseRequest request)
     {
-        var association = await _masterHouseAssociacaoRepository.SelectMasterHouseAssociacaoById(userSession.CompanyId, associationId);
+        var masterList =
+            _masterHouseAssociacaoRepository.GetMasterNumbersByAssociationIds(userSession.CompanyId, request.FreightFowarderId, request.AssociationIds);
 
-        if (association == null)
-            throw new BusinessException("Associação não encontrada !");
+        var associations =
+            _masterHouseAssociacaoRepository.GetMasterHouseAssociationByMasterList(userSession.CompanyId, masterList.ToArray())
+            ?? Enumerable.Empty<MasterHouseAssociacao>();
 
-        QueryJunction<House> param = new QueryJunction<House>();
-        param.Add(x => x.MasterNumeroXML == association.MasterNumber);
-        param.Add(x => x.DataExclusao == null);
+        await SubmeterAssociacaoHouseMasterListAsync(masterList, associations, userSession, request.FreightFowarderId);
 
-        var houses = _houseRepository.GetHouseForUploading(param);
-
-        if (houses == null || houses.Count() == 0)
-            throw new BusinessException("Não há houses associados a este Master !");
-
-        var agenteId = houses.FirstOrDefault().AgenteDeCargaId;
-
-        var masterInfo = new SubmeterRFBMasterHouseItemRequest
-        {
-            DestinationLocation = association.FinalDestinationLocation,
-            MasterNumber = association.MasterNumber,
-            OriginLocation = association.OriginLocation,
-            PackageQuantity = association.PackageQuantity,
-            TotalPiece = association.TotalPieceQuantity,
-            TotalWeight = association.GrossWeight,
-            TotalWeightUnit = association.GrossWeightUnit
-        };
-
-        var certificate = await
-            _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession, agenteId.Value);
-
-        if (certificate.HasError)
-            throw new BusinessException(certificate.Error);
-
-        TokenResponse token = await _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate, "AGECARGA");
-
-        if (association.SituacaoDeletionAssociacaoRFBId == 1)
-        {
-            var res = await _uploadReceitaFederal.CheckFileProtocol(association.ProtocoloDeletionAssociacaoRFB, token);
-            await ProcessaRetornoChecagemAssociacaoHouseMaster(res, association, houses);
-        }
-        else
-        {
-            await CancelarAssociacaoHouseMasterList(association, userSession, masterInfo, houses, certificate.Certificate, token);
-        }
         return new ApiResponse<string>()
         {
             Sucesso = true,
             Dados = "Dados submetidos com sucesso!",
             Notificacoes = null
         };
-
     }
 
     public async Task<ApiResponse<HouseResponseDto>> SubmeterHouseExclusion(
@@ -469,6 +433,7 @@ public class ReceitaHouseService : IReceitaHouseService
             Notificacoes = null
         };
     }
+
     private async Task ProcessaRetornoChecagemCancelarHouse(
         ProtocoloReceitaCheckFile response,
         House house)
@@ -502,6 +467,7 @@ public class ReceitaHouseService : IReceitaHouseService
 
         await _houseRepository.SaveChanges();
     }
+
     private async Task ProcessaRetornoEnvioCancelarHouse(
         ReceitaRetornoProtocol response,
         House house)
@@ -542,16 +508,12 @@ public class ReceitaHouseService : IReceitaHouseService
 
     #region Upload Associação House x Master
     private async Task SubmeterAssociacaoHouseMasterList(UserSession userSession,
-        List<SubmeterRFBMasterHouseItemRequest> masters,
         List<MasterHouseAssociacao> associacoes,
         List<House> houses,
+        SubmeterRFBMasterHouseRequest request,
         X509Certificate2 certificado,
         TokenResponse token)
     {
-        houses = houses.OrderBy(x => x.MasterNumeroXML).ToList();
-
-        string curMaster = houses[0].MasterNumeroXML;
-        var associacao = associacoes.FirstOrDefault(x => x.MasterNumber == curMaster);
         string freightFowarderCnpj = houses.FirstOrDefault().AgenteDeCargaInfo.CNPJ;
 
         var group = houses.GroupBy(house => house.MasterNumeroXML)
@@ -565,7 +527,11 @@ public class ReceitaHouseService : IReceitaHouseService
 
         foreach (var item in group)
         {
-            var masterInfo = GetMasterInfo(item.Items);
+            var carrieDeclarationDate = request.Masters.FirstOrDefault(x => x.MasterNumber == item.Master)?.CarrierDeclarationDate;
+
+            var masterInfo = GetMasterInfo(item.Items, carrieDeclarationDate);
+
+            var associacao = associacoes.FirstOrDefault(x => x.MasterNumber == item.Master);
 
             await SubmeterHouseMasterAssociacao(
                 userSession,
@@ -578,7 +544,9 @@ public class ReceitaHouseService : IReceitaHouseService
         }
     }
 
-    private static SubmeterRFBMasterHouseItemRequest GetMasterInfo(List<House> houses)
+    private static SubmeterRFBMasterHouseItemRequest GetMasterInfo(
+        List<House> houses,
+        DateTime? carrieDeclarationDate)
     {
         if (houses.Count == 0) return null;
 
@@ -609,26 +577,9 @@ public class ReceitaHouseService : IReceitaHouseService
             TotalWeight = totalWeight,
             TotalWeightUnit = weightUnit,
             HouseIds = houses.Select(x => x.Id).ToArray(),
-            MasterNumber = masterNumber
+            MasterNumber = masterNumber,
+            CarrierDeclarationDate = carrieDeclarationDate,
         };
-    }
-
-    private async Task CancelarAssociacaoHouseMasterList(MasterHouseAssociacao associacao,
-        UserSession userSession,
-        SubmeterRFBMasterHouseItemRequest masterInfo,
-        List<House> houses,
-        X509Certificate2 certificado,
-        TokenResponse token)
-    {
-
-        string freightFowarderCnpj = houses.FirstOrDefault().AgenteDeCargaInfo.CNPJ;
-
-        List<House> houseList = new List<House>();
-        foreach (var house in houses)
-        {
-            houseList.Add(house);
-        }
-        await CancelarHouseMasterAssociacao(associacao, userSession, freightFowarderCnpj, masterInfo, houseList, token, certificado);
     }
 
     private async Task SubmeterHouseMasterAssociacao(UserSession userSession,
@@ -656,7 +607,8 @@ public class ReceitaHouseService : IReceitaHouseService
                 PackageQuantity = masterInfo.PackageQuantity,
                 TotalPieceQuantity = masterInfo.TotalPiece,
                 CriadoPeloId = userSession.UserId,
-                EmpresaId = userSession.CompanyId
+                EmpresaId = userSession.CompanyId,
+                CarrierDeclarationDate = masterInfo.CarrierDeclarationDate,
             };
         }
         else
@@ -667,9 +619,6 @@ public class ReceitaHouseService : IReceitaHouseService
                 await ProcessaRetornoChecagemArquivoHouseMaster(res, associacao, houses);
                 return;
             }
-
-            if (!CheckUploadAvailability(houses))
-                return;
 
             if (associacao.SituacaoAssociacaoRFBId == 2)
                 operation = IataXmlPurposeCode.Update;
@@ -686,32 +635,7 @@ public class ReceitaHouseService : IReceitaHouseService
         return;
     }
 
-    private async Task CancelarHouseMasterAssociacao(MasterHouseAssociacao associacao, UserSession userSession,
-        string FreightFowarderTaxId,
-        SubmeterRFBMasterHouseItemRequest masterInfo,
-        List<House> houses,
-        TokenResponse token,
-        X509Certificate2 certificado)
-    {
-        var operation = IataXmlPurposeCode.Deletion;
 
-        string xmlAssociacao = _motorIataHouse
-            .GenMasterHouseManifest(masterInfo, houses, operation, associacao.CreatedDateTimeUtc);
-
-        var responseAssociacao = await _uploadReceitaFederal
-            .SubmitHouseMaster(FreightFowarderTaxId, xmlAssociacao, token, certificado);
-
-        await ProcessarRetornoExclusaoAssociacao(responseAssociacao, associacao, houses);
-
-        return;
-    }
-
-    private bool CheckUploadAvailability(List<House> houses)
-    {
-        return houses
-            .Where(x => x.SituacaoAssociacaoRFBId != 2 || (x.SituacaoAssociacaoRFBId == 2 && x.ReenviarAssociacao))
-            .Count() > 0;
-    }
 
     private async Task ProcessarRetornoEnvioArquivoHouseMaster(ReceitaRetornoProtocol response,
         MasterHouseAssociacao associacao,
@@ -784,6 +708,7 @@ public class ReceitaHouseService : IReceitaHouseService
         });
         await _houseRepository.SaveChanges();
     }
+
     private async Task ProcessaRetornoChecagemArquivoHouseMaster(ProtocoloReceitaCheckFile response,
         MasterHouseAssociacao associacao,
         List<House> houses)
@@ -837,12 +762,11 @@ public class ReceitaHouseService : IReceitaHouseService
                     break;
             }
         });
-        await _masterHouseAssociacaoRepository.SaveChanges();
+        await _masterHouseAssociacaoRepository.SaveChangesAsync();
     }
 
     private async Task ProcessaRetornoChecagemAssociacaoHouseMaster(ProtocoloReceitaCheckFile response,
-        MasterHouseAssociacao associacao,
-        List<House> houses)
+        MasterHouseAssociacao associacao)
     {
         switch (response.status)
         {
@@ -857,77 +781,261 @@ public class ReceitaHouseService : IReceitaHouseService
                 _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
                 break;
             case "Processed":
-                associacao.SituacaoDeletionAssociacaoRFBId = 4;
+                associacao.SituacaoAssociacaoRFBId = 0;
+                associacao.ProtocoloAssociacaoRFB = null;
+                associacao.DataProtocoloAssociacaoRFB = null;
+                associacao.DataChecagemAssociacaoRFB = null;
+                associacao.DescricaoErroAssociacaoRFB = null;
+                associacao.SituacaoDeletionAssociacaoRFBId = 2;
                 associacao.DataChecagemDeletionAssociacaoRFB = response.dateTime;
-                associacao.DataExclusao = DateTime.UtcNow;
                 _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
                 break;
             default:
                 break;
         }
-        houses.ForEach(house =>
+        associacao.MasterHouseAssociationChildren.ToList().ForEach(masterHouseAssociationChild =>
         {
             switch (response.status)
             {
                 case "Processed":
-                    house.SituacaoAssociacaoRFBId = 0;
-                    house.DataChecagemAssociacaoRFB = null;
-                    house.DescricaoErroAssociacaoRFB = null;
-                    house.DataProtocoloAssociacaoRFB = null;
-                    house.ProtocoloAssociacaoRFB = null;
-                    house.ReenviarAssociacao = false;
-                    _houseRepository.UpdateHouse(house);
+                    masterHouseAssociationChild.House.SituacaoAssociacaoRFBId = 0;
+                    masterHouseAssociationChild.House.DataChecagemAssociacaoRFB = null;
+                    masterHouseAssociationChild.House.DescricaoErroAssociacaoRFB = null;
+                    masterHouseAssociationChild.House.DataProtocoloAssociacaoRFB = null;
+                    masterHouseAssociationChild.House.ProtocoloAssociacaoRFB = null;
+                    masterHouseAssociationChild.House.ReenviarAssociacao = false;
+                    _houseRepository.UpdateHouse(masterHouseAssociationChild.House);
                     break;
                 default:
                     break;
             }
         });
-        await _masterHouseAssociacaoRepository.SaveChanges();
+        await _masterHouseAssociacaoRepository.SaveChangesAsync();
     }
 
-    private async Task ProcessarRetornoExclusaoAssociacao(ReceitaRetornoProtocol response,
-        MasterHouseAssociacao associacao,
-        List<House> houses)
+
+    #endregion
+
+    #endregion
+
+    #region Upload Associação Novo
+    private async Task SubmeterAssociacaoHouseMasterListAsync(
+        IEnumerable<string> masterList,
+        IEnumerable<MasterHouseAssociacao> associacoes,
+        UserSession userSession,
+        int freightFowarderId)
+    {
+        if (associacoes.Count() == 0)
+            throw new BusinessException("Nenhuma associação disponível!");
+
+        var certificate = await
+            _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession, freightFowarderId);
+
+        if (certificate.HasError)
+            throw new BusinessException(certificate.Error);
+
+        var token = await
+            _autenticaReceitaFederal.GetTokenAuthetication(certificate.Certificate, "AGECARGA");
+
+        foreach (var master in masterList)
+        {
+            var masterAssociations = associacoes.Where(x => x.MasterNumber == master);
+
+            string freightFowarderCnpj = masterAssociations.FirstOrDefault().AgenteDeCargaInfo.CNPJ;
+
+            await SubmitHouseMasterAssociationAsync(
+                freightFowarderCnpj,
+                masterAssociations,
+                token,
+                certificate.Certificate);
+        }
+    }
+
+    private async Task SubmitHouseMasterAssociationAsync(
+        string FreightFowarderTaxId,
+        IEnumerable<MasterHouseAssociacao> associationList,
+        TokenResponse token,
+        X509Certificate2 certificado)
+    {
+        var operation = IataXmlPurposeCode.Creation;
+
+        if (CheckPendingMasterHouseAssociationUpload(associationList))
+        {
+            var checkAssociations = associationList.Where(x => x.SituacaoAssociacaoRFBId == 1)
+                .GroupBy(x => x.ProtocoloAssociacaoRFB);
+
+            foreach (var checkAssociation in checkAssociations)
+            {
+                var res = await _uploadReceitaFederal.CheckFileProtocol(checkAssociation.Key, token);
+                await CheckHouseMasterAssociationAsync(res, checkAssociation.Key, associationList);
+            }
+
+            return;
+        }
+
+        CheckDiferentDocumentMasterHouseAssociation(associationList);
+
+        if (associationList.Any(x => x.SituacaoAssociacaoRFBId == 2))
+            operation = IataXmlPurposeCode.Update;
+
+        string xmlAssociacao = _motorIataHouse.GenMasterHouseManifest(associationList, operation);
+
+        var responseAssociacao = await _uploadReceitaFederal
+            .SubmitHouseMaster(FreightFowarderTaxId, xmlAssociacao, token, certificado);
+
+        await ProcessMasterHouseRFBAsync(responseAssociacao, associationList);
+
+        return;
+    }
+
+    private async Task ProcessMasterHouseRFBAsync(
+        ReceitaRetornoProtocol response,
+        IEnumerable<MasterHouseAssociacao> association)
     {
         switch (response.StatusCode)
         {
             case "Received":
-                associacao.SituacaoDeletionAssociacaoRFBId = 1;
-                associacao.CodigoErroDeletionAssociacaoRFB = null;
-                associacao.DescricaoErroDeletionAssociacaoRFB = null;
-                associacao.ProtocoloDeletionAssociacaoRFB = response.Reason;
-                associacao.DataProtocoloDeletionAssociacaoRFB = response.IssueDateTime;
-                _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
+                await ReceivedMasterHouseAssociationUpload(association, response);
                 break;
             case "Rejected":
-                associacao.SituacaoDeletionAssociacaoRFBId = 3;
-                associacao.CodigoErroDeletionAssociacaoRFB = response.StatusCode;
-                associacao.DescricaoErroDeletionAssociacaoRFB = response.Reason;
-                associacao.DataProtocoloDeletionAssociacaoRFB = response.IssueDateTime;
-                _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
+                await RejectMasterHouseAssociationUpload(association, response);
                 break;
             case "Processed":
-                associacao.SituacaoDeletionAssociacaoRFBId = 2;
-                associacao.CodigoErroDeletionAssociacaoRFB = null;
-                associacao.DescricaoErroDeletionAssociacaoRFB = null;
-                associacao.DataProtocoloDeletionAssociacaoRFB = response.IssueDateTime;
-                _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(associacao);
+                await ProcessMasterHouseAssociationUpload(association, response);
                 break;
         }
+    }
 
-        if (response.StatusCode == "Processed")
+    private async Task CheckHouseMasterAssociationAsync(
+        ProtocoloReceitaCheckFile response,
+        string protocol,
+        IEnumerable<MasterHouseAssociacao> association)
+    {
+        switch (response.status)
         {
-            houses.ForEach(house =>
-            {
-                house.SituacaoAssociacaoRFBId = 0;
-                house.CodigoErroAssociacaoRFB = null;
-                house.DescricaoErroAssociacaoRFB = null;
-                house.DataProtocoloAssociacaoRFB = null;
-                house.ReenviarAssociacao = false;
-                _houseRepository.UpdateHouse(house);
-            });
+            case "Rejected":
+                await RejectMasterHouseAssociationUploadCheck(association, protocol, response);
+                break;
+            case "Processed":
+                await AcceptMasterHouseAssociationUploadCheck(association, protocol, response);
+                break;
+            default:
+                break;
         }
-        await _houseRepository.SaveChanges();
+    }
+
+    private bool CheckPendingMasterHouseAssociationUpload(IEnumerable<MasterHouseAssociacao> associationList)
+    {
+        var pendingUpload = associationList.Where(x => x.SituacaoAssociacaoRFBId == 1)
+            ?? Enumerable.Empty<MasterHouseAssociacao>();
+
+        return pendingUpload.Count() > 0;
+    }
+
+    private void CheckDiferentDocumentMasterHouseAssociation(IEnumerable<MasterHouseAssociacao> associationList)
+    {
+        var documents = associationList.GroupBy(x => x.MessageHeaderDocumentId);
+
+        if (documents.Count() > 1)
+            throw new BusinessException($"Existe associações com números de documentos diferentes: {string.Join(",", documents.Select(x => x.Key))}");
+    }
+
+    #region Processamento Associação Receita Federal
+    private async Task ReceivedMasterHouseAssociationUpload(IEnumerable<MasterHouseAssociacao> associationList, ReceitaRetornoProtocol response)
+    {
+        var associations = associationList.ToList();
+
+        foreach (var association in associations)
+        {
+            association.SituacaoAssociacaoRFBId = 1;
+            association.CodigoErroAssociacaoRFB = null;
+            association.DescricaoErroAssociacaoRFB = null;
+            association.ProtocoloAssociacaoRFB = response.Reason;
+            association.DataProtocoloAssociacaoRFB = response.IssueDateTime;
+            association.ReenviarAssociacao = false;
+            association.CodigoErroDeletionAssociacaoRFB = null;
+            association.DescricaoErroDeletionAssociacaoRFB = null;
+            association.DataProtocoloDeletionAssociacaoRFB = null;
+            association.DataChecagemDeletionAssociacaoRFB = null;
+            _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(association);
+        }
+
+        await _masterHouseAssociacaoRepository.SaveChangesAsync();
+    }
+
+    private async Task RejectMasterHouseAssociationUpload(IEnumerable<MasterHouseAssociacao> associationList, ReceitaRetornoProtocol response)
+    {
+        var associations = associationList.ToList();
+
+        foreach (var association in associations)
+        {
+            association.SituacaoAssociacaoRFBId = 3;
+            association.DescricaoErroAssociacaoRFB = response.Reason;
+            association.DataProtocoloAssociacaoRFB = response.IssueDateTime;
+            _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(association);
+        }
+
+        await _masterHouseAssociacaoRepository.SaveChangesAsync();
+    }
+
+    private async Task ProcessMasterHouseAssociationUpload(IEnumerable<MasterHouseAssociacao> associationList, ReceitaRetornoProtocol response)
+    {
+        var associations = associationList.ToList();
+
+        foreach (var association in associations)
+        {
+            association.SituacaoAssociacaoRFBId = 2;
+            association.CodigoErroAssociacaoRFB = null;
+            association.DescricaoErroAssociacaoRFB = null;
+            association.DataProtocoloAssociacaoRFB = response.IssueDateTime;
+            association.ReenviarAssociacao = false;
+            association.CodigoErroDeletionAssociacaoRFB = null;
+            association.DescricaoErroDeletionAssociacaoRFB = null;
+            association.DataProtocoloDeletionAssociacaoRFB = null;
+            association.DataChecagemDeletionAssociacaoRFB = null;
+            _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(association);
+        }
+
+        await _masterHouseAssociacaoRepository.SaveChangesAsync();
+    }
+    #endregion
+
+
+    #region Associação Processamento Check Upload
+    private async Task RejectMasterHouseAssociationUploadCheck(IEnumerable<MasterHouseAssociacao> associationList, string protocol, ProtocoloReceitaCheckFile response)
+    {
+        var associations = associationList.Where(x => x.ProtocoloAssociacaoRFB == protocol).ToList();
+
+        foreach (var association in associations)
+        {
+            association.SituacaoAssociacaoRFBId = 3;
+            if (response.errorList.Length > 0)
+            {
+                association.CodigoErroAssociacaoRFB = response.errorList[0].code;
+                association.DescricaoErroAssociacaoRFB = string.Join("\n", response.errorList.Select(x => x.description));
+                association.DataChecagemAssociacaoRFB = response.dateTime;
+            }
+            _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(association);
+        }
+
+        await _masterHouseAssociacaoRepository.SaveChangesAsync();
+    }
+
+    private async Task AcceptMasterHouseAssociationUploadCheck(IEnumerable<MasterHouseAssociacao> associationList, string protocol, ProtocoloReceitaCheckFile response)
+    {
+        var associations = associationList.Where(x => x.ProtocoloAssociacaoRFB == protocol).ToList();
+
+        foreach (var association in associations)
+        {
+            association.SituacaoAssociacaoRFBId = 2;
+            association.CodigoErroAssociacaoRFB = null;
+            association.DescricaoErroAssociacaoRFB = null;
+            association.DataChecagemAssociacaoRFB = response.dateTime;
+            association.SituacaoDeletionAssociacaoRFBId = 0;
+            _masterHouseAssociacaoRepository.UpdateMasterHouseAssociacao(association);
+        }
+
+        await _masterHouseAssociacaoRepository.SaveChangesAsync();
     }
     #endregion
 

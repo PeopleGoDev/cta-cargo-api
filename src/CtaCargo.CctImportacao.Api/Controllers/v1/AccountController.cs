@@ -1,4 +1,5 @@
-﻿using CtaCargo.CctImportacao.Application.Dtos.Request;
+﻿using CtaCargo.CctImportacao.Api.Controllers.Session;
+using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Application.Services.Contracts;
 using Microsoft.AspNetCore.Authorization;
@@ -28,6 +29,18 @@ public class AccountController : Controller
     public async Task<ApiResponse<UsuarioLoginResponse>> Login([FromBody] UsuarioLoginRequest usuarioLogin)
     {
         var response = await _accountService.AutenticarUsuario(usuarioLogin);
+        return new()
+        {
+            Dados = response,
+            Sucesso = true
+        };
+    }
+
+    [HttpPost("SwitchCompany/{id}")]
+    [Authorize(Roles = "ChangeCompany")]
+    public async Task<ApiResponse<UsuarioLoginResponse>> SwitchCompany(int id)
+    {
+        var response = await _accountService.SwitchCompany(HttpContext.GetUserSwitchCompanySession(), id);
         return new()
         {
             Dados = response,

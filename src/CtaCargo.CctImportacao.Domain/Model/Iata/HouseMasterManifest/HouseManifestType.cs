@@ -1,4 +1,5 @@
-﻿using System.Xml.Serialization;
+﻿using System;
+using System.Xml.Serialization;
 
 namespace CtaCargo.CctImportacao.Domain.Model.Iata.HouseMasterManifest;
 
@@ -67,6 +68,16 @@ public partial class HouseManifestType
 [System.Xml.Serialization.XmlRootAttribute("MessageHeaderDocument", Namespace = "iata:datamodel:3", IsNullable = false)]
 public partial class MessageHeaderDocumentType
 {
+    // Define other custom time zone arguments
+    private string displayName = "(GMT-03:00) Antarctica/Palmer Time";
+    private string standardName = "Brazil Standard Time";
+    private TimeSpan offset = new TimeSpan(-3, 0, 0);
+    private readonly TimeZoneInfo palmer;
+
+    public MessageHeaderDocumentType()
+    {
+        palmer = TimeZoneInfo.CreateCustomTimeZone(standardName, offset, displayName, standardName);
+    }
 
     private IDType idField;
 
@@ -131,7 +142,8 @@ public partial class MessageHeaderDocumentType
     {
         get
         {
-            return this.issueDateTimeField;
+            return TimeZoneInfo.ConvertTime(this.issueDateTimeField, palmer);
+            //return this.issueDateTimeField;
         }
         set
         {
@@ -142,7 +154,9 @@ public partial class MessageHeaderDocumentType
     [XmlElementAttribute("IssueDateTime")]
     public string XIssueDateTime
     {
-        get { return issueDateTimeField.ToString(XmlUtil.DateTimeFormaRFB); }
+        get {
+            var result = TimeZoneInfo.ConvertTime(this.issueDateTimeField, palmer);
+            return result.ToString(XmlUtil.DateTimeFormaRFB); }
         set { issueDateTimeField = System.DateTime.Parse(value); }
     }
     /// <remarks/>
