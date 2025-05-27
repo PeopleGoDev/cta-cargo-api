@@ -280,7 +280,7 @@ public class MotorIataHouse : IMotorIataHouse
                 }
             };
 
-        manhouse.MasterConsignment.IncludedHouseConsignment.SummaryDescription = new TextType { Value = "HA8" };
+        manhouse.MasterConsignment.IncludedHouseConsignment.SummaryDescription = new TextType { Value = house.DescricaoMercadoria };
         manhouse.MasterConsignment.IncludedHouseConsignment.WeightTotalChargeAmount = new AmountType
         {
             currencyID = valorPPUN,
@@ -291,7 +291,7 @@ public class MotorIataHouse : IMotorIataHouse
         manhouse.MasterConsignment.IncludedHouseConsignment.IncludedHouseConsignmentItem[0].NatureIdentificationTransportCargo =
             new TransportCargoType
             {
-                Identification = new TextType { Value = "HA8" }
+                Identification = new TextType { Value = house.DescricaoMercadoria }
             };
 
         manhouse.MasterConsignment.IncludedHouseConsignment.ApplicableOriginCurrencyExchange = new OriginCurrencyExchangeType

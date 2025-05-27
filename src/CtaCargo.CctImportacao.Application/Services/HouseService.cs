@@ -250,7 +250,11 @@ public class HouseService : IHouseService
             });
         }
 
-        var masterGroups = houses.GroupBy(x => x.MasterNumeroXML)
+        var houseAssociation = associations.SelectMany(x => x.MasterHouseAssociationChildren);
+
+        var selectHouses = houses.Where(x => !houseAssociation.Any(y => y.House.Numero == x.Numero));
+
+        var masterGroups = selectHouses.GroupBy(x => x.MasterNumeroXML)
             .Select(s => new MasterHouseAssociationOpenMasterItem
             {
                 MasterNumber = s.Key,

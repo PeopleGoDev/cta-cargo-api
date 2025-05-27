@@ -615,6 +615,9 @@ public class MasterService : IMasterService
 
         var ulds = await _uldMasterRepository.GetUldListByMasterNumberVooId(userSession.CompanyId, input.Numero, voo.Id);
 
+        input.AeroportoOrigemCodigo = input.AeroportoOrigemCodigo.ToUpper();
+        input.AeroportoDestinoCodigo = input.AeroportoDestinoCodigo.ToUpper();
+
         var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoOrigemCodigo);
         var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoDestinoCodigo);
 
