@@ -108,14 +108,7 @@ public class MotorIataHouse : IMotorIataHouse
         manhouse.MasterConsignment.IncludedHouseConsignment = new HouseConsignmentType
         {
             TotalChargePrepaidIndicatorFlag = (house.ValorFreteFC == 0),
-            ValuationTotalChargeAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
-            TaxTotalChargeAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
-            WeightTotalChargeAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
-            TotalDisbursementPrepaidIndicator = false,
-            AgentTotalDisbursementAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
-            CarrierTotalDisbursementAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = 0 },
-            TotalPrepaidChargeAmount = new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = house.ValorFretePP },
-            TotalCollectChargeAmount = new AmountType { currencyID = valorFCUN, currencyIDSpecified = true, Value = house.ValorFreteFC },
+            TotalDisbursementPrepaidIndicator = (house.ValorFreteFC == 0),
             IncludedTareGrossWeightMeasure = new MeasureType { unitCode = pesoTotalUN, unitCodeSpecified = true, Value = Convert.ToDecimal(house.PesoTotalBruto) },
             NilCarriageValueIndicator = false,
             NilCustomsValueIndicator = false,
@@ -189,6 +182,14 @@ public class MotorIataHouse : IMotorIataHouse
             IncludedHouseConsignmentItem = new HouseConsignmentItemType[1],
             TotalDisbursementPrepaidIndicatorSpecified = true
         };
+
+        if (house.ValorFretePP > 0)
+            manhouse.MasterConsignment.IncludedHouseConsignment.TotalPrepaidChargeAmount =
+                new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = house.ValorFretePP };
+
+        if (house.ValorFreteFC > 0)
+            manhouse.MasterConsignment.IncludedHouseConsignment.TotalCollectChargeAmount =
+                new AmountType { currencyID = valorFCUN, currencyIDSpecified = true, Value = house.ValorFreteFC };
 
         if (house.Volume != null)
             manhouse.MasterConsignment.IncludedHouseConsignment.GrossVolumeMeasure = new MeasureType
