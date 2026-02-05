@@ -1,4 +1,4 @@
-﻿using CtaCargo.CctImportacao.Api.Configurations;
+﻿using CtaCargo.CctImportacao.Api.Contracts;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;

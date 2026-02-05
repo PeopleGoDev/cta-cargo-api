@@ -1,4 +1,3 @@
-using AutoMapper;
 using CtaCargo.CctImportacao.Api.Infrastructure.Extensions;
 using CtaCargo.CctImportacao.Api.Infrastructure.Middlewares;
 using CtaCargo.CctImportacao.Application.Handlers;
@@ -10,10 +9,11 @@ using CtaCargo.CctImportacao.Application.Support;
 using CtaCargo.CctImportacao.Application.Support.Contracts;
 using CtaCargo.CctImportacao.Application.Validator;
 using CtaCargo.CctImportacao.Domain.Repositories;
+using CtaCargo.CctImportacao.Domain.Validator;
 using CtaCargo.CctImportacao.Infrastructure.Data.Cache;
 using CtaCargo.CctImportacao.Infrastructure.Data.Context;
 using CtaCargo.CctImportacao.Infrastructure.Data.Repository.SQL;
-using FluentValidation.AspNetCore;
+using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -24,7 +24,6 @@ using Microsoft.Extensions.Hosting;
 using Refit;
 using System;
 using System.Net.Http;
-using System.Reflection;
 
 namespace CtaCargo.CctImportacao.Api;
 
@@ -95,12 +94,10 @@ public class Startup
             .AddJsonOptions(options => {
                 options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
                 options.JsonSerializerOptions.PropertyNamingPolicy = null;
-            })
-            .AddFluentValidation(options =>
-            {
-                options.RegisterValidatorsFromAssembly(Assembly.GetExecutingAssembly());
-                options.RunDefaultMvcValidationAfterFluentValidationExecutes = false;
             });
+
+        services.AddValidatorsFromAssemblyContaining<ValidadorMaster>();
+        services.AddValidatorsFromAssemblyContaining<UsuarioLoginRequestValidator>();
 
         services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 

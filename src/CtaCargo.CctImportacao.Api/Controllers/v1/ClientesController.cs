@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CtaCargo.CctImportacao.Api.Controllers
+namespace CtaCargo.CctImportacao.Api.Controllers.v1
 {
     [ApiController]
     [ApiVersion("1.0")]

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace CtaCargo.CctImportacao.Api.Controllers;
+namespace CtaCargo.CctImportacao.Api.Controllers.v1;
 
 [ApiController]
 [ApiVersion("1.0")]

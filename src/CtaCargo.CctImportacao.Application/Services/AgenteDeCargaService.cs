@@ -167,6 +167,16 @@ public class AgenteDeCargaService : IAgenteDeCargaService
         else
             throw new BusinessException("Erro Desconhecido! Não Foi possível adicionar o Agente de Carga!");
     }
+
+    public async Task<string> GetFreightFowarderCode(UserSession userSession, string taxId)
+    {
+        var freightFowarder = await _agenteDeCargaRepository.GetFreightFowarderCodeAsync(userSession.CompanyId, taxId);
+
+        if (freightFowarder is not null)
+            return freightFowarder.Numero;
+
+        return null;
+    }
 }
 
 

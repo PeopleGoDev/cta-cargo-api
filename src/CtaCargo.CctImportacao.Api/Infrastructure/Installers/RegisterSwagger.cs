@@ -1,4 +1,4 @@
-﻿using CtaCargo.CctImportacao.Api.Configurations;
+﻿using CtaCargo.CctImportacao.Api.Contracts;
 using CtaCargo.CctImportacao.Api.Infrastructure.Filters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

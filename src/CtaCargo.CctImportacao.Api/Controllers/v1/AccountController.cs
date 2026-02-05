@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
-namespace CtaCargo.CctImportacao.Api.Controllers;
+namespace CtaCargo.CctImportacao.Api.Controllers.v1;
 
 [ApiController]
 [ApiVersion("1.0")]
@@ -15,13 +15,11 @@ namespace CtaCargo.CctImportacao.Api.Controllers;
 public class AccountController : Controller
 {
     private readonly IAccountService _accountService;
-    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public AccountController(IHttpContextAccessor httpContextAccessor,
         IAccountService accountService)
     {
         _accountService = accountService;
-        this._httpContextAccessor = httpContextAccessor;
     }
 
     [HttpPost("Autenticar")]

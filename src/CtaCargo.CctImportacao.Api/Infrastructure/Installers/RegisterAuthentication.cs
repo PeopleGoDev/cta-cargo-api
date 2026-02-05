@@ -1,4 +1,4 @@
-﻿using CtaCargo.CctImportacao.Api.Configurations;
+﻿using CtaCargo.CctImportacao.Api.Contracts;
 using CtaCargo.CctImportacao.Api.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;

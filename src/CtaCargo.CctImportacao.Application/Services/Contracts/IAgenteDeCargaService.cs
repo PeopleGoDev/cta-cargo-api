@@ -14,4 +14,5 @@ public interface IAgenteDeCargaService
     Task<ApiResponse<IEnumerable<AgenteDeCargaResponseDto>>> ListarAgentesDeCarga(UserSession userSession);
     Task<ApiResponse<IEnumerable<AgenteDeCargaListaSimplesResponse>>> ListarAgenteDeCargaSimples(UserSession userSession);
     Task<ApiResponse<AgenteDeCargaResponseDto>> PegarAgenteDeCargaPorId(UserSession userSession, int agenteId);
+    Task<string> GetFreightFowarderCode(UserSession userSession, string taxId);
 }

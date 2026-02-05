@@ -65,4 +65,10 @@ public class SQLAgenteDeCargaRepository : IAgenteDeCargaRepository
         _context.Update(agenteDeCarga);
     }
 
+    public async Task<AgenteDeCarga> GetFreightFowarderCodeAsync(int empresaId, string taxId)
+    {
+        return await _context.AgentesDeCarga
+            .FirstOrDefaultAsync(x => x.EmpresaId == empresaId && x.CNPJ == taxId && x.DataExclusao == null);
+    }
+
 }

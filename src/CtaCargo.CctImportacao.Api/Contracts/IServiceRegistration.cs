@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CtaCargo.CctImportacao.Api.Configurations
+namespace CtaCargo.CctImportacao.Api.Contracts
 {
     public interface IServiceRegistration
     {

@@ -7,7 +7,7 @@ using CtaCargo.CctImportacao.Application.Services.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CtaCargo.CctImportacao.Api.Controllers;
+namespace CtaCargo.CctImportacao.Api.Controllers.v1;
 
 [ApiController]
 [Authorize]

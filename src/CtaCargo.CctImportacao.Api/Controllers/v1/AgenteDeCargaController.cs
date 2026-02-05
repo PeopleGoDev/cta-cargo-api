@@ -68,4 +68,17 @@ public class AgenteDeCargaController : Controller
     {
         return await _agenteDeCargaService.ListarAgenteDeCargaSimples(HttpContext.GetUserSession());
     }
+
+    [HttpGet("get-code/{taxId}")]
+    [Authorize]
+    public async Task<ApiResponse<string>> GetFreightFowarderCode(string taxId)
+    {
+        var response = await _agenteDeCargaService.GetFreightFowarderCode(HttpContext.GetUserSession(), taxId);
+
+        return new ApiResponse<string>
+        {
+            Dados = response,
+            Sucesso = true,
+        };
+    }
 }

@@ -47,7 +47,7 @@ public class AccountService : IAccountService
             throw new BusinessException("Usuário/Senha Invalido!");
 
         // A requisição vem com a Nova Senha
-        if (request.AlterarSenhar)
+        if (request.AlterarSenha ?? false)
         {
             user.Senha = request.NovaSenha;
             user.AlterarSenha = false;

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace CtaCargo.CctImportacao.Api.Controllers;
+namespace CtaCargo.CctImportacao.Api.Controllers.v1;
 
 [ApiController]
 [ApiVersion("1.0")]
@@ -22,7 +22,7 @@ public class UploadController : Controller
     }
 
     [HttpPost]
-    [Authorize(Roles = "AdminCiaAerea")]
+    [Authorize]
     [Route("UploadCertificadoDigital")]
     public async Task<ApiResponse<UploadCertificadoResponseDto>> UploadCertificadoDigital([FromForm] UploadFileRequest input, IFormFile file)
     {
