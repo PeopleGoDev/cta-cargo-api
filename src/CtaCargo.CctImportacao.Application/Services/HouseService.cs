@@ -298,11 +298,24 @@ public class HouseService : IHouseService
 
         house.CreatedDateTimeUtc = DateTime.UtcNow;
 
-        HouseEntityValidator validator = new HouseEntityValidator();
+        HouseEntityValidator validator = new();
 
-        var agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaByIataCode(userSession.CompanyId, houseRequest.AgenteDeCargaNumero);
-        if (agenteDeCarga == null)
-            throw new BusinessException("Agente de carga não cadastrado!");
+        if (!string.IsNullOrEmpty(houseRequest.AgenteDeCargaCnpj))
+        {
+            var agenteDeCargaByCnpj =
+                await _agenteDeCargaRepository.GetFreightFowarderCodeAsync(userSession.CompanyId, houseRequest.AgenteDeCargaCnpj) ??
+                throw new BusinessException("Agente de carga não cadastrado!");
+
+            house.AgenteDeCargaId = agenteDeCargaByCnpj.Id;
+            house.NumeroAgenteDeCarga = agenteDeCargaByCnpj.Numero;
+        }
+        else
+        {
+            var agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaByIataCode(userSession.CompanyId, houseRequest.AgenteDeCargaNumero) ??
+                throw new BusinessException("Agente de carga não cadastrado!");
+            house.AgenteDeCargaId = agenteDeCarga.Id;
+            house.NumeroAgenteDeCarga = agenteDeCarga.Numero;
+        }
 
         var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(houseRequest.AeroportoOrigem);
         var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(houseRequest.AeroportoDestino);
@@ -316,7 +329,7 @@ public class HouseService : IHouseService
         if (codigoDestinoId > 0)
             house.AeroportoDestinoId = codigoDestinoId;
 
-        house.AgenteDeCargaId = agenteDeCarga.Id;
+
         house.CriadoPeloId = userSession.UserId;
         house.EmpresaId = userSession.CompanyId;
         house.Environment = userSession.Environment;
@@ -393,7 +406,8 @@ public class HouseService : IHouseService
                     Sucesso = true,
                     Notificacoes = null
                 };
-        };
+        }
+        ;
 
         throw new BusinessException("Não foi possível atualiza o House: Erro Desconhecido!");
     }
@@ -425,7 +439,8 @@ public class HouseService : IHouseService
                     Sucesso = true,
                     Notificacoes = null
                 };
-        };
+        }
+        ;
 
         throw new BusinessException("Não foi possível atualiza o House: Erro Desconhecido!");
 
@@ -533,7 +548,7 @@ public class HouseService : IHouseService
         else
             throw new BusinessException("Não foi possível atualiza o House: Erro Desconhecido!");
     }
-    
+
     public async Task<List<MasterHouseAssociationResponse>> IncluirAssociacaoMasterHouse(UserSession userSession, AddMasterHouseAssociationRequest request)
     {
         var houseIds = request.Masters.SelectMany(x => x.HouseIds);
@@ -572,7 +587,7 @@ public class HouseService : IHouseService
         if (associations.Count == 0)
             throw new BusinessException("Associação(ões) não encontrada(s)!");
 
-        if(associations.Any(x => x.SituacaoAssociacaoRFBId == 1) || associations.Any(x => x.SituacaoAssociacaoRFBId == 2))
+        if (associations.Any(x => x.SituacaoAssociacaoRFBId == 1) || associations.Any(x => x.SituacaoAssociacaoRFBId == 2))
             throw new BusinessException("Não é possivel alterar a Associação, uma vez que este está em processo de envio a RFB !");
 
         QueryJunction<House> paramHouses = new();
@@ -710,13 +725,13 @@ public class HouseService : IHouseService
                 Ulid.NewUlid().ToString();
 
             var houseList = houses.Where(x => item.HouseIds.Contains(x.Id)).ToList();
-            
+
             var processDate = houseList[0].DataProcessamento;
 
             var carrieDeclarationDate = item.CarrierDeclarationDate;
 
             var association = GenerateNewMasterHouseAssociation(
-                userSession, processDate, houseList, documentId,item.MasterNumber, item.CarrierDeclarationDate);
+                userSession, processDate, houseList, documentId, item.MasterNumber, item.CarrierDeclarationDate);
 
             if (await SaveMasterHouseAssociation(association) > 0)
             {

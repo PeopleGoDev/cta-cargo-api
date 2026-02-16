@@ -183,6 +183,14 @@ public class MotorIataHouse : IMotorIataHouse
             TotalDisbursementPrepaidIndicatorSpecified = true
         };
 
+        if ((house.ValorAgentePP + house.ValorAgenteFC) > 0)
+            manhouse.MasterConsignment.IncludedHouseConsignment.AgentTotalDisbursementAmount =
+                new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = (house.ValorAgentePP + house.ValorAgenteFC) };
+
+        if ((house.ValorTransportadorPP + house.ValorTransportadorFC) > 0)
+            manhouse.MasterConsignment.IncludedHouseConsignment.CarrierTotalDisbursementAmount =
+                            new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = (house.ValorTransportadorPP + house.ValorTransportadorFC) };
+
         if (house.ValorFretePP > 0)
             manhouse.MasterConsignment.IncludedHouseConsignment.TotalPrepaidChargeAmount =
                 new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = house.ValorFretePP };

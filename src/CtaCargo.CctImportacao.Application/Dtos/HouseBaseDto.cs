@@ -14,6 +14,10 @@ public class HouseBaseDto
     public string ValorFretePPUN { get; set; }
     public decimal ValorFreteFC { get; set; }
     public string ValorFreteFCUN { get; set; }
+    public decimal ValorAgentePP { get; set; }
+    public decimal ValorAgenteFC { get; set; }
+    public decimal ValorTransportadorPP { get; set; }
+    public decimal ValorTransportadorFC { get; set; }
     public bool IndicadorMadeiraMacica { get; set; }
     public string DescricaoMercadoria { get; set; }
     public string CodigoRecintoAduaneiro { get; set; }
@@ -54,6 +58,7 @@ public class HouseBaseDto
     public string RemetenteCidade { get; set; }
     public string RemetentePaisCodigo { get; set; }
     public string AgenteDeCargaNumero { get; set; }
+    public string AgenteDeCargaCnpj { get; set; }
     public int RFBCancelationStatus { get; set; }
     public string RFBCancelationProtocol { get; set; }
 }

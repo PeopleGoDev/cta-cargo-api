@@ -188,4 +188,16 @@ public class House : BaseEntity
 
         return NaturezaCargaLista.Split(",");
     }
+
+    [Column(TypeName = "MONEY")]
+    public decimal ValorAgentePP { get; set; }
+
+    [Column(TypeName = "MONEY")]
+    public decimal ValorAgenteFC { get; set; }
+
+    [Column(TypeName = "MONEY")]
+    public decimal ValorTransportadorPP { get; set; }
+
+    [Column(TypeName = "MONEY")]
+    public decimal ValorTransportadorFC { get; set; }
 }
