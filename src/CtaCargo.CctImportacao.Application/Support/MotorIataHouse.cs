@@ -193,11 +193,11 @@ public class MotorIataHouse : IMotorIataHouse
 
         if (house.ValorFretePP > 0)
             manhouse.MasterConsignment.IncludedHouseConsignment.TotalPrepaidChargeAmount =
-                new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = house.ValorFretePP };
+                new AmountType { currencyID = valorPPUN, currencyIDSpecified = true, Value = house.ValorFretePP + house.ValorAgentePP + house.ValorTransportadorPP };
 
         if (house.ValorFreteFC > 0)
             manhouse.MasterConsignment.IncludedHouseConsignment.TotalCollectChargeAmount =
-                new AmountType { currencyID = valorFCUN, currencyIDSpecified = true, Value = house.ValorFreteFC };
+                new AmountType { currencyID = valorFCUN, currencyIDSpecified = true, Value = house.ValorFreteFC + house.ValorAgenteFC + house.ValorTransportadorFC };
 
         if (house.Volume != null)
             manhouse.MasterConsignment.IncludedHouseConsignment.GrossVolumeMeasure = new MeasureType
