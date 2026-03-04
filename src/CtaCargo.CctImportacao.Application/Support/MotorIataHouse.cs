@@ -223,7 +223,7 @@ public class MotorIataHouse : IMotorIataHouse
             },
             TotalChargeAmount = new AmountType
             {
-                Value = house.ValorFretePP + house.ValorFreteFC,
+                Value = house.ValorFretePP + house.ValorFreteFC + (house.ValorAgentePP + house.ValorAgenteFC + house.ValorTransportadorPP + house.ValorTransportadorFC),
                 currencyIDSpecified = true,
                 currencyID = (ISO3AlphaCurrencyCodeContentType)
                     Enum.Parse(typeof(ISO3AlphaCurrencyCodeContentType), house.ValorFretePPUN)
