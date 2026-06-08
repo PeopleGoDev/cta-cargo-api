@@ -209,6 +209,25 @@ public class ImportWaybillXMLService
                 }
             }
 
+            List<string> ncms = [];
+
+            foreach(var applicationRating in masterXML.MasterConsignment!.ApplicableRating)
+            {
+                foreach(var includedMasterConsigmentItem in applicationRating.IncludedMasterConsignmentItem)
+                {
+                    if (includedMasterConsigmentItem.TypeCode == null)
+                        continue;
+
+                    if (includedMasterConsigmentItem.TypeCode[0].listAgencyID == AgencyIdentificationCodeContentType.Item1)
+                    {
+                        ncms.Add(includedMasterConsigmentItem.TypeCode[0].Value);
+                    }
+                }
+            }
+
+            if(ncms.Count > 0)
+                master.NCMLista = string.Join(",", ncms);
+
             _validadorMaster.InserirErrosMaster(master);
             _masterRepository.CreateMaster(_empresaId, master);
             var result = await _masterRepository.SaveChanges();
@@ -334,6 +353,26 @@ public class ImportWaybillXMLService
                         }
                     }
                 }
+
+                List<string> ncms = [];
+
+                foreach (var applicationRating in masterXML.MasterConsignment!.ApplicableRating)
+                {
+                    foreach (var includedMasterConsigmentItem in applicationRating.IncludedMasterConsignmentItem)
+                    {
+                        if (includedMasterConsigmentItem.TypeCode == null)
+                            continue;
+
+                        if (includedMasterConsigmentItem.TypeCode[0].listAgencyID == AgencyIdentificationCodeContentType.Item1)
+                        {
+                            ncms.Add(includedMasterConsigmentItem.TypeCode[0].Value);
+                        }
+                    }
+                }
+
+                if (ncms.Count > 0)
+                    master.NCMLista = string.Join(",", ncms);
+
                 _validadorMaster.InserirErrosMaster(master);
                 _masterRepository.UpdateMaster(master);
                 var result = await _masterRepository.SaveChanges();

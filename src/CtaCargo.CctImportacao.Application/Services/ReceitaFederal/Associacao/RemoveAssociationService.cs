@@ -45,13 +45,16 @@ public class RemoveAssociationService : IRemoveAssociationService
         var masterList =
             _masterHouseAssociacaoRepository.GetMasterNumbersByAssociationIds(userSession.CompanyId, request.freightFowarderId, associationIds);
 
+        if(masterList.Count() == 0)
+            throw new BusinessException("Não é possivel cancelar associação, associação não encontrada!");
+
         var associationList =
             _masterHouseAssociacaoRepository.GetMasterHouseAssociationByMasterList(userSession.CompanyId, masterList.ToArray());
 
         if (associationList.Any(x => x.SituacaoAssociacaoRFBId == 1))
             throw new BusinessException("Não é possivel cancelar associação com document pendente de status");
 
-        var freightFowarderId = associationList.SelectMany(x => x.MasterHouseAssociationChildren).FirstOrDefault().House.AgenteDeCargaId;
+        var freightFowarderId = associationList.SelectMany(x => x.MasterHouseAssociationChildren).FirstOrDefault()?.House.AgenteDeCargaId;
 
         var certificate = await
             _certificadoDigitalSupport.GetCertificateForFreightFowarder(userSession, freightFowarderId.Value);

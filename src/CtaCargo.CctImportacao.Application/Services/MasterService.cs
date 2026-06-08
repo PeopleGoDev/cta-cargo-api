@@ -841,6 +841,8 @@ public class FileService
                     case "NCMLista":
                         propertyInfo.SetValue(newItem, line[i].Split(","));
                         break;
+                    case "_BLANK":
+                        break;
                     default:
                         propertyInfo.SetValue(newItem, Convert.ChangeType(line[i], propertyInfo.PropertyType), null);
                         break;

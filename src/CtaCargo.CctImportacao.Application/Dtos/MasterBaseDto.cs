@@ -20,12 +20,12 @@ public class MasterBaseDto
     public string DescricaoMercadoria { get; set; }
     public string CodigoRecintoAduaneiro { get; set; }
     public string RUC { get; set; }
-    public string RemetenteNome {get;set;}
-    public string RemetenteEndereco {get;set;}
-    public string RemetentePostal {get;set;}
-    public string RemetenteCidade {get;set;}
-    public string RemetentePaisCodigo {get;set;}
-    public string RemetenteSubdivisao {get;set;}
+    public string RemetenteNome { get; set; }
+    public string RemetenteEndereco { get; set; }
+    public string RemetentePostal { get; set; }
+    public string RemetenteCidade { get; set; }
+    public string RemetentePaisCodigo { get; set; }
+    public string RemetenteSubdivisao { get; set; }
     public string ConsignatarioNome { get; set; }
     public string ConsignatarioEndereco { get; set; }
     public string ConsignatarioPostal { get; set; }
@@ -38,7 +38,7 @@ public class MasterBaseDto
     public DateTime? DataEmissaoXML { get; set; }
     public string NumeroVooXML { get; set; }
     public string[] NCMLista { get; set; }
-    public string GetNCMListaString ()
+    public string GetNCMListaString()
     {
         if (NCMLista == null)
             return null;
@@ -68,4 +68,16 @@ public class MasterBaseDto
     public DateTime? AssinaturaTransportadorData { get; set; }
     public int RFBCancelationStatus { get; set; }
     public string RFBCancelationProtocol { get; set; }
+
+    public string NCMString
+    {
+        set { NCMLista = string.IsNullOrEmpty(value) ? Array.Empty<string>() : value.Split(','); }
+        get { return string.Join(",", NCMLista); }
+    }
+
+    public string NaturezaString
+    {
+        set { NaturezaCarga = string.IsNullOrEmpty(value) ? Array.Empty<string>() : value.Split(','); }
+        get { return string.Join(",", NaturezaCarga); }
+    }
 }

@@ -139,7 +139,6 @@ public class ApplicationDbContext : DbContext
             .ToTable("House");
         modelBuilder.Entity<House>()
             .HasIndex(u => new { u.MasterNumeroXML , u.Numero, u.DataExclusao })
-            .IsUnique()
             .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 
         modelBuilder.Entity<CnpjCliente>().ToTable("CnpjCliente");
