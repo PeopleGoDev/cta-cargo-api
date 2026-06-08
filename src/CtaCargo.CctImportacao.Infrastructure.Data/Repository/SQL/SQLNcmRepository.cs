@@ -21,5 +21,5 @@ public class SQLNcmRepository : INcmRepository
     public IEnumerable<NCM> GetTopNcmByCode(string code, int top) => _context.NCMs.Where(x => x.Seleciona == true && x.CodigoNumero.StartsWith(code))
             .Take(top);
 
-    public IEnumerable<NCM> GetNcmByCodeList(string[] codes) => _context.NCMs.Where(x => x.Seleciona == true && codes.Contains(x.Codigo));
+    public IEnumerable<NCM> GetNcmByCodeList(string[] codes) => _context.NCMs.Where(x => x.Seleciona == true && codes.Contains(x.CodigoNumero));
 }
