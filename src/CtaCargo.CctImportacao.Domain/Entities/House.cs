@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -200,4 +201,7 @@ public class House : BaseEntity
 
     [Column(TypeName = "MONEY")]
     public decimal ValorTransportadorFC { get; set; }
+
+    // Nova relação: múltiplos tratamentos especiais por House
+    public virtual ICollection<HouseTratamentoEspecial> TratamentosEspeciais { get; set; } = new List<HouseTratamentoEspecial>();
 }

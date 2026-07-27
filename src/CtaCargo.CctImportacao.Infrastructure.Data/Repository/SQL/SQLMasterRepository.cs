@@ -46,6 +46,7 @@ public class SqlMasterRepository : IMasterRepository
             .Include(e => e.ErrosMaster.Where(e => e.DataExclusao == null))
             .Include("UsuarioCriacaoInfo")
             .Include("VooInfo")
+            .Include(x => x.TratamentosEspeciais.Where(y => y.DataExclusao == null))
             .Where(predicate).ToListAsync();
     }
 
@@ -66,6 +67,7 @@ public class SqlMasterRepository : IMasterRepository
             .Include("ErrosMaster")
             .Include("UsuarioCriacaoInfo")
             .Include("VooInfo")
+            .Include(x => x.TratamentosEspeciais.Where(y => y.DataExclusao == null))
             .Where( x => 
         x.EmpresaId == companyId &&
         x.DataExclusao == null &&
@@ -80,6 +82,7 @@ public class SqlMasterRepository : IMasterRepository
             .Include("ErrosMaster")
             .Include("UsuarioCriacaoInfo")
             .Include("VooInfo")
+            .Include(x => x.TratamentosEspeciais.Where(y => y.DataExclusao == null))
             .FirstOrDefaultAsync(x => x.EmpresaId == companyId && x.Id == masterId && x.DataExclusao == null);
     }
     public async Task<IEnumerable<Master>> GetMasterByIds(int companyId, int[] masterIds)
@@ -89,6 +92,7 @@ public class SqlMasterRepository : IMasterRepository
             .Include("ErrosMaster")
             .Include("UsuarioCriacaoInfo")
             .Include("VooInfo")
+            .Include(x => x.TratamentosEspeciais.Where(y => y.DataExclusao == null))
             .Where(x => x.EmpresaId == companyId && masterIds.Contains(x.Id) && x.DataExclusao == null)
             .ToListAsync();
     }
@@ -105,6 +109,7 @@ public class SqlMasterRepository : IMasterRepository
             .Include("VooInfo.CompanhiaAereaInfo")
             .Include("VooInfo.PortoIataOrigemInfo")
             .Include("VooInfo.PortoIataDestinoInfo")
+            .Include(x => x.TratamentosEspeciais.Where(y => y.DataExclusao == null))
             .Where(x => x.EmpresaId == companyId && masterArrayId.Contains(x.Id) && x.DataExclusao == null)
             .ToListAsync();
     }
@@ -121,6 +126,7 @@ public class SqlMasterRepository : IMasterRepository
             .Include("VooInfo.CompanhiaAereaInfo")
             .Include("VooInfo.PortoIataOrigemInfo")
             .Include("VooInfo.PortoIataDestinoInfo")
+            .Include(x => x.TratamentosEspeciais.Where(y => y.DataExclusao == null))
             .FirstOrDefaultAsync(x => x.EmpresaId == companyId && x.Id == masterId && x.DataExclusao == null);
     }
 
@@ -137,6 +143,7 @@ public class SqlMasterRepository : IMasterRepository
             .Include("VooInfo.PortoIataDestinoInfo")
             .Include("VooInfo.Trechos")
             .Include("VooInfo.Trechos.PortoIataDestinoInfo")
+            .Include(x => x.TratamentosEspeciais.Where(y => y.DataExclusao == null))
             .Where(x => x.EmpresaId == companyId && x.VooId == vooId && x.DataExclusao == null)
             .ToListAsync();
     }
@@ -153,6 +160,7 @@ public class SqlMasterRepository : IMasterRepository
             .Include("VooInfo.PortoIataDestinoInfo")
             .Include("VooInfo.Trechos")
             .Include("VooInfo.Trechos.PortoIataDestinoInfo")
+            .Include(x => x.TratamentosEspeciais.Where(y => y.DataExclusao == null))
             .Where(x => x.EmpresaId == companyId && masterIdList.Contains(x.Id) && x.DataExclusao == null)
             .ToListAsync();
     }

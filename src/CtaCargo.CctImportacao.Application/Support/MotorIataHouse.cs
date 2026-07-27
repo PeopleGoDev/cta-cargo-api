@@ -398,6 +398,17 @@ public class MotorIataHouse : IMotorIataHouse
             });
         };
 
+        if (house.IndicadorMadeiraMacica)
+        {
+            customsNoteType.Add(new CustomsNoteType
+            {
+                ContentCode = new CodeType() { Value = "DI" },
+                Content = new TextType() { Value = "WOOD PARTS" },
+                SubjectCode = new CodeType() { Value = "OCI" },
+                CountryID = new CountryIDType() { Value = ISOTwoletterCountryCodeIdentifierContentType.BR }
+            });
+        }
+
         if (customsNoteType.Count > 0)
             manhouse.MasterConsignment.IncludedHouseConsignment.IncludedCustomsNote = customsNoteType.ToArray();
         #endregion

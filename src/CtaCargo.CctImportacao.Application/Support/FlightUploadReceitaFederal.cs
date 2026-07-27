@@ -174,6 +174,25 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         string reason = "";
         DateTime? issueDate = null;
 
+        try
+        {
+            var response = await request.GetResponseAsync();
+        }
+        catch (WebException ex)
+        {
+            if (ex.Response != null)
+            {
+                using (var errorResponse = (HttpWebResponse)ex.Response)
+                {
+                    using (var reader = new StreamReader(errorResponse.GetResponseStream()))
+                    {
+                        string errorJson = await reader.ReadToEndAsync();
+                        // errorJson contains the validation details from the server
+                    }
+                }
+            }
+        }
+
         using (var webResponse = await request.GetResponseAsync())
         {
             using (StreamReader sr = new(webResponse.GetResponseStream()))

@@ -80,4 +80,7 @@ public class MasterBaseDto
         set { NaturezaCarga = string.IsNullOrEmpty(value) ? Array.Empty<string>() : value.Split(','); }
         get { return string.Join(",", NaturezaCarga); }
     }
+
+    // Tratamentos especiais associados ao Master (codigo + descrição)
+    public TratamentoEspecialDto[] TratamentosEspeciais { get; set; }
 }

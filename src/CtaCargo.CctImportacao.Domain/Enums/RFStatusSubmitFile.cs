@@ -6,3 +6,10 @@ public enum RFStatusSubmitFile
     Processed,
     Rejected
 }
+
+public enum CargoHangling: int
+{
+    SpecialTreament = 0,
+    SpecialService = 1,
+    OtherServiceInformation = 2,
+}

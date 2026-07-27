@@ -298,6 +298,29 @@ public class HouseService : IHouseService
 
         house.CreatedDateTimeUtc = DateTime.UtcNow;
 
+        // Persist Tratamentos Especiais provided in the request (if any)
+        if (houseRequest.TratamentosEspeciais != null && houseRequest.TratamentosEspeciais.Length > 0)
+        {
+            foreach (var te in houseRequest.TratamentosEspeciais)
+            {
+                if (string.IsNullOrWhiteSpace(te?.Codigo) && string.IsNullOrWhiteSpace(te?.Descricao))
+                    continue;
+
+                var entidadeTratamento = new HouseTratamentoEspecial
+                {
+                    Tipo = te.Tipo,
+                    Codigo = te.Codigo?.Trim(),
+                    Descricao = te.Descricao?.Trim(),
+                    EmpresaId = userSession.CompanyId,
+                    CriadoPeloId = userSession.UserId,
+                    CreatedDateTimeUtc = DateTime.UtcNow
+                };
+
+                house.TratamentosEspeciais ??= new List<HouseTratamentoEspecial>();
+                house.TratamentosEspeciais.Add(entidadeTratamento);
+            }
+        }
+
         HouseEntityValidator validator = new();
 
         if (!string.IsNullOrEmpty(houseRequest.AgenteDeCargaCnpj))
@@ -365,6 +388,37 @@ public class HouseService : IHouseService
             throw new BusinessException("Não foi possível atualizar o House: House não encontrado !");
 
         _mapper.Map(input, house);
+
+        // Synchronize Tratamentos Especiais:
+        // - if input.TratamentosEspeciais is not null => replace existing with provided list
+        // - if input.TratamentosEspeciais is null => keep existing treatments unchanged
+        if (input.TratamentosEspeciais != null)
+        {
+            // mark existing treatments as excluded (EF will delete them if tracked)
+            if (house.TratamentosEspeciais != null && house.TratamentosEspeciais.Any())
+                foreach (var item in house.TratamentosEspeciais)
+                    item.DataExclusao = DateTime.UtcNow;
+
+
+            foreach (var te in input.TratamentosEspeciais)
+            {
+                if (string.IsNullOrWhiteSpace(te?.Codigo) && string.IsNullOrWhiteSpace(te?.Descricao))
+                    continue;
+
+                var entidadeTratamento = new HouseTratamentoEspecial
+                {
+                    Tipo = te.Tipo,
+                    Codigo = te.Codigo?.Trim(),
+                    Descricao = te.Descricao?.Trim(),
+                    EmpresaId = userSession.CompanyId,
+                    CriadoPeloId = userSession.UserId,
+                    CreatedDateTimeUtc = DateTime.UtcNow
+                };
+
+                house.TratamentosEspeciais ??= new List<HouseTratamentoEspecial>();
+                house.TratamentosEspeciais.Add(entidadeTratamento);
+            }
+        }
 
         var agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaByIataCode(house.EmpresaId, input.AgenteDeCargaNumero);
         var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoOrigem);
@@ -748,11 +802,9 @@ public class HouseService : IHouseService
 
                     _masterHouseAssociacaoRepository.InsertMasterHouseAssociationChild(child);
                 }
-                _ = await _houseRepository.SaveChanges();
             }
-
-            response.Add(MasterHouseAssociationResponse.FromMasterHouseAssociacao(association));
         }
+
         return response;
     }
 
@@ -797,7 +849,6 @@ public class HouseService : IHouseService
 
                     _masterHouseAssociacaoRepository.InsertMasterHouseAssociationChild(child);
                 }
-                _ = await _houseRepository.SaveChanges();
             }
 
             response.Add(MasterHouseAssociationResponse.FromMasterHouseAssociacao(actualAssociation));

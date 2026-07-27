@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Domain.Entities;
@@ -198,6 +199,9 @@ public class MappingProfileConfiguration : Profile
             c.AllowNullCollections = true;
         });
 
+        // Mapping for MasterTratamentoEspecial -> TratamentoEspecialDto
+        CreateMap<MasterTratamentoEspecial, TratamentoEspecialDto>();
+
         CreateMap<Master, MasterResponseDto>()
         .ForMember(dest => dest.MasterId, m => m.MapFrom(a => a.Id))
         .ForMember(dest => dest.StatusId, m => m.MapFrom(a => a.StatusId))
@@ -251,7 +255,9 @@ public class MappingProfileConfiguration : Profile
         .ForMember(dest => dest.Volume, m => m.MapFrom(a => a.Volume))
         .ForMember(dest => dest.VolumeUN, m => m.MapFrom(a => a.VolumeUN))
         .ForMember(dest => dest.RFBCancelationStatus, m => m.MapFrom(a => a.SituacaoDeletionRFBId))
-        .ForMember(dest => dest.RFBCancelationProtocol, m => m.MapFrom(a => a.ProtocoloDeletionRFB));
+        .ForMember(dest => dest.RFBCancelationProtocol, m => m.MapFrom(a => a.ProtocoloDeletionRFB))
+        // Mapeia tratamentos especiais do Master (filtro para não incluir excluídos)
+        .ForMember(dest => dest.TratamentosEspeciais, m => m.MapFrom(a => a.TratamentosEspeciais == null ? null : a.TratamentosEspeciais));
 
         CreateMap<ErroMaster, MasterErroDto>()
             .ForMember(dest => dest.Erro, m => m.MapFrom(a => a.Erro));
@@ -478,11 +484,6 @@ public class MappingProfileConfiguration : Profile
             .ForMember(dest => dest.ConsignatarioPaisCodigo, m => m.MapFrom(a => a.ConsignatarioPaisCodigo))
             .ForMember(dest => dest.ConsignatarioSubdivisao, m => m.MapFrom(a => a.ConsignatarioSubdivisao))
             .ForMember(dest => dest.ConsignatarioCNPJ, m => m.MapFrom(a => a.ConsignatarioCNPJ))
-            .ForMember(dest => dest.ExpedidorNome, m => m.MapFrom(a => a.RemetenteNome))
-            .ForMember(dest => dest.ExpedidorEndereco, m => m.MapFrom(a => a.RemetenteEndereco))
-            .ForMember(dest => dest.ExpedidorPostal, m => m.MapFrom(a => a.RemetentePostal))
-            .ForMember(dest => dest.ExpedidorCidade, m => m.MapFrom(a => a.RemetenteCidade))
-            .ForMember(dest => dest.ExpedidorPaisCodigo, m => m.MapFrom(a => a.RemetentePaisCodigo))
             .ForMember(dest => dest.NumeroAgenteDeCarga, m => m.MapFrom(a => a.AgenteDeCargaNumero))
             .ForMember(dest => dest.AeroportoOrigemCodigo, m => m.MapFrom(a => a.AeroportoOrigem))
             .ForMember(dest => dest.AeroportoDestinoCodigo, m => m.MapFrom(a => a.AeroportoDestino))

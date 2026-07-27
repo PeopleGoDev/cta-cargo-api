@@ -155,6 +155,8 @@ public class Master : BaseEntity
     public string AutenticacaoSignatariaLocal { get; set; }
     public virtual List<UldMaster> ULDs { get; set; } = new List<UldMaster>();
     public virtual List<ErroMaster> ErrosMaster { get; set; } = new List<ErroMaster>();
+    // Nova relação: múltiplos tratamentos especiais por Master
+    public virtual ICollection<MasterTratamentoEspecial> TratamentosEspeciais { get; set; } = new List<MasterTratamentoEspecial>();
     public string getULDDetail()
     {
         string uld = "";

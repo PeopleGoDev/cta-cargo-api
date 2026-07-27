@@ -61,4 +61,7 @@ public class HouseBaseDto
     public string AgenteDeCargaCnpj { get; set; }
     public int RFBCancelationStatus { get; set; }
     public string RFBCancelationProtocol { get; set; }
+
+    // Tratamentos especiais associados à House (codigo + descrição)
+    public TratamentoEspecialDto[] TratamentosEspeciais { get; set; }
 }

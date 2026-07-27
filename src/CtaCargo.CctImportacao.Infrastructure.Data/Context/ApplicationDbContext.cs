@@ -39,6 +39,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<MessageSubmitFile> MessageSubmitFiles { get; set; }
     public DbSet<MasterHouseAssociationChild> MasterHouseAssociationChildren { get; set; }
 
+    // DbSet for new entity
+    public DbSet<MasterTratamentoEspecial> MasterTratamentosEspeciais { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Empresa>().ToTable("Empresa"); 
@@ -125,6 +128,18 @@ public class ApplicationDbContext : DbContext
             .IsRequired(true)
             .OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<ErroMaster>()
+            .HasIndex(u => new { u.MasterId, u.DataExclusao })
+            .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
+
+        modelBuilder.Entity<MasterTratamentoEspecial>()
+            .ToTable("MasterTratamentoEspecial");
+        modelBuilder.Entity<MasterTratamentoEspecial>()
+            .HasOne<Master>(e => e.Master)
+            .WithMany(d => d.TratamentosEspeciais)
+            .HasForeignKey(e => e.MasterId)
+            .IsRequired(true)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<MasterTratamentoEspecial>()
             .HasIndex(u => new { u.MasterId, u.DataExclusao })
             .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 

@@ -22,35 +22,32 @@ public class SqlHouseRepository : IHouseRepository
 
     public void CreateHouse(House house)
     {
-        if (house == null)
-        {
-            throw new ArgumentNullException(nameof(house));
-        }
+        ArgumentNullException.ThrowIfNull(house);
 
         _context.Houses.Add(house);
     }
 
     public void DeleteHouse(House house)
     {
-        if (house == null)
-        {
-            throw new ArgumentNullException(nameof(house));
-        }
+        ArgumentNullException.ThrowIfNull(house);
         house.DataExclusao = DateTime.UtcNow;
         _context.Houses.Update(house);
     }
 
     public async Task<IEnumerable<House>> GetAllHouses(Expression<Func<House, bool>> predicate)
     {
-        return await _context.Houses.Where(predicate).ToListAsync();
+        return await _context.Houses
+            .Include(x => x.TratamentosEspeciais)
+            .Where(predicate).ToListAsync();
     }
 
     public List<House> GetHouseForUploading(QueryJunction<House> param)
     {
         return _context.Houses
-            .Include("AgenteDeCargaInfo")
-            .Include("AeroportoOrigemInfo")
-            .Include("AeroportoDestinoInfo")
+            .Include(x => x.AgenteDeCargaInfo)
+            .Include(x => x.AeroportoOrigemInfo)
+            .Include(x => x.AeroportoDestinoInfo)
+            .Include(x => x.TratamentosEspeciais)
             .Where(param.ToPredicate())
             .OrderBy(x => x.MasterNumeroXML)
             .ToList();
@@ -77,16 +74,19 @@ public class SqlHouseRepository : IHouseRepository
 
     public async Task<House> GetHouseById(int ciaId, int houseId)
     {
-        return await _context.Houses.FirstOrDefaultAsync(x => x.EmpresaId == ciaId && x.Id == houseId &&
+        return await _context.Houses
+            .Include(x => x.TratamentosEspeciais.Where(y => y.DataExclusao != null))
+            .FirstOrDefaultAsync(x => x.EmpresaId == ciaId && x.Id == houseId &&
         x.DataExclusao == null);
     }
 
     public async Task<House> GetHouseByIdForExclusionUpload(int ciaId, int houseId)
     {
         return await _context.Houses
-            .Include("AgenteDeCargaInfo")
-            .Include("AeroportoOrigemInfo")
-            .Include("AeroportoDestinoInfo")
+            .Include(x => x.AgenteDeCargaInfo)
+            .Include(x => x.AeroportoOrigemInfo)
+            .Include(x => x.AeroportoDestinoInfo)
+            .Include(x => x.TratamentosEspeciais)
             .FirstOrDefaultAsync(x => x.EmpresaId == ciaId && x.Id == houseId && x.DataExclusao == null);
     }
 

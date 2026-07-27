@@ -2,6 +2,7 @@
 using CtaCargo.CctImportacao.Domain.Entities;
 using CtaCargo.CctImportacao.Domain.Enums;
 using CtaCargo.CctImportacao.Domain.Exceptions;
+using CtaCargo.CctImportacao.Domain.Model.Iata.WaybillManifest;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -623,6 +624,17 @@ public class MotorIata : IMotorIata
                 Content = new Waybill.TextType() { Value = "NON-IATA" },
                 SubjectCode = new Waybill.CodeType() { Value = "WBI" },
                 CountryID = new Waybill.CountryIDType() { Value = Waybill.ISOTwoletterCountryCodeIdentifierContentType.BR }
+            });
+        }
+
+        if (master.IndicadorMadeiraMacica)
+        {
+            customsNote.Add(new CustomsNoteType
+            {
+                ContentCode = new CodeType() { Value = "DI" },
+                Content = new TextType() { Value = "WOOD PARTS" },
+                SubjectCode = new CodeType() { Value = "OCI" },
+                CountryID = new CountryIDType() { Value = ISOTwoletterCountryCodeIdentifierContentType.BR }
             });
         }
 
