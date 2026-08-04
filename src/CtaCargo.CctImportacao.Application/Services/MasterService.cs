@@ -73,7 +73,6 @@ public class MasterService : IMasterService
     {
         try
         {
-
             QueryJunction<Master> param = new QueryJunction<Master>();
             param.Add(x => x.DataExclusao == null);
 

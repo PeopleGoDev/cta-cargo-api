@@ -6,3 +6,10 @@ public enum RFStatusSubmitFile
     Processed,
     Rejected
 }
+
+public enum SpecialHanglingType
+{
+    SpecialTreatment = 0,
+    SpecialService = 1,
+    OtherInformationService = 2,
+}

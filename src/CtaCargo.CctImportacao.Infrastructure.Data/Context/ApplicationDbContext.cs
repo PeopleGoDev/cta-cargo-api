@@ -53,10 +53,16 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Configura>().ToTable("Configura");
 
-        modelBuilder.Entity<MasterInstrucaoManuseio>().ToTable("MasterInstrucaoManuseio");
         modelBuilder.Entity<MasterInstrucaoManuseio>()
-            .HasIndex(u => new { u.Codigo })
-            .IsUnique()
+            .ToTable(nameof(MasterInstrucaoManuseio));
+        modelBuilder.Entity<MasterInstrucaoManuseio>()
+            .HasOne<Master>(e => e.Master)
+            .WithMany(d => d.InstrucoesManuseio)
+            .HasForeignKey(e => e.MasterId)
+            .IsRequired(true)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<MasterInstrucaoManuseio>()
+            .HasIndex(u => new { u.MasterId, u.DataExclusao })
             .Metadata.SetAnnotation(RelationalAnnotationNames.Filter, null);
 
         modelBuilder.Entity<CertificadoDigital>().ToTable("CertificadoDigital");

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -200,4 +201,6 @@ public class House : BaseEntity
 
     [Column(TypeName = "MONEY")]
     public decimal ValorTransportadorFC { get; set; }
+
+    public virtual List<HouseInstrucaoManuseio> InstrucaoManuseios { get; set; } = [];
 }

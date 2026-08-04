@@ -1,20 +1,19 @@
 ﻿using CtaCargo.CctImportacao.Domain.Enums;
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CtaCargo.CctImportacao.Domain.Entities;
 
-public class MasterInstrucaoManuseio : BaseEntity
+public class HouseInstrucaoManuseio
 {
     [Key]
     [Required]
     public int Id { get; set; }
 
-    public int MasterId { get; set; }
+    public int HouseId { get; set; }
 
-    [ForeignKey(nameof(MasterId))]
-    public virtual Master Master { get; set; }
+    [ForeignKey(nameof(HouseId))]
+    public virtual House House { get; set; }
 
     public SpecialHanglingType Tipo { get; set; }
 
@@ -25,7 +24,4 @@ public class MasterInstrucaoManuseio : BaseEntity
     [Required]
     [Column(TypeName = "varchar(150)")]
     public string Descricao { get; set; }
-
-    [Column(TypeName = "datetime")]
-    public DateTime? DataExclusao { get; set; }
 }

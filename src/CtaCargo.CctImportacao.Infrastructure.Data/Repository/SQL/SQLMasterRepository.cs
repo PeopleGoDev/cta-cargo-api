@@ -44,8 +44,9 @@ public class SqlMasterRepository : IMasterRepository
         return await _context.Masters
             .Include("ULDs")
             .Include(e => e.ErrosMaster.Where(e => e.DataExclusao == null))
-            .Include("UsuarioCriacaoInfo")
-            .Include("VooInfo")
+            .Include(x => x.UsuarioCriacaoInfo)
+            .Include(x => x.VooInfo)
+            .Include(x => x.InstrucoesManuseio.Where(e => e.DataExclusao == null))
             .Where(predicate).ToListAsync();
     }
 

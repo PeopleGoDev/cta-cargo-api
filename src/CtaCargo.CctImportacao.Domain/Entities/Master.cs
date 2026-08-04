@@ -88,7 +88,7 @@ public class Master : BaseEntity
     public int? AeroportoDestinoId { get; set; }
     [ForeignKey("AeroportoDestinoId")]
     public virtual PortoIata AeroportoDestinoInfo { get; set; }
-    public ICollection<MasterInstrucaoManuseio> InstrucoesManuseios { get; set; }
+
     [Column(TypeName = "varchar(250)")]
     public string  OutrasInstrucoesManuseio { get; set; }
     [Column(TypeName = "varchar(2)")]
@@ -153,8 +153,10 @@ public class Master : BaseEntity
     public string AutenticacaoSignatariaNome { get; set; }
     [Column(TypeName = "varchar(70)")]
     public string AutenticacaoSignatariaLocal { get; set; }
-    public virtual List<UldMaster> ULDs { get; set; } = new List<UldMaster>();
-    public virtual List<ErroMaster> ErrosMaster { get; set; } = new List<ErroMaster>();
+    public virtual List<UldMaster> ULDs { get; set; } = [];
+    public virtual List<ErroMaster> ErrosMaster { get; set; } = [];
+    public virtual List<MasterInstrucaoManuseio> InstrucoesManuseio { get; set; } = [];
+
     public string getULDDetail()
     {
         string uld = "";

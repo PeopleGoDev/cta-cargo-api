@@ -242,6 +242,17 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         }
         catch (WebException ex)
         {
+            if (ex.Response != null)
+            {
+                using (var errorResponse = (HttpWebResponse)ex.Response)
+                {
+                    using (var reader = new StreamReader(errorResponse.GetResponseStream()))
+                    {
+                        string errorJson = await reader.ReadToEndAsync();
+                        // errorJson contains the validation details from the server
+                    }
+                }
+            }
             throw ex;
         }
         catch (Exception ex)

@@ -2,6 +2,7 @@
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Domain.Entities;
+using System.Collections.Generic;
 
 namespace CtaCargo.CctImportacao.Application.Mappings;
 
@@ -251,7 +252,12 @@ public class MappingProfileConfiguration : Profile
         .ForMember(dest => dest.Volume, m => m.MapFrom(a => a.Volume))
         .ForMember(dest => dest.VolumeUN, m => m.MapFrom(a => a.VolumeUN))
         .ForMember(dest => dest.RFBCancelationStatus, m => m.MapFrom(a => a.SituacaoDeletionRFBId))
-        .ForMember(dest => dest.RFBCancelationProtocol, m => m.MapFrom(a => a.ProtocoloDeletionRFB));
+        .ForMember(dest => dest.RFBCancelationProtocol, m => m.MapFrom(a => a.ProtocoloDeletionRFB))
+        .ForMember(dest => dest.InstrucaoManuseios, opt => opt.MapFrom((src, dest, destMember, context) =>
+            context.Mapper.Map<List<MasterInstrucaoManuseioDto>>(src.InstrucoesManuseio)));
+
+        CreateMap<MasterInstrucaoManuseio, MasterInstrucaoManuseioDto>()
+            .ReverseMap();
 
         CreateMap<ErroMaster, MasterErroDto>()
             .ForMember(dest => dest.Erro, m => m.MapFrom(a => a.Erro));
