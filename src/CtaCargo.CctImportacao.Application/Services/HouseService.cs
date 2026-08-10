@@ -13,6 +13,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -298,27 +299,24 @@ public class HouseService : IHouseService
 
         house.CreatedDateTimeUtc = DateTime.UtcNow;
 
-        // Persist Tratamentos Especiais provided in the request (if any)
-        if (houseRequest.TratamentosEspeciais != null && houseRequest.TratamentosEspeciais.Length > 0)
+        houseRequest.TratamentosEspeciais ??= [];
+        house.TratamentosEspeciais ??= [];
+
+        foreach (var te in houseRequest.TratamentosEspeciais)
         {
-            foreach (var te in houseRequest.TratamentosEspeciais)
+            if (string.IsNullOrWhiteSpace(te?.Codigo) && string.IsNullOrWhiteSpace(te?.Descricao))
+                continue;
+
+            var entidadeTratamento = new HouseTratamentoEspecial
             {
-                if (string.IsNullOrWhiteSpace(te?.Codigo) && string.IsNullOrWhiteSpace(te?.Descricao))
-                    continue;
-
-                var entidadeTratamento = new HouseTratamentoEspecial
-                {
-                    Tipo = te.Tipo,
-                    Codigo = te.Codigo?.Trim(),
-                    Descricao = te.Descricao?.Trim(),
-                    EmpresaId = userSession.CompanyId,
-                    CriadoPeloId = userSession.UserId,
-                    CreatedDateTimeUtc = DateTime.UtcNow
-                };
-
-                house.TratamentosEspeciais ??= new List<HouseTratamentoEspecial>();
-                house.TratamentosEspeciais.Add(entidadeTratamento);
-            }
+                Tipo = te.Tipo,
+                Codigo = te.Codigo?.Trim(),
+                Descricao = te.Descricao?.Trim(),
+                EmpresaId = userSession.CompanyId,
+                CriadoPeloId = userSession.UserId,
+                CreatedDateTimeUtc = DateTime.UtcNow
+            };
+            house.TratamentosEspeciais.Add(entidadeTratamento);
         }
 
         HouseEntityValidator validator = new();
@@ -352,7 +350,6 @@ public class HouseService : IHouseService
         if (codigoDestinoId > 0)
             house.AeroportoDestinoId = codigoDestinoId;
 
-
         house.CriadoPeloId = userSession.UserId;
         house.EmpresaId = userSession.CompanyId;
         house.Environment = userSession.Environment;
@@ -381,43 +378,33 @@ public class HouseService : IHouseService
 
     public async Task<ApiResponse<HouseResponseDto>> AtualizarHouse(UserSession userSession, HouseUpdateRequestDto input)
     {
+        var house = await _houseRepository.GetHouseById(userSession.CompanyId, input.HouseId)
+            ?? throw new BusinessException("Não foi possível atualizar o House: House não encontrado !");
 
-        var house = await _houseRepository.GetHouseById(userSession.CompanyId, input.HouseId);
+        house.TratamentosEspeciais ??= [];
+        input.TratamentosEspeciais ??= [];
 
-        if (house == null)
-            throw new BusinessException("Não foi possível atualizar o House: House não encontrado !");
+        foreach (var item in house.TratamentosEspeciais)
+            item.DataExclusao = DateTime.UtcNow;
 
         _mapper.Map(input, house);
 
-        // Synchronize Tratamentos Especiais:
-        // - if input.TratamentosEspeciais is not null => replace existing with provided list
-        // - if input.TratamentosEspeciais is null => keep existing treatments unchanged
-        if (input.TratamentosEspeciais != null)
+        foreach (var te in input.TratamentosEspeciais)
         {
-            // mark existing treatments as excluded (EF will delete them if tracked)
-            if (house.TratamentosEspeciais != null && house.TratamentosEspeciais.Any())
-                foreach (var item in house.TratamentosEspeciais)
-                    item.DataExclusao = DateTime.UtcNow;
+            if (string.IsNullOrWhiteSpace(te?.Codigo) && string.IsNullOrWhiteSpace(te?.Descricao))
+                continue;
 
-
-            foreach (var te in input.TratamentosEspeciais)
+            var entidadeTratamento = new HouseTratamentoEspecial
             {
-                if (string.IsNullOrWhiteSpace(te?.Codigo) && string.IsNullOrWhiteSpace(te?.Descricao))
-                    continue;
+                Tipo = te.Tipo,
+                Codigo = te.Codigo?.Trim(),
+                Descricao = te.Descricao?.Trim(),
+                EmpresaId = userSession.CompanyId,
+                CriadoPeloId = userSession.UserId,
+                CreatedDateTimeUtc = DateTime.UtcNow
+            };
 
-                var entidadeTratamento = new HouseTratamentoEspecial
-                {
-                    Tipo = te.Tipo,
-                    Codigo = te.Codigo?.Trim(),
-                    Descricao = te.Descricao?.Trim(),
-                    EmpresaId = userSession.CompanyId,
-                    CriadoPeloId = userSession.UserId,
-                    CreatedDateTimeUtc = DateTime.UtcNow
-                };
-
-                house.TratamentosEspeciais ??= new List<HouseTratamentoEspecial>();
-                house.TratamentosEspeciais.Add(entidadeTratamento);
-            }
+            house.TratamentosEspeciais.Add(entidadeTratamento);
         }
 
         var agenteDeCarga = await _agenteDeCargaRepository.GetAgenteDeCargaByIataCode(house.EmpresaId, input.AgenteDeCargaNumero);
@@ -452,6 +439,7 @@ public class HouseService : IHouseService
 
         if (await _houseRepository.SaveChanges())
         {
+            house.TratamentosEspeciais = house.TratamentosEspeciais.Where(x => x.DataExclusao == null).ToHashSet();
             var HouseResponseDto = _mapper.Map<HouseResponseDto>(house);
             return
                 new ApiResponse<HouseResponseDto>

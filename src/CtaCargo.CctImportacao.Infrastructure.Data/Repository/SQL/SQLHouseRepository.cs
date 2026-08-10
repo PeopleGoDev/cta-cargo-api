@@ -37,7 +37,7 @@ public class SqlHouseRepository : IHouseRepository
     public async Task<IEnumerable<House>> GetAllHouses(Expression<Func<House, bool>> predicate)
     {
         return await _context.Houses
-            .Include(x => x.TratamentosEspeciais)
+            .Include(x => x.TratamentosEspeciais.Where(x => x.DataExclusao == null))
             .Where(predicate).ToListAsync();
     }
 
@@ -75,7 +75,7 @@ public class SqlHouseRepository : IHouseRepository
     public async Task<House> GetHouseById(int ciaId, int houseId)
     {
         return await _context.Houses
-            .Include(x => x.TratamentosEspeciais.Where(y => y.DataExclusao != null))
+            .Include(x => x.TratamentosEspeciais.Where(y => y.DataExclusao == null))
             .FirstOrDefaultAsync(x => x.EmpresaId == ciaId && x.Id == houseId &&
         x.DataExclusao == null);
     }

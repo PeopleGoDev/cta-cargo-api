@@ -3,6 +3,7 @@ using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
 using CtaCargo.CctImportacao.Domain.Entities;
+using System.Linq;
 
 namespace CtaCargo.CctImportacao.Application.Mappings;
 
@@ -199,7 +200,6 @@ public class MappingProfileConfiguration : Profile
             c.AllowNullCollections = true;
         });
 
-        // Mapping for MasterTratamentoEspecial -> TratamentoEspecialDto
         CreateMap<MasterTratamentoEspecial, TratamentoEspecialDto>();
 
         CreateMap<Master, MasterResponseDto>()
@@ -256,7 +256,6 @@ public class MappingProfileConfiguration : Profile
         .ForMember(dest => dest.VolumeUN, m => m.MapFrom(a => a.VolumeUN))
         .ForMember(dest => dest.RFBCancelationStatus, m => m.MapFrom(a => a.SituacaoDeletionRFBId))
         .ForMember(dest => dest.RFBCancelationProtocol, m => m.MapFrom(a => a.ProtocoloDeletionRFB))
-        // Mapeia tratamentos especiais do Master (filtro para não incluir excluídos)
         .ForMember(dest => dest.TratamentosEspeciais, m => m.MapFrom(a => a.TratamentosEspeciais == null ? null : a.TratamentosEspeciais));
 
         CreateMap<ErroMaster, MasterErroDto>()
@@ -300,7 +299,8 @@ public class MappingProfileConfiguration : Profile
             .ForMember(dest => dest.AeroportoDestinoCodigo, m => m.MapFrom(a => a.AeroportoDestinoCodigo))
             .ForMember(dest => dest.NaturezaCarga, m => m.MapFrom(a => a.GetNaturezaCargaListaString()))
             .ForMember(dest => dest.Volume, m => m.MapFrom(a => a.Volume))
-            .ForMember(dest => dest.VolumeUN, m => m.MapFrom(a => a.VolumeUN));
+            .ForMember(dest => dest.VolumeUN, m => m.MapFrom(a => a.VolumeUN))
+            .ForMember(dest => dest.TratamentosEspeciais, m => m.Ignore());
 
         CreateMap<MasterUpdateRequestDto, Master>()
             .ForMember(dest => dest.Id, m => m.MapFrom(a => a.MasterId))
@@ -340,7 +340,8 @@ public class MappingProfileConfiguration : Profile
             .ForMember(dest => dest.AeroportoDestinoCodigo, m => m.MapFrom(a => a.AeroportoDestinoCodigo))
             .ForMember(dest => dest.NaturezaCarga, m => m.MapFrom(a => a.GetNaturezaCargaListaString()))
             .ForMember(dest => dest.Volume, m => m.MapFrom(a => a.Volume))
-            .ForMember(dest => dest.VolumeUN, m => m.MapFrom(a => a.VolumeUN));
+            .ForMember(dest => dest.VolumeUN, m => m.MapFrom(a => a.VolumeUN))
+            .ForMember(dest => dest.TratamentosEspeciais, m => m.Ignore());
 
         CreateMap<MasterVooQuery, MasterVooResponseDto>();
         CreateMap<MasterListaQuery, MasterListaResponseDto>();
@@ -373,6 +374,8 @@ public class MappingProfileConfiguration : Profile
         #endregion
 
         #region House
+        CreateMap<HouseTratamentoEspecial, TratamentoEspecialDto>();
+
         CreateMap<House, HouseResponseDto>()
             .ForMember(dest => dest.HouseId, m => m.MapFrom(a => a.Id))
             .ForMember(dest => dest.StatusId, m => m.MapFrom(a => a.StatusId))
@@ -417,7 +420,8 @@ public class MappingProfileConfiguration : Profile
             .ForMember(dest => dest.RFBCancelationStatus, m => m.MapFrom(a => a.SituacaoDeletionRFBId))
             .ForMember(dest => dest.RFBCancelationProtocol, m => m.MapFrom(a => a.ProtocoloDeletionRFB))
             .ForMember(dest => dest.NCMLista, m => m.MapFrom(a => a.NcmArray()))
-            .ForMember(dest => dest.NaturezaCarga , m => m.MapFrom(a => a.NaturezaCargaArray()));
+            .ForMember(dest => dest.NaturezaCarga , m => m.MapFrom(a => a.NaturezaCargaArray()))
+            .ForMember(dest => dest.TratamentosEspeciais, m => m.MapFrom(a => a.TratamentosEspeciais == null ? null : a.TratamentosEspeciais)); ;
 
         CreateMap<HouseInsertRequestDto, House>()
             .ForMember(dest => dest.Numero, m => m.MapFrom(a => a.Numero))
@@ -455,7 +459,8 @@ public class MappingProfileConfiguration : Profile
             .ForMember(dest => dest.AeroportoDestinoCodigo, m => m.MapFrom(a => a.AeroportoDestino))
             .ForMember(dest => dest.DataProcessamento, m => m.MapFrom(a => a.DataProcessamento))
             .ForMember(dest => dest.NCMLista, m => m.MapFrom(a => a.GetNCMListaString()))
-            .ForMember(dest => dest.NaturezaCargaLista, m => m.MapFrom(a => a.GetNaturezaCargaString()));
+            .ForMember(dest => dest.NaturezaCargaLista, m => m.MapFrom(a => a.GetNaturezaCargaString()))
+            .ForMember(dest => dest.TratamentosEspeciais, m => m.Ignore());
 
         CreateMap<HouseUpdateRequestDto, House>()
             .ForMember(dest => dest.Id, m => m.MapFrom(a => a.HouseId))
@@ -488,7 +493,8 @@ public class MappingProfileConfiguration : Profile
             .ForMember(dest => dest.AeroportoOrigemCodigo, m => m.MapFrom(a => a.AeroportoOrigem))
             .ForMember(dest => dest.AeroportoDestinoCodigo, m => m.MapFrom(a => a.AeroportoDestino))
             .ForMember(dest => dest.NCMLista, m => m.MapFrom(a => a.GetNCMListaString()))
-            .ForMember(dest => dest.NaturezaCargaLista, m => m.MapFrom(a => a.GetNaturezaCargaString()));
+            .ForMember(dest => dest.NaturezaCargaLista, m => m.MapFrom(a => a.GetNaturezaCargaString()))
+            .ForMember(dest => dest.TratamentosEspeciais, m => m.Ignore());
 
         CreateMap<HouseMasterQuery, HouseMasterResponseDto>();
         #endregion

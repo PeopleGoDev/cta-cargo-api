@@ -16,9 +16,6 @@ public class MasterEntityValidator : AbstractValidator<Master>
 		RuleFor(x => x.AeroportoDestinoId)
 			.NotNull()
 			.WithMessage("Porto de Destino inválido ou não informado.");
-		//RuleFor(x => new { x.NaturezaCarga, x.NaturezaCargaId })
-		//	.Must(obj => ChecarNaturezaOperacao(obj.NaturezaCarga, obj.NaturezaCargaId))
-		//	.WithMessage("Natureza da Operação inválida.");
 		RuleFor(x => x.ConsignatarioNome)
 				.NotEmpty()
 			.WithMessage("Nome do Consignatário não informado.")
@@ -71,14 +68,6 @@ public class MasterEntityValidator : AbstractValidator<Master>
 		RuleFor(x => x.DataEmissaoXML)
 			.NotNull()
 			.WithMessage("Data de emissão é obrigatória.");
-		//RuleFor(x => x.NCMLista)
-		//	.NotNull()
-		//	.WithMessage("É requerido ao menos 1 NCM no master.")
-		//	.NotEmpty()
-		//	.WithMessage("É requerido ao menos 1 NCM no master.");
-		//RuleFor(x => x.CountUldValidas())
-		//	.NotEqual(0)
-		//	.WithMessage("Não há ULD/BLK associado ao Master.");
 		RuleFor(x => x.CodigoConteudo)
 			.NotNull()
 			.WithMessage("Campo Consolidado/Direto é obrigatório.");

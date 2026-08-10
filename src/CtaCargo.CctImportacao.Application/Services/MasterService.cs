@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Azure.Core;
 using CtaCargo.CctImportacao.Application.Dtos;
 using CtaCargo.CctImportacao.Application.Dtos.Request;
 using CtaCargo.CctImportacao.Application.Dtos.Response;
@@ -297,20 +298,36 @@ public class MasterService : IMasterService
         if (input.VooId > 0)
             voo = await _vooRepository.GetVooByIdSimple(userSession.CompanyId, input.VooId);
         else
-        {
             voo = _vooRepository.GetVooIdByDataVooNumero(userSession.CompanyId, dataVoo, input.NumeroVooXML);
-        }
 
         if (voo == null)
             throw new BusinessException($"Voo # {input.NumeroVooXML} não foi encontrado na data do voo {input.DataVoo.ToString("dd/MM/yyyy")}.");
 
-        var master = await _masterRepository.GetMasterById(userSession.CompanyId, input.MasterId);
-
-        if (master == null)
-            throw new BusinessException($"Master não encontrado!");
+        var master = await _masterRepository.GetMasterById(userSession.CompanyId, input.MasterId) 
+            ?? throw new BusinessException($"Master não encontrado!");
 
         if (master.SituacaoRFBId == RFStatusEnvioType.Received)
             throw new BusinessException($"Master não pode ser alterado, pois está em processamento na Receita Federal.");
+
+        foreach(var tratamentoEspecial in master.TratamentosEspeciais)
+            tratamentoEspecial.DataExclusao = DateTime.Now;
+
+        input.TratamentosEspeciais ??= [];
+        master.TratamentosEspeciais ??= [];
+
+        foreach (var tratamentoEspecial in input.TratamentosEspeciais)
+        {
+            master.TratamentosEspeciais.Add(new MasterTratamentoEspecial
+            {
+                Codigo = tratamentoEspecial.Codigo,
+                CreatedDateTimeUtc = DateTime.UtcNow,
+                CriadoPeloId = userSession.UserId,
+                Descricao = tratamentoEspecial.Descricao,
+                EmpresaId = userSession.CompanyId,
+                MasterId = master.Id,
+                Tipo = tratamentoEspecial.Tipo
+            });
+        }
 
         var codigoOrigemId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoOrigemCodigo);
         var codigoDestinoId = await _portoIATARepository.GetPortoIATAIdByCodigo(input.AeroportoDestinoCodigo);
@@ -352,7 +369,7 @@ public class MasterService : IMasterService
         if (await _masterRepository.SaveChanges())
         {
             master.ErrosMaster = master.ErrosMaster.Where(x => x.DataExclusao == null).ToList();
-
+            master.TratamentosEspeciais = master.TratamentosEspeciais.Where(x => x.DataExclusao == null).ToHashSet();
             var MasterResponseDto = _mapper.Map<MasterResponseDto>(master);
             return
                 new ApiResponse<MasterResponseDto>
@@ -650,9 +667,24 @@ public class MasterService : IMasterService
         master.AutenticacaoSignatarioData = input.AssinaturaTransportadorData ?? DateTime.Now;
         master.AutenticacaoSignatariaLocal = input.AeroportoOrigemCodigo ?? voo.PortoIataOrigemInfo.Nome;
 
+        input.TratamentosEspeciais ??= [];
+        master.TratamentosEspeciais ??= [];
+
+        foreach (var tratamentoEspecial in input.TratamentosEspeciais)
+        {
+            master.TratamentosEspeciais.Add(new MasterTratamentoEspecial
+            {
+                Codigo = tratamentoEspecial.Codigo,
+                CreatedDateTimeUtc = DateTime.UtcNow,
+                CriadoPeloId = userSession.UserId,
+                Descricao = tratamentoEspecial.Descricao,
+                EmpresaId = userSession.CompanyId,
+                MasterId = master.Id,
+                Tipo = tratamentoEspecial.Tipo
+            });
+        }
+
         _masterRepository.CreateMaster(userSession.CompanyId, master);
-
-
 
         if (await _masterRepository.SaveChanges())
         {
@@ -665,6 +697,7 @@ public class MasterService : IMasterService
                     uld.MasterId = master.Id;
                 _uldMasterRepository.UpdateUldMaster(uld);
             }
+
             _uldMasterRepository.SaveChanges();
 
             var MasterResponseDto = _mapper.Map<MasterResponseDto>(master);
@@ -679,62 +712,6 @@ public class MasterService : IMasterService
         }
 
         throw new BusinessException("Não Foi possível adicionar o Master: Erro Desconhecido!");
-
-    }
-    private ApiResponse<MasterResponseDto> ErrorHandling(Exception exception)
-    {
-        var sqlEx = exception?.InnerException as SqlException;
-        if (sqlEx != null)
-        {
-            //This is a DbUpdateException on a SQL database
-
-            if (sqlEx.Number == SqlServerViolationOfUniqueIndex)
-            {
-                //We have an error we can process
-                return new ApiResponse<MasterResponseDto>
-                {
-                    Dados = null,
-                    Sucesso = false,
-                    Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = $"SQL{sqlEx.Number.ToString()}",
-                                Mensagem = $"Já existe um Master cadastrado com o mesmo número e voo !"
-                            }
-                    }
-                };
-            }
-            else
-            {
-                return new ApiResponse<MasterResponseDto>
-                {
-                    Dados = null,
-                    Sucesso = false,
-                    Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = $"SQL{sqlEx.Number.ToString()}",
-                                Mensagem = $"{sqlEx.Message}"
-                            }
-                    }
-                };
-            }
-        }
-        else
-        {
-            return new ApiResponse<MasterResponseDto>
-            {
-                Dados = null,
-                Sucesso = false,
-                Notificacoes = new List<Notificacao>() {
-                            new Notificacao
-                            {
-                                Codigo = $"9999",
-                                Mensagem = $"{exception.Message}"
-                            }
-                    }
-            };
-        }
 
     }
 

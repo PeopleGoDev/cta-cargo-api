@@ -156,7 +156,7 @@ public class Master : BaseEntity
     public virtual List<UldMaster> ULDs { get; set; } = new List<UldMaster>();
     public virtual List<ErroMaster> ErrosMaster { get; set; } = new List<ErroMaster>();
     // Nova relação: múltiplos tratamentos especiais por Master
-    public virtual ICollection<MasterTratamentoEspecial> TratamentosEspeciais { get; set; } = new List<MasterTratamentoEspecial>();
+    public virtual HashSet<MasterTratamentoEspecial> TratamentosEspeciais { get; set; }
     public string getULDDetail()
     {
         string uld = "";

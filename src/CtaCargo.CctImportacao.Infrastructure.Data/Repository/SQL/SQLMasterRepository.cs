@@ -265,4 +265,14 @@ public class SqlMasterRepository : IMasterRepository
             .Where(x => x.EmpresaId == ciaId && x.Destination == "MASTER" && x.DataExclusao == null)
             .ToList();
     }
+
+    public void UpdateMasterTratamentoEspecial(MasterTratamentoEspecial tratamentoEspecial)
+    {
+        _context.MasterTratamentosEspeciais.Update(tratamentoEspecial);
+    }
+
+    public void InsertMasterTratamentoEspecial(MasterTratamentoEspecial tratamentoEspecial)
+    {
+        _context.MasterTratamentosEspeciais.Add(tratamentoEspecial);
+    }
 }
