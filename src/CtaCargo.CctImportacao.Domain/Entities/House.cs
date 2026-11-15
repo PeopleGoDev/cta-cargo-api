@@ -204,4 +204,7 @@ public class House : BaseEntity
 
     // Nova relação: múltiplos tratamentos especiais por House
     public virtual ICollection<HouseTratamentoEspecial> TratamentosEspeciais { get; set; } = new List<HouseTratamentoEspecial>();
+    
+    [Column(TypeName = "datetime")]
+    public DateTime? DataAssinaturaTransporte { get; set; }
 }

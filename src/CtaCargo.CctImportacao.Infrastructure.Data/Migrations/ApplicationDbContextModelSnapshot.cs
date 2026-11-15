@@ -790,6 +790,9 @@ namespace CtaCargo.CctImportacao.Infrastructure.Data.Migrations
                     b.Property<int>("CriadoPeloId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("DataAssinaturaTransporte")
+                        .HasColumnType("datetime");
+
                     b.Property<DateTime?>("DataChecagemAssociacaoRFB")
                         .HasColumnType("datetime2");
 

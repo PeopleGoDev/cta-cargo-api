@@ -775,22 +775,20 @@ public class HouseService : IHouseService
             var association = GenerateNewMasterHouseAssociation(
                 userSession, processDate, houseList, documentId, item.MasterNumber, item.CarrierDeclarationDate);
 
-            if (await SaveMasterHouseAssociation(association) > 0)
+            foreach (int houseId in item.HouseIds)
             {
-                foreach (int houseId in item.HouseIds)
+                association.MasterHouseAssociationChildren ??= [];
+                association.MasterHouseAssociationChildren.Add(new MasterHouseAssociationChild
                 {
-                    MasterHouseAssociationChild child = new MasterHouseAssociationChild
-                    {
-                        EmpresaId = userSession.CompanyId,
-                        CreatedDateTimeUtc = DateTime.UtcNow,
-                        CriadoPeloId = userSession.UserId,
-                        HouseId = houseId,
-                        MasterHouseAssociationId = association.Id
-                    };
-
-                    _masterHouseAssociacaoRepository.InsertMasterHouseAssociationChild(child);
-                }
+                    EmpresaId = userSession.CompanyId,
+                    CreatedDateTimeUtc = DateTime.UtcNow,
+                    CriadoPeloId = userSession.UserId,
+                    HouseId = houseId,
+                    MasterHouseAssociationId = association.Id
+                });
             }
+
+            await SaveMasterHouseAssociation(association);
         }
 
         return response;

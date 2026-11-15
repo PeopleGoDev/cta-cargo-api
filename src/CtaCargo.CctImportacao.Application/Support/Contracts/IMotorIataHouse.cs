@@ -9,6 +9,6 @@ namespace CtaCargo.CctImportacao.Application.Support.Contracts;
 public interface IMotorIataHouse
 {
     string GenHouseManifest(House house, List<NaturezaCarga> naturezaCargaList, IataXmlPurposeCode purposeCode);
-    string GenMasterHouseManifest(SubmeterRFBMasterHouseItemRequest masterInfo, List<House> houses, IataXmlPurposeCode purposeCode, DateTime issueDate);
-    string GenMasterHouseManifest(IEnumerable<MasterHouseAssociacao> associationList, IataXmlPurposeCode purposeCode);
+    string GenMasterHouseManifest(string agenteDeCaragaCnpj, SubmeterRFBMasterHouseItemRequest masterInfo, List<House> houses, IataXmlPurposeCode purposeCode, DateTime issueDate);
+    string GenMasterHouseManifest(string agenteDeCaragaCnpj, IEnumerable<MasterHouseAssociacao> associationList, IataXmlPurposeCode purposeCode);
 }

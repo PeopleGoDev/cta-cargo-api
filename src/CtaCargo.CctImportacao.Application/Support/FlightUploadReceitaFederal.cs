@@ -59,12 +59,7 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         }
         
     }
-    public async Task<ReceitaRetornoProtocol> SubmitWaybill_old(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado)
-    {
-        var response = await _masterRfb.Submit(cnpj, xml, token.SetToken, token.XCSRFToken);
 
-        return GetProtocolResponse(response);
-    }
     public async Task<ReceitaRetornoProtocol> SubmitWaybill(string cnpj, string xml, TokenResponse token, X509Certificate2 certificado)
     {
         try
@@ -173,25 +168,6 @@ public class FlightUploadReceitaFederal : IUploadReceitaFederal
         string statusCode = "";
         string reason = "";
         DateTime? issueDate = null;
-
-        try
-        {
-            var response = await request.GetResponseAsync();
-        }
-        catch (WebException ex)
-        {
-            if (ex.Response != null)
-            {
-                using (var errorResponse = (HttpWebResponse)ex.Response)
-                {
-                    using (var reader = new StreamReader(errorResponse.GetResponseStream()))
-                    {
-                        string errorJson = await reader.ReadToEndAsync();
-                        // errorJson contains the validation details from the server
-                    }
-                }
-            }
-        }
 
         using (var webResponse = await request.GetResponseAsync())
         {

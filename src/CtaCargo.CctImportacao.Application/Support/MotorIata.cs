@@ -76,7 +76,8 @@ public class MotorIata : IMotorIata
                 {
                     Name = new Flight.TextType { Value = voo.PrefixoAeronave }
                 };
-            };
+            }
+            ;
 
             double totalWeightGross = voo.Masters.Sum(x => x.PesoTotalBruto);
             int totalPecas = voo.Masters.Sum(x => x.TotalPecas);
@@ -187,9 +188,9 @@ public class MotorIata : IMotorIata
                             {
                                 PrimaryID = new() { Value = item.ULDIdPrimario }
                             },
-                            PieceQuantity = new() 
-                            { 
-                                Value = Convert.ToDecimal(item.Pecas) 
+                            PieceQuantity = new()
+                            {
+                                Value = Convert.ToDecimal(item.Pecas)
                             },
                             GrossWeightMeasure = new()
                             {
@@ -251,7 +252,8 @@ public class MotorIata : IMotorIata
                                     SubjectCode = new Flight.CodeType { Value = "WBI" },
                                     CountryID = new Flight.CountryIDType { Value = Flight.ISOTwoletterCountryCodeIdentifierContentType.BR }
                                 };
-                            };
+                            }
+                            ;
 
                             masterConsigments.Add(masterC);
                         }
@@ -315,7 +317,8 @@ public class MotorIata : IMotorIata
                                 SubjectCode = new Flight.CodeType { Value = "WBI" },
                                 CountryID = new Flight.CountryIDType { Value = Flight.ISOTwoletterCountryCodeIdentifierContentType.BR }
                             };
-                        };
+                        }
+                        ;
 
                         masterConsigments.Add(masterC);
                     }
@@ -562,23 +565,63 @@ public class MotorIata : IMotorIata
         #endregion
 
         #region MasterConsigment > HandlingSPHInstructions
+
+        List<SPHInstructionsType> specialTreatmentInstruction = [];
+        List<SSRInstructionsType> specialServiceInstruction = [];
+        List<OSIInstructionsType> otherServiceInstruction = [];
+
         if (master.NaturezaCarga != null)
         {
             var naturezaCargas = master.NaturezaCarga.Split(",");
-            List<Waybill.SPHInstructionsType> instructions = new List<Waybill.SPHInstructionsType>();
 
             foreach (var nat in naturezaCargas)
             {
-                instructions.Add(new Waybill.SPHInstructionsType
+                specialTreatmentInstruction.Add(new SPHInstructionsType
                 {
-                    DescriptionCode = new Waybill.CodeType { Value = nat }
+                    DescriptionCode = new CodeType { Value = nat }
                 });
             }
-            masterConsigment.HandlingSPHInstructions = instructions.ToArray();
         }
+
+        foreach (var tratamentoEspecial in master.TratamentosEspeciais)
+        {
+            switch (tratamentoEspecial.Tipo) {
+                case CargoHangling.SpecialTreament:
+                    specialTreatmentInstruction.Add(new SPHInstructionsType
+                    {
+                        DescriptionCode = new CodeType { Value = tratamentoEspecial.Codigo },
+                        Description = new TextType { Value = tratamentoEspecial.Descricao }
+                    });
+                    break;
+                case CargoHangling.SpecialService:
+                    specialServiceInstruction.Add(new SSRInstructionsType
+                    {
+                        DescriptionCode = new CodeType { Value = tratamentoEspecial.Codigo },
+                        Description = new TextType { Value = tratamentoEspecial.Descricao }
+                    });
+                    break;
+                case CargoHangling.OtherServiceInformation:
+                    otherServiceInstruction.Add(new OSIInstructionsType
+                    {
+                        DescriptionCode = new CodeType { Value = tratamentoEspecial.Codigo },
+                        Description = new TextType { Value = tratamentoEspecial.Descricao }
+                    });
+                    break;
+            }
+        }
+
+        if(specialTreatmentInstruction.Count != 0)
+            masterConsigment.HandlingSPHInstructions = [.. specialTreatmentInstruction];
+
+        if(specialServiceInstruction.Count != 0)
+            masterConsigment.HandlingSSRInstructions = [.. specialServiceInstruction];
+
+        if(otherServiceInstruction.Count != 0)
+            masterConsigment.HandlingOSIInstructions = [.. otherServiceInstruction];
+
         #endregion
 
-        #region MasterConsigment - IncludedCustomsNote
+            #region MasterConsigment - IncludedCustomsNote
         string tipoDoc = "";
 
         var customsNote = new List<Waybill.CustomsNoteType>();
@@ -601,8 +644,10 @@ public class MotorIata : IMotorIata
                     ContentCode = new Waybill.CodeType() { Value = "T" },
                     Content = new Waybill.TextType() { Value = tipoDoc }
                 });
-            };
-        };
+            }
+            ;
+        }
+        ;
 
 
         if (master.CodigoRecintoAduaneiro != null && master.CodigoRecintoAduaneiro.Length == 7)
@@ -722,7 +767,8 @@ public class MotorIata : IMotorIata
                     }
                 }
             };
-        };
+        }
+        ;
         masterConsignmentItem.PieceQuantity = new Waybill.QuantityType { Value = master.TotalPecas };
         masterConsignmentItem.NatureIdentificationTransportCargo = new Waybill.TransportCargoType();
         masterConsignmentItem.NatureIdentificationTransportCargo.Identification = new Waybill.TextType()

@@ -21,10 +21,13 @@ public class MasterEntityValidator : AbstractValidator<Master>
 			.WithMessage("Nome do Consignatário não informado.")
 			.NotNull()
 			.WithMessage("Nome do Consignatário não informado.");
-		RuleFor(x => x.ConsignatarioPaisCodigo)
-		.MinimumLength(2)
-			.WithMessage("Sigla do País do consignatário inválido ou não informado.");
-		RuleFor(x => new { x.ConsignatarioCNPJ, x.ConsignatarioPaisCodigo })
+        RuleFor(x => x.ConsignatarioPaisCodigo)
+			.MinimumLength(2)
+			.WithMessage("Sigla do País do remetente inválido ou não informado.");
+			 RuleFor(x => x.ExpedidorPaisCodigo)
+        .MinimumLength(2)
+            .WithMessage("Sigla do País do consignatário inválido ou não informado.");
+        RuleFor(x => new { x.ConsignatarioCNPJ, x.ConsignatarioPaisCodigo })
 			.Must(cnpj => CheckCNPJ(cnpj.ConsignatarioCNPJ, cnpj.ConsignatarioPaisCodigo))
 			.WithMessage("CNPJ do consignatário invalido");
 		RuleFor(x => x.TotalPecas)

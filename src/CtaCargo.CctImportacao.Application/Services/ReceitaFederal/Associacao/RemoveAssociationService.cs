@@ -132,7 +132,7 @@ public class RemoveAssociationService : IRemoveAssociationService
         var operation = IataXmlPurposeCode.Deletion;
 
         string xmlAssociacao = _motorIataHouse
-            .GenMasterHouseManifest(associationList, operation);
+            .GenMasterHouseManifest(freightFowarderCnpj, associationList, operation);
 
         var responseAssociacao = await _uploadReceitaFederal
             .SubmitHouseMaster(freightFowarderCnpj, xmlAssociacao, token, certificado);

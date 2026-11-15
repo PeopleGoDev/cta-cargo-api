@@ -583,7 +583,7 @@ public class ReceitaHouseService : IReceitaHouseService
     }
 
     private async Task SubmeterHouseMasterAssociacao(UserSession userSession,
-        string FreightFowarderTaxId,
+        string freightFowarderTaxId,
         SubmeterRFBMasterHouseItemRequest masterInfo,
         List<House> houses,
         MasterHouseAssociacao associacao,
@@ -625,10 +625,10 @@ public class ReceitaHouseService : IReceitaHouseService
         }
 
         string xmlAssociacao = _motorIataHouse
-            .GenMasterHouseManifest(masterInfo, houses, operation, associacao.CreatedDateTimeUtc);
+            .GenMasterHouseManifest(freightFowarderTaxId, masterInfo, houses, operation, associacao.CreatedDateTimeUtc);
 
         var responseAssociacao = await _uploadReceitaFederal
-            .SubmitHouseMaster(FreightFowarderTaxId, xmlAssociacao, token, certificado);
+            .SubmitHouseMaster(freightFowarderTaxId, xmlAssociacao, token, certificado);
 
         await ProcessarRetornoEnvioArquivoHouseMaster(responseAssociacao, associacao, houses);
 
@@ -852,7 +852,7 @@ public class ReceitaHouseService : IReceitaHouseService
     }
 
     private async Task SubmitHouseMasterAssociationAsync(
-        string FreightFowarderTaxId,
+        string freightFowarderTaxId,
         IEnumerable<MasterHouseAssociacao> associationList,
         TokenResponse token,
         X509Certificate2 certificado)
@@ -878,10 +878,10 @@ public class ReceitaHouseService : IReceitaHouseService
         if (associationList.Any(x => x.SituacaoAssociacaoRFBId == 2))
             operation = IataXmlPurposeCode.Update;
 
-        string xmlAssociacao = _motorIataHouse.GenMasterHouseManifest(associationList, operation);
+        string xmlAssociacao = _motorIataHouse.GenMasterHouseManifest(freightFowarderTaxId, associationList, operation);
 
         var responseAssociacao = await _uploadReceitaFederal
-            .SubmitHouseMaster(FreightFowarderTaxId, xmlAssociacao, token, certificado);
+            .SubmitHouseMaster(freightFowarderTaxId, xmlAssociacao, token, certificado);
 
         await ProcessMasterHouseRFBAsync(responseAssociacao, associationList);
 

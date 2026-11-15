@@ -47,7 +47,7 @@ public class SqlHouseRepository : IHouseRepository
             .Include(x => x.AgenteDeCargaInfo)
             .Include(x => x.AeroportoOrigemInfo)
             .Include(x => x.AeroportoDestinoInfo)
-            .Include(x => x.TratamentosEspeciais)
+            .Include(x => x.TratamentosEspeciais.Where(y => y.DataExclusao == null))
             .Where(param.ToPredicate())
             .OrderBy(x => x.MasterNumeroXML)
             .ToList();

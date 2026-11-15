@@ -105,7 +105,7 @@ public class ExceptionMiddleware
             Dados = null,
             Notificacoes = new List<Notificacao>
             {
-                new Notificacao(Domain.Enums.CodigoNotificacao.ErroInesperado, MensagemErro.ErroInesperado)
+                new(Domain.Enums.CodigoNotificacao.ErroInesperado, $"{MensagemErro.ErroInesperado}: {exception.Message} {exception.StackTrace.ToString()}")
             }
         };
 
